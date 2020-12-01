@@ -25,23 +25,29 @@ public:
 #pragma pack(pop)
 VALIDATE_SIZE(CBirdColor, 0x3);
 
+enum eBirdMode : char
+{
+    BIRD_DRAW_UPDATE = 0x1, // Bird is drawn, but doesn't update position
+    BIRD_DRAW_NOUPDATE = 0x2, // Bird is drawn and updates position
+};
+
 #pragma pack(push, 1)
 class  CBird {
 public:
-    CVector     m_vecPosn;            // Bird position
-    CVector     m_vecCurrentVelocity; // Velocity in the current frame
-    CVector     m_vecTargetVelocity;  // Velocity (constant if the bird is not doing curves)
-    float       m_fAngle;             // Bird angle
-    int         field_28;             // Always 0
-    int         m_nWingStillness;     // How still are the wings
-    float       m_fSize;              // Bird size
-    float       m_fMaxBirdDistance;   // When the bird is in this distance from the camera, it will disappear.
-                                  // Used also in rendering process to determine the alpha level of the bird.
-    char        field_38;             // Always 1, if different than 1 or 2 the bird will not be rendered
-    CBirdColor  m_BodyColor;          // Body color
-    CBirdColor  m_WingsColor;         // Wing tips color
-    bool        m_bCreated;           // This flags indicates if in this index there's a bird created
-    bool        m_bMustDoCurves;      // If this flag is true the bird will do curves
+    CVector         m_vecPosn;            // Bird position
+    CVector         m_vecCurrentVelocity; // Velocity in the current frame
+    CVector         m_vecTargetVelocity;  // Velocity (constant if the bird is not flying in circles)
+    float           m_fAngle;             // Bird angle
+    unsigned int    m_nUpdateAfterMS;     // Always 0, if a value is written here, bird position isn't updated till CTimer::m_snTimeInMilliseconds is bigger than this value
+    int             m_nWingStillness;     // How still are the wings
+    float           m_fSize;              // Bird size
+    float           m_fMaxBirdDistance;   // When the bird is in this distance from the camera, it will disappear.
+                                          // Used also in rendering process to determine the alpha level of the bird.
+    eBirdMode       m_eBirdMode;          // Always 1, if set to 2 then bird is drawn but doesn't update it's position, if it's set to anything else then bird isn't updated nor drawn
+    CBirdColor      m_BodyColor;          // Body color
+    CBirdColor      m_WingsColor;         // Wing tips color
+    bool            m_bCreated;           // This flags indicates if in this index there's a bird created
+    bool            m_bMustDoCurves;      // If this flag is true the bird will fly in circles
 private:
     char _pad41[3];
 public:
@@ -58,7 +64,7 @@ public:
     static CVector &vecBirdShotAt;
 
     static void Init();
-    static int CreateNumberOfBirds(CVector pos, CVector destination, int count, eBirdsBiome biome, bool checkObstacles);
+    static int CreateNumberOfBirds(float fPosX, float fPosY, float fPosZ, float fDirX, float fDirY, float fDirZ, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles);
     static void Shutdown();
     static void Update();
     static void Render();

@@ -32,6 +32,11 @@ void CBirds::Init()
 #endif
 }
 
+int CBirds::CreateNumberOfBirds(float fPosX, float fPosY, float fPosZ, float fDirX, float fDirY, float fDirZ, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles)
+{
+    ((void(__cdecl*)(float, float, float, float, float, float, int, eBirdsBiome, bool))0x711EF0)(fPosX, fPosY, fPosZ, fDirX, fDirY, fDirZ, iBirdCount, eBiome, bCheckObstacles);
+}
+
 void CBirds::Shutdown()
 {
 #ifdef USE_DEFAULT_FUNCTIONS
@@ -51,7 +56,7 @@ void CBirds::Update()
 #ifdef USE_DEFAULT_FUNCTIONS
     ((void(__cdecl*)())0x712330)();
 #else
-    auto vecCamPos = TheCamera.GetPosition();
+    auto const& vecCamPos = TheCamera.GetPosition();
 
     if (!CGame::currArea
         && CBirds::uiNumberOfBirds < 6
@@ -102,18 +107,68 @@ void CBirds::Update()
                 if (rand() & 1)
                     fSpawnAngleCamRelative = (float)((char)rand()) * 0.024531251; // [0-255] mapped to [0 - 2π]
                 else {
-                    auto vecCamForward = TheCamera.m_mCameraMatrix.GetForward();
-                    vecCamForward.z = 0;
-                    if (vecCamForward.x == 0.0F)
-                        vecCamForward.x = 0.01F;
+                    auto vecForward = TheCamera.m_mCameraMatrix.GetForward();
+                    vecForward.z = 0.0F;
+                    if (vecForward.x == 0.0F)
+                        vecForward.x = 0.01F;
 
-                    fSpawnAngleCamRelative = (float)((char)rand() - 128) / 256.0F + atan2(vecCamForward.x, vecCamForward.y);
+                    vecForward.Normalise();
+                    fSpawnAngleCamRelative = (float)((char)rand() - 128) / 256.0F + atan2(vecForward.x, vecForward.y);
+                }
+
+                auto vecBirdSpawnPos = CVector(sin(fSpawnAngleCamRelative) * fSpawnDistance + vecCamPos.x,
+                                               cos(fSpawnAngleCamRelative) * fSpawnDistance + vecCamPos.y,
+                                               fBirdSpawnZ);
+
+                float fWaterLevel;
+                if (!CWaterLevel::GetWaterLevelNoWaves(vecBirdSpawnPos.x, vecBirdSpawnPos.y, vecBirdSpawnPos.z, &fWaterLevel, nullptr, nullptr) || fWaterLevel + 4.0F < fBirdSpawnZ) {
+                    auto vecForward = TheCamera.m_mCameraMatrix.GetForward();
+                    vecForward.z = 0.0F;
+                    vecForward.Normalise();
+
+                    auto vecFlightDir = vecCamPos + (vecForward * 8.0F);
+                    vecFlightDir.z = fBirdSpawnZ;
+
+                    CBirds::CreateNumberOfBirds(vecBirdSpawnPos.x, vecBirdSpawnPos.y, vecBirdSpawnPos.z,
+                                                vecFlightDir.x, vecFlightDir.y, vecFlightDir.z,
+                                                iNumBirdsToCreate, eBiome, true);
                 }
             }
         }
+
+        int iBirdIndex = CTimer::m_FrameCounter % 6U;
+        auto& pCheckedBird = CBirds::aBirds[iBirdIndex];
+        if (pCheckedBird.m_bCreated && DistanceBetweenPoints(CVector2D(pCheckedBird.m_vecPosn), CVector2D(vecCamPos)) > pCheckedBird.m_fMaxBirdDistance)
+        {
+            pCheckedBird.m_bCreated = false;
+            CBirds::uiNumberOfBirds--;
+        }
+
+        for (int32_t i = 0; i < MAX_BIRDS; ++i) {
+            auto& pBird = aBirds[i];
+            if (!pBird.m_bCreated)
+                continue;
+
+            if (pBird.m_eBirdMode != eBirdMode::BIRD_DRAW_UPDATE || pBird.m_nUpdateAfterMS <= CTimer::m_snTimeInMilliseconds)
+                continue;
+
+            if (pBird.m_bMustDoCurves) {
+                auto fCircleProgress = CTimer::ms_fTimeStep / 500.0F;
+                auto vecCurTarget = CVector2D(pBird.m_vecTargetVelocity);
+                auto fSinAngle = sin(fCircleProgress);
+                auto fCosAngle = cos(fCircleProgress);
+
+                pBird.m_vecTargetVelocity.x = fCosAngle * vecCurTarget.x + fSinAngle * vecCurTarget.y;
+                pBird.m_vecTargetVelocity.y = fCosAngle * vecCurTarget.y - fSinAngle * vecCurTarget.x;
+            }
+
+            auto fTimeStep = CTimer::ms_fTimeStep / 50.0F;
+            auto fLerp = std::min(fTimeStep * 0.5F, 1.0F);
+            pBird.m_vecCurrentVelocity = pBird.m_vecCurrentVelocity * (1.0F - fLerp) + pBird.m_vecTargetVelocity * fLerp;
+            pBird.m_vecPosn += (fTimeStep * pBird.m_vecCurrentVelocity);
+            pBird.m_fAngle = atan2(pBird.m_vecTargetVelocity.x, pBird.m_vecTargetVelocity.y);
+        }
     }
-
-
 #endif
 }
 
