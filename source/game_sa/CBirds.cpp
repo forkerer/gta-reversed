@@ -65,16 +65,16 @@ void CBirds::Update()
         && (CTimer::m_FrameCounter & 0x1FF) == 6) {
 
         int iNumBirdsToCreate = CGeneral::GetRandomNumberInRange(1, 7 - CBirds::uiNumberOfBirds);
-        eBirdsBiome eBiome = BIOME_WATER;
+        eBirdsBiome eBiome = eBirdsBiome::BIOME_WATER;
 
         if (TheCamera.m_fDistanceToWater > 30.0F){
             if (CWeather::WeatherRegion == eWeatherRegion::WEATHER_REGION_DESERT) {
-                eBiome = BIOME_DESERT;
+                eBiome = eBirdsBiome::BIOME_DESERT;
                 if (iNumBirdsToCreate >= 3 - CBirds::uiNumberOfBirds)
                     iNumBirdsToCreate = 3 - CBirds::uiNumberOfBirds;
             }
             else {
-                eBiome = BIOME_NORMAL;
+                eBiome = eBirdsBiome::BIOME_NORMAL;
             }
         }
 
@@ -86,15 +86,15 @@ void CBirds::Update()
             float fSpawnDistance;
 
             switch (eBiome) {
-            case BIOME_WATER:
+            case eBirdsBiome::BIOME_WATER:
                 fFlightHeight = CGeneral::GetRandomNumberInRange(4.0F, 13.0F);
                 fSpawnDistance = 45.0F;
                 break;
-            case BIOME_DESERT:
+            case eBirdsBiome::BIOME_DESERT:
                 fFlightHeight = CGeneral::GetRandomNumberInRange(15.0F, 25.0F);
                 fSpawnDistance = 80.0F;
                 break;
-            case BIOME_NORMAL:
+            case eBirdsBiome::BIOME_NORMAL:
                 fFlightHeight = CGeneral::GetRandomNumberInRange(2.0F, 10.0F);
                 fSpawnDistance = 40.0F;
                 break;
