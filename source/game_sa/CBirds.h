@@ -64,7 +64,7 @@ public:
     static CVector &vecBirdShotAt;
 
     static void Init();
-    static int CreateNumberOfBirds(float fPosX, float fPosY, float fPosZ, float fDirX, float fDirY, float fDirZ, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles);
+    static void CreateNumberOfBirds(float fPosX, float fPosY, float fPosZ, float fDirX, float fDirY, float fDirZ, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles);
     static void Shutdown();
     static void Update();
     static void Render();
