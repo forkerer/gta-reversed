@@ -17,6 +17,7 @@ void CBirds::InjectHooks()
     HookInstall(0x712300, &CBirds::Shutdown);
     HookInstall(0x712E40, &CBirds::HandleGunShot);
     HookInstall(0x712330, &CBirds::Update);
+    HookInstall(0x711EF0, &CBirds::CreateNumberOfBirds);
 }
 
 void CBirds::Init()
@@ -33,9 +34,102 @@ void CBirds::Init()
 #endif
 }
 
-void CBirds::CreateNumberOfBirds(float fPosX, float fPosY, float fPosZ, float fDirX, float fDirY, float fDirZ, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles)
+void CBirds::CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles)
 {
-    ((void(__cdecl*)(float, float, float, float, float, float, int, eBirdsBiome, bool))0x711EF0)(fPosX, fPosY, fPosZ, fDirX, fDirY, fDirZ, iBirdCount, eBiome, bCheckObstacles);
+#ifdef USE_DEFAULT_FUNCTIONS
+    ((void(__cdecl*)(CVector, CVector, int, eBirdsBiome, bool))0x711EF0)(vecStartPos, vecTargetPos, iBirdCount, eBiome, bCheckObstacles);
+#else
+    float fMaxDistance;
+
+    switch (eBiome) {
+    case eBirdsBiome::BIOME_WATER:
+        fMaxDistance = 45.0F;
+        break;
+    case eBirdsBiome::BIOME_DESERT:
+        fMaxDistance = 80.0F;
+        break;
+    case eBirdsBiome::BIOME_NORMAL:
+    default:
+        fMaxDistance = 40.0F;
+        break;
+    }
+
+    if (iBirdCount <= 0)
+        return;
+
+    for (int32_t i = 0; i < iBirdCount; ++i) {
+        int iFreeBirdIndex = 0;
+        while (iFreeBirdIndex < MAX_BIRDS) {
+            auto& pBird = CBirds::aBirds[iFreeBirdIndex];
+            if (!pBird.m_bCreated)
+                break;
+
+            ++iFreeBirdIndex;
+        }
+
+        if (iFreeBirdIndex >= MAX_BIRDS)
+            return;
+
+        auto& pBird = CBirds::aBirds[iFreeBirdIndex];
+        pBird.m_vecPosn = vecStartPos;
+
+        auto vecBirdDirection = vecTargetPos - pBird.m_vecPosn;
+        vecBirdDirection.Normalise();
+        auto vecCheckPos = pBird.m_vecPosn + (vecBirdDirection * fMaxDistance * 2.4F);
+        if (bCheckObstacles && !CWorld::GetIsLineOfSightClear(pBird.m_vecPosn, vecCheckPos, true, false, false, false, false, false, false))
+            continue;
+
+        auto fAngle = atan2(vecBirdDirection.x, vecBirdDirection.y);
+        unsigned int iSpeedRandFactor = rand() % 31;
+
+        ++CBirds::uiNumberOfBirds;
+        pBird.m_bCreated = true;
+        pBird.m_fMaxBirdDistance = fMaxDistance;
+        pBird.m_eBirdMode = eBirdMode::BIRD_DRAW_UPDATE;
+        pBird.m_nUpdateAfterMS = 0;
+        pBird.m_bMustDoCurves = false;
+        pBird.m_fAngle = fAngle;
+        pBird.m_vecPosn.x += BIRD_CREATION_COORS_X[i];
+        pBird.m_vecPosn.y += BIRD_CREATION_COORS_Y[i];
+        pBird.m_vecPosn.z += BIRD_CREATION_COORS_Z[i];
+
+        float fSpeedMult;
+        float fSizeRand = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        switch (eBiome) {
+        case eBirdsBiome::BIOME_WATER:
+            fSpeedMult = (float)iSpeedRandFactor * 0.02F + 4.0F;  // [4.0 : 4.6]
+            pBird.m_BodyColor.Set((rand() & 0x3F) + 0x50);          // [80 : 143]
+            pBird.m_WingsColor.Set((rand() & 0x3F) - 0x4C);         // [166 : 242]
+            pBird.m_fSize = fSizeRand * 0.4F + 0.8F;                // [0.8 : 1.2]
+            pBird.m_nWingStillness = 1000 - 12 * iSpeedRandFactor;  // [640 : 1000]
+            break;
+        case eBirdsBiome::BIOME_DESERT:
+            fSpeedMult = (float)iSpeedRandFactor * 0.02F + 3.0F;  // [3.0 : 3.6]
+            pBird.m_BodyColor.Set(30, 15, 10);
+            pBird.m_WingsColor.Set(80, 15, 10);
+            pBird.m_fSize = fSizeRand * 0.5F + 2.0F;                // [2.0 : 2.5]
+            pBird.m_nWingStillness = 12 * (125 - iSpeedRandFactor); // [1140 : 1500]
+            if (rand() & 4)
+                pBird.m_nWingStillness = 1000000; // Not moving it's wings
+
+            if (rand() & 8)
+                pBird.m_bMustDoCurves = true;
+
+            break;
+        case eBirdsBiome::BIOME_NORMAL:
+        default:
+            fSpeedMult = (float)iSpeedRandFactor * 0.02F + 5.0F;  // [5.0 : 5.6]
+            pBird.m_BodyColor.Set((rand() & 0x7F) + 0x80);          // [127 : 255]
+            pBird.m_WingsColor.Set((rand() & 0x7F) + 0x80);         // [127 : 255]
+            pBird.m_fSize = fSizeRand * 0.1F + 0.5F;                // [0.5 : 0.6]
+            pBird.m_nWingStillness = 500 - 6 * iSpeedRandFactor;    // [320 : 500]
+            break;
+        }
+
+        pBird.m_vecTargetVelocity = vecBirdDirection * fSpeedMult;
+        pBird.m_vecCurrentVelocity = pBird.m_vecTargetVelocity;
+    }
+#endif
 }
 
 void CBirds::Shutdown()
@@ -61,11 +155,11 @@ void CBirds::Update()
 
     if (!CGame::currArea
         && CBirds::uiNumberOfBirds < MAX_BIRDS
-        && CClock::ms_nGameClockHours < 22u
-        && CClock::ms_nGameClockHours > 5u
+        && CClock::ms_nGameClockHours < 22U
+        && CClock::ms_nGameClockHours > 5U
         && (CTimer::m_FrameCounter & 0x1FF) == MAX_BIRDS) {
 
-        int iNumBirdsToCreate = CGeneral::GetRandomNumberInRange(1, MAX_BIRDS + 1 - CBirds::uiNumberOfBirds);
+        auto iNumBirdsToCreate = CGeneral::GetRandomNumberInRange(1, MAX_BIRDS + 1 - CBirds::uiNumberOfBirds);
         eBirdsBiome eBiome = eBirdsBiome::BIOME_WATER;
 
         if (TheCamera.m_fDistanceToWater > 30.0F) {
@@ -96,6 +190,7 @@ void CBirds::Update()
                 fSpawnDistance = 80.0F;
                 break;
             case eBirdsBiome::BIOME_NORMAL:
+            default:
                 fFlightHeight = CGeneral::GetRandomNumberInRange(2.0F, 10.0F);
                 fSpawnDistance = 40.0F;
                 break;
@@ -106,7 +201,7 @@ void CBirds::Update()
                 float fSpawnAngleCamRelative;
 
                 if (rand() & 1)
-                    fSpawnAngleCamRelative = (float)((char)(rand() & 0xFF)) * 0.024531251F; // [-128 : 127] mapped to [-1π : 1π]
+                    fSpawnAngleCamRelative = (float)((unsigned char)(rand() & 0xFF)) * 0.024531251F; // [0 : 255] mapped to [0 : 2π]
                 else {
                     auto vecForward = TheCamera.m_mCameraMatrix.GetForward();
                     vecForward.z = 0.0F;
@@ -114,8 +209,8 @@ void CBirds::Update()
                         vecForward.x = 0.01F;
 
                     vecForward.Normalise();
-                    char cRand = ((char)(rand() & 0xFF)) - 128;
-                    fSpawnAngleCamRelative = ((float)cRand) / 256.0F + atan2(vecForward.x, vecForward.y); // [-0.5F : 0.5F] + atan2(...)
+                    unsigned char cRand = ((unsigned char)(rand() & 0xFF)) - 128;
+                    fSpawnAngleCamRelative = ((float)cRand) / 256.0F + atan2(vecForward.x, vecForward.y); // [0 : 1] + atan2(...)
                 }
                     
                 auto vecBirdSpawnPos = CVector(sin(fSpawnAngleCamRelative) * fSpawnDistance + vecCamPos.x,
@@ -128,12 +223,10 @@ void CBirds::Update()
                     vecForward.z = 0.0F;
                     vecForward.Normalise();
 
-                    auto vecFlightDir = vecCamPos + (vecForward * 8.0F);
-                    vecFlightDir.z = fBirdSpawnZ;
+                    auto vecFlightTargetPos = vecCamPos + (vecForward * 8.0F);
+                    vecFlightTargetPos.z = fBirdSpawnZ;
 
-                    CBirds::CreateNumberOfBirds(vecBirdSpawnPos.x, vecBirdSpawnPos.y, vecBirdSpawnPos.z,
-                                                vecFlightDir.x, vecFlightDir.y, vecFlightDir.z,
-                                                iNumBirdsToCreate, eBiome, true);
+                    CBirds::CreateNumberOfBirds(vecBirdSpawnPos, vecFlightTargetPos, iNumBirdsToCreate, eBiome, true);
                 }
             }
         }

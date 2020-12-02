@@ -18,9 +18,22 @@
 #pragma pack(push, 1)
 struct CBirdColor {
 public:
-    char cRed;
-    char cGreen;
-    char cBlue;
+    unsigned char cRed;
+    unsigned char cGreen;
+    unsigned char cBlue;
+
+    inline void Set(unsigned char cColor) {
+        cRed = cColor;
+        cGreen = cColor;
+        cBlue = cColor;
+    }
+
+    inline void Set(unsigned char cR, unsigned char cG, unsigned char cB) {
+        cRed = cR;
+        cGreen = cG;
+        cBlue = cB;
+    }
+
 };
 #pragma pack(pop)
 VALIDATE_SIZE(CBirdColor, 0x3);
@@ -39,7 +52,7 @@ public:
     CVector         m_vecTargetVelocity;  // Velocity (constant if the bird is not flying in circles)
     float           m_fAngle;             // Bird angle
     unsigned int    m_nUpdateAfterMS;     // Always 0, if a value is written here, bird position isn't updated till CTimer::m_snTimeInMilliseconds is bigger than this value
-    int             m_nWingStillness;     // How still are the wings
+    unsigned int    m_nWingStillness;     // How still are the wings
     float           m_fSize;              // Bird size
     float           m_fMaxBirdDistance;   // When the bird is in this distance from the camera, it will disappear.
                                           // Used also in rendering process to determine the alpha level of the bird.
@@ -64,7 +77,7 @@ public:
     static CVector &vecBirdShotAt;
 
     static void Init();
-    static void CreateNumberOfBirds(float fPosX, float fPosY, float fPosZ, float fDirX, float fDirY, float fDirZ, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles);
+    static void CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles);
     static void Shutdown();
     static void Update();
     static void Render();
