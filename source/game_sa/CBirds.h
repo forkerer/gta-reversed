@@ -76,6 +76,16 @@ public:
     static CBird *aBirds;
     static CVector &vecBirdShotAt;
 
+    static float* faCreationCoorsX; // { 0.0f, -1.0f, 2.0f, -3.0f, 1.0f, -2.0f }                     These spawn in a formation like this:
+    static float* faCreationCoorsY; // { 0.0f, -1.0f, -2.0f, 1.0f, 1.0f, -2.0f }                                                      4           5
+    static float* faCreationCoorsZ; // { 0.0f, 0.5f, 1.0f, 0.7f, 2.0f, 1.2f }                                                                  1
+                                    //                                                                                                      2
+    static float* faRenderCoorsU;   // { 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.5f }                                                6           3
+    static float* faRenderCoorsV;   // { 0.5f, 0.5f, 0.75f, 0.75f, 1.0f, 1.0f, 1.0f, 0.5f }
+    static float* faRenderPosY;             // Size: 8
+    static unsigned short* uaRenderIndices; // Size: 60
+
+
     static void Init();
     static void CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles);
     static void Shutdown();
@@ -87,9 +97,3 @@ public:
 };
 
 constexpr extern int32_t MAX_BIRDS = 6; // default: 6
-extern float *BIRD_CREATION_COORS_X; // { 0.0f, -1.0f, 2.0f, -3.0f, 1.0f, -2.0f }                     These spawn in a formation like this:
-extern float *BIRD_CREATION_COORS_Y; // { 0.0f, -1.0f, -2.0f, 1.0f, 1.0f, -2.0f }                                                      4           5
-extern float *BIRD_CREATION_COORS_Z; // { 0.0f, 0.5f, 1.0f, 0.7f, 2.0f, 1.2f }                                                                  1
-                                     //                                                                                                      2
-extern float *BIRD_CREATION_COORS_U; // { 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.5f }                                                6           3
-extern float *BIRD_CREATION_COORS_V; // { 0.5f, 0.5f, 0.75f, 0.75f, 1.0f, 1.0f, 1.0f, 0.5f }
