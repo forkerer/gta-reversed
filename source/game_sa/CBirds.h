@@ -83,7 +83,7 @@ public:
     static float* faRenderCoorsU;   // { 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.5f }                                                6           3
     static float* faRenderCoorsV;   // { 0.5f, 0.5f, 0.75f, 0.75f, 1.0f, 1.0f, 1.0f, 0.5f }
     static float* faRenderPosY;             // Size: 8
-    static unsigned short* uaRenderIndices; // Size: 60
+    static unsigned int* auRenderIndices; // Size: 30
 
 
     static void Init();

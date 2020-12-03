@@ -8,10 +8,10 @@ CVector& CBirds::vecBirdShotAt = *(CVector*)0xC6AA48;
 float* CBirds::faCreationCoorsX = (float*)0x8D5250; // Size: 6
 float* CBirds::faCreationCoorsY = (float*)0x8D5268; // Size: 6
 float* CBirds::faCreationCoorsZ = (float*)0x8D5280; // Size: 6
-float* CBirds::faRenderCoorsU = (float*)0x8D5298; // Size: 8
-float* CBirds::faRenderCoorsV = (float*)0x8D52B8; // Size: 8
+float* CBirds::faRenderCoorsU = (float*)0x8D52B8; // Size: 8
+float* CBirds::faRenderCoorsV = (float*)0x8D5298; // Size: 8
 float* CBirds::faRenderPosY = (float*)0x8D52D8; // Size: 8
-unsigned short* CBirds::uaRenderIndices = (unsigned short*)0x8D52F8; // Size: 60
+unsigned int* CBirds::auRenderIndices = (unsigned int*)0x8D52F8; // Size: 30
 
 void CBirds::InjectHooks()
 {
@@ -100,14 +100,14 @@ void CBirds::CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int 
         float fSizeRand = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
         switch (eBiome) {
         case eBirdsBiome::BIOME_WATER:
-            fSpeedMult = (float)iSpeedRandFactor * 0.02F + 4.0F;  // [4.0 : 4.6]
+            fSpeedMult = (float)iSpeedRandFactor * 0.02F + 4.0F;    // [4.0 : 4.6]
             pBird.m_BodyColor.Set((rand() & 0x3F) + 0x50);          // [80 : 143]
             pBird.m_WingsColor.Set((rand() & 0x3F) - 0x4C);         // [166 : 242]
             pBird.m_fSize = fSizeRand * 0.4F + 0.8F;                // [0.8 : 1.2]
             pBird.m_nWingStillness = 1000 - 12 * iSpeedRandFactor;  // [640 : 1000]
             break;
         case eBirdsBiome::BIOME_DESERT:
-            fSpeedMult = (float)iSpeedRandFactor * 0.02F + 3.0F;  // [3.0 : 3.6]
+            fSpeedMult = (float)iSpeedRandFactor * 0.02F + 3.0F;    // [3.0 : 3.6]
             pBird.m_BodyColor.Set(30, 15, 10);
             pBird.m_WingsColor.Set(80, 15, 10);
             pBird.m_fSize = fSizeRand * 0.5F + 2.0F;                // [2.0 : 2.5]
@@ -121,7 +121,7 @@ void CBirds::CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int 
             break;
         case eBirdsBiome::BIOME_NORMAL:
         default:
-            fSpeedMult = (float)iSpeedRandFactor * 0.02F + 5.0F;  // [5.0 : 5.6]
+            fSpeedMult = (float)iSpeedRandFactor * 0.02F + 5.0F;    // [5.0 : 5.6]
             pBird.m_BodyColor.Set((rand() & 0x7F) + 0x80);          // [127 : 255]
             pBird.m_WingsColor.Set((rand() & 0x7F) + 0x80);         // [127 : 255]
             pBird.m_fSize = fSizeRand * 0.1F + 0.5F;                // [0.5 : 0.6]
@@ -313,14 +313,14 @@ void CBirds::Render()
 
             if (pBird.m_eBirdMode == eBirdMode::BIRD_DRAW_NOUPDATE || pBird.m_eBirdMode == eBirdMode::BIRD_DRAW_UPDATE) {
                 for (int32_t iIndice = 0; iIndice < 30; ++iIndice) {
-                    unsigned short uiVertInd = uiTempBufferVerticesStored + CBirds::uaRenderIndices[iIndice];
+                    auto uiVertInd = static_cast<unsigned short>(uiTempBufferVerticesStored + CBirds::auRenderIndices[iIndice]);
                     aTempBufferIndices[uiTempBufferIndicesStored + iIndice] = uiVertInd;
                     aTempBufferIndices[uiTempBufferIndicesStored + iIndice + 30] = uiVertInd + 8;
                 }
 
                 auto uiTime = CTimer::m_snTimeInMilliseconds + uiWingMoveTimeOffset;
-                auto fSin1 = -sin((double)((uiTime + pBird.m_nWingStillness / 6) % pBird.m_nWingStillness) * 6.28F * (double)pBird.m_nWingStillness);
-                auto fSin2 = -sin((double)((uiTime + pBird.m_nWingStillness) % pBird.m_nWingStillness) * 6.28F * (double)pBird.m_nWingStillness);
+                auto fSin1 = -sin((double)((uiTime + pBird.m_nWingStillness / 6) % pBird.m_nWingStillness) * 6.28F / (double)pBird.m_nWingStillness);
+                auto fSin2 = -sin((double)((uiTime + pBird.m_nWingStillness) % pBird.m_nWingStillness) * 6.28F / (double)pBird.m_nWingStillness);
 
                 auto fSizeUsed = std::max(1.0F, pBird.m_fSize);
                 auto fSin1Factor = fSin1 / fSizeUsed;
@@ -331,13 +331,17 @@ void CBirds::Render()
                 auto fOffX2 = cos(fSin2Factor) * 0.5F;
                 auto fOffZ2 = sin(fSin2Factor) * 0.5F;
 
-                auto vecCameraPos = TheCamera.GetPosition();
+                unsigned char cAlpha = 255;
+                const auto& vecCameraPos = TheCamera.GetPosition();
                 auto fCameraDist = DistanceBetweenPoints(vecCameraPos, pBird.m_vecPosn);
-                auto fTransparency = 1.0F - (fCameraDist - pBird.m_fMaxBirdDistance * 0.7F) / (pBird.m_fMaxBirdDistance * 0.3F);
-                fTransparency = std::max(0.0F, fTransparency);
-                auto cAlpha = static_cast<unsigned char>(fTransparency * 255.0F);
+                auto fMaxVisibleDist = pBird.m_fMaxBirdDistance * 0.7F;
+                if (fCameraDist > fMaxVisibleDist) {
+                    auto fTransparency = 1.0F - (fCameraDist - fMaxVisibleDist) / (pBird.m_fMaxBirdDistance * 0.3F);
+                    fTransparency = std::max(0.0F, fTransparency);
+                    cAlpha = static_cast<unsigned char>(fTransparency * 255.0F);
+                }
 
-                for (int32_t uiVertInd; uiVertInd < 8; ++uiVertInd) {
+                for (int32_t uiVertInd = 0; uiVertInd < 8; ++uiVertInd) {
                     CVector vecPoint;
                     CBirdColor vertColor;
 
@@ -385,8 +389,7 @@ void CBirds::Render()
                     vertColor.cGreen = static_cast<unsigned char>(static_cast<float>(vertColor.cGreen) * 0.8F);
                     vertColor.cBlue = static_cast<unsigned char>(static_cast<float>(vertColor.cBlue) * 0.8F);
 
-                    iBufferInd += 8;
-                    auto& pVert2 = aTempBufferVertices[iBufferInd];
+                    auto& pVert2 = aTempBufferVertices[iBufferInd + 8];
                     pVert2.color = (RwUInt32)CRGBA(vertColor.cRed, vertColor.cGreen, vertColor.cBlue, cAlpha).ToIntARGB();
                     pVert2.objVertex = vecWorldPos.ToRwV3d();
                     pVert2.u = CBirds::faRenderCoorsU[uiVertInd];
