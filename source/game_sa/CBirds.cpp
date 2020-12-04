@@ -26,7 +26,7 @@ void CBirds::InjectHooks()
 void CBirds::Init()
 {
 #ifdef USE_DEFAULT_FUNCTIONS
-    ((void(__cdecl *)())0x711EC0)();
+    plugin::Call<0x711EC0>();
 #else
     for (int32_t i = 0; i < MAX_BIRDS; ++i) {
         auto& pBird = aBirds[i];
@@ -40,7 +40,7 @@ void CBirds::Init()
 void CBirds::CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles)
 {
 #ifdef USE_DEFAULT_FUNCTIONS
-    ((void(__cdecl*)(CVector, CVector, int, eBirdsBiome, bool))0x711EF0)(vecStartPos, vecTargetPos, iBirdCount, eBiome, bCheckObstacles);
+    plugin::Call<0x711EF0, CVector, CVector, int, eBirdsBiome, bool>(vecStartPos, vecTargetPos, iBirdCount, eBiome, bCheckObstacles);
 #else
     float fMaxDistance;
 
@@ -97,20 +97,19 @@ void CBirds::CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int 
         pBird.m_vecPosn.z += CBirds::faCreationCoorsZ[i];
 
         float fSpeedMult;
-        float fSizeRand = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
         switch (eBiome) {
         case eBirdsBiome::BIOME_WATER:
             fSpeedMult = (float)iSpeedRandFactor * 0.02F + 4.0F;    // [4.0 : 4.6]
             pBird.m_BodyColor.Set((rand() & 0x3F) + 0x50);          // [80 : 143]
             pBird.m_WingsColor.Set((rand() & 0x3F) - 0x4C);         // [166 : 242]
-            pBird.m_fSize = fSizeRand * 0.4F + 0.8F;                // [0.8 : 1.2]
+            pBird.m_fSize = CGeneral::GetRandomNumberInRange(0.8F, 1.2F);
             pBird.m_nWingStillness = 1000 - 12 * iSpeedRandFactor;  // [640 : 1000]
             break;
         case eBirdsBiome::BIOME_DESERT:
             fSpeedMult = (float)iSpeedRandFactor * 0.02F + 3.0F;    // [3.0 : 3.6]
             pBird.m_BodyColor.Set(30, 15, 10);
             pBird.m_WingsColor.Set(80, 15, 10);
-            pBird.m_fSize = fSizeRand * 0.5F + 2.0F;                // [2.0 : 2.5]
+            pBird.m_fSize = CGeneral::GetRandomNumberInRange(2.0F, 2.5F);
             pBird.m_nWingStillness = 12 * (125 - iSpeedRandFactor); // [1140 : 1500]
             if (rand() & 4)
                 pBird.m_nWingStillness = 1000000; // Not moving it's wings
@@ -124,7 +123,7 @@ void CBirds::CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int 
             fSpeedMult = (float)iSpeedRandFactor * 0.02F + 5.0F;    // [5.0 : 5.6]
             pBird.m_BodyColor.Set((rand() & 0x7F) + 0x80);          // [127 : 255]
             pBird.m_WingsColor.Set((rand() & 0x7F) + 0x80);         // [127 : 255]
-            pBird.m_fSize = fSizeRand * 0.1F + 0.5F;                // [0.5 : 0.6]
+            pBird.m_fSize = CGeneral::GetRandomNumberInRange(0.5F, 0.6F);
             pBird.m_nWingStillness = 500 - 6 * iSpeedRandFactor;    // [320 : 500]
             break;
         }
@@ -138,7 +137,7 @@ void CBirds::CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int 
 void CBirds::Shutdown()
 {
 #ifdef USE_DEFAULT_FUNCTIONS
-    ((void(__cdecl*)())0x712300)();
+    plugin::Call<0x712300>();
 #else
     for (int32_t i = 0; i < MAX_BIRDS; ++i) {
         auto& pBird = aBirds[i];
@@ -152,7 +151,7 @@ void CBirds::Shutdown()
 void CBirds::Update()
 {
 #ifdef USE_DEFAULT_FUNCTIONS
-    ((void(__cdecl*)())0x712330)();
+    plugin::Call<0x712330>();
 #else
     auto const& vecCamPos = TheCamera.GetPosition();
 
@@ -273,7 +272,7 @@ void CBirds::Update()
 void CBirds::Render()
 {
 #ifdef USE_DEFAULT_FUNCTIONS
-    ((void(__cdecl*)())0x712810)();
+    plugin::Call<0x712810>();
 #else
     if (!CBirds::uiNumberOfBirds)
         return;
@@ -405,12 +404,12 @@ void CBirds::Render()
     }
 
     if (uiTempBufferVerticesStored) {
-        RwEngineInstance->dOpenDevice.fpRenderStateSet(rwRENDERSTATESRCBLEND, (void*)5u);
-        RwEngineInstance->dOpenDevice.fpRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)6u);
-        RwEngineInstance->dOpenDevice.fpRenderStateSet(rwRENDERSTATETEXTUREADDRESS, (void*)3u);
-        RwEngineInstance->dOpenDevice.fpRenderStateSet(rwRENDERSTATEFOGENABLE, (void*)0);
-        RwEngineInstance->dOpenDevice.fpRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)1u);
-        RwEngineInstance->dOpenDevice.fpRenderStateSet(rwRENDERSTATETEXTURERASTER, (void*)gpCloudTex[1]->raster);
+        RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDSRCALPHA);
+        RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDINVSRCALPHA);
+        RwRenderStateSet(rwRENDERSTATETEXTUREADDRESS, (void*)rwTEXTUREADDRESSCLAMP);
+        RwRenderStateSet(rwRENDERSTATEFOGENABLE, (void*)FALSE);
+        RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)TRUE);
+        RwRenderStateSet(rwRENDERSTATETEXTURERASTER, (void*)gpCloudTex[1]->raster);
         CBrightLights::RenderOutGeometryBuffer();
     }
 #endif
@@ -419,9 +418,9 @@ void CBirds::Render()
 void CBirds::HandleGunShot(CVector const* pointA, CVector const* pointB)
 {
 #ifdef USE_DEFAULT_FUNCTIONS
-    ((void(__cdecl*)(CVector const*, CVector const*))0x712E40)(pointA, pointB);
+    plugin::Call<0x712E40, CVector const*, CVector const*>(pointA, pointB);
 #else
-    auto colLine = CColLine(*pointA, *pointB);
+    CColLine colLine(*pointA, *pointB);
 
     for (int32_t i = 0; i < MAX_BIRDS; ++i) {
         auto& pBird = aBirds[i];

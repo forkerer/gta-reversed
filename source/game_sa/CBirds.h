@@ -38,7 +38,7 @@ public:
 #pragma pack(pop)
 VALIDATE_SIZE(CBirdColor, 0x3);
 
-enum eBirdMode : char
+enum class eBirdMode : unsigned char
 {
     BIRD_DRAW_UPDATE = 0x1, // Bird is drawn, but doesn't update position
     BIRD_DRAW_NOUPDATE = 0x2, // Bird is drawn and updates position
