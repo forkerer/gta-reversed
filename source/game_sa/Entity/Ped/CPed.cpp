@@ -21,6 +21,7 @@ void CPed::InjectHooks()
     HookInstall(0x5E6530, &CPed::ReplaceWeaponForScriptedCutscene);
     HookInstall(0x5E6550, &CPed::RemoveWeaponForScriptedCutscene);
     HookInstall(0x5E8AB0, &CPed::GiveWeaponAtStartOfFight);
+	HookInstall(0x5E1FA0, &CPed::ProcessBuoyancy);
 }
 
 CPed::CPed(ePedType pedtype) : CPhysical(plugin::dummy), m_aWeapons{ plugin::dummy, plugin::dummy, plugin::dummy,
@@ -502,7 +503,152 @@ void CPed::UpdatePosition()
 // Converted from thiscall void CPed::ProcessBuoyancy(void) 0x5E1FA0
 void CPed::ProcessBuoyancy()
 {
+#ifdef USE_DEFAULT_FUNCTIONS
     ((void(__thiscall *)(CPed*))0x5E1FA0)(this);
+#else
+    if (bInVehicle)
+        return;
+
+    float fBuoyancyMult = 1.1F;
+    if (m_nPedState == ePedState::PEDSTATE_DEAD || m_nPedState == ePedState::PEDSTATE_DIE)
+        fBuoyancyMult = 1.8F;
+
+    float fBuoyancy = fBuoyancyMult * m_fMass / 125.0F;
+    CVector vecTurnSpeed;
+    CVector vecBuoyancy;
+    if (!mod_Buoyancy.ProcessBuoyancy(this, fBuoyancy, &vecTurnSpeed, &vecBuoyancy)) {
+        physicalFlags.bTouchingWater = false;
+        auto pSwimTask = m_pIntelligence->GetTaskSwim();
+        if (pSwimTask)
+            pSwimTask->m_fSwimStopTime = 1000.0F;
+
+        return;
+    }
+
+    if (bIsStanding) {
+        auto& pStandingOnEntity = m_pContactEntity;
+        if (pStandingOnEntity && pStandingOnEntity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE) {
+            auto pStandingOnVehicle = reinterpret_cast<CVehicle*>(pStandingOnEntity);
+            if (pStandingOnVehicle->m_nVehicleClass == eVehicleClass::CLASS_BIG
+                && !pStandingOnVehicle->physicalFlags.bDestroyed) {
+
+                physicalFlags.bSubmergedInWater = false;
+                auto pSwimTask = m_pIntelligence->GetTaskSwim();
+                if (!pSwimTask)
+                    return;
+
+                pSwimTask->m_fSwimStopTime += CTimer::ms_fTimeStep;
+                return;
+            }
+        }
+    }
+
+    if (m_pPlayerData) {
+        auto& vecPedPos = GetPosition();
+        auto vecSplashPos = CVector(vecPedPos);
+        float fCheckZ = vecSplashPos.z - 3.0F;
+        CColPoint lineColPoint;
+        CEntity* pColEntity;
+        if (CWorld::ProcessVerticalLine(vecSplashPos, fCheckZ, lineColPoint, pColEntity, false, true, false, false, false, false, nullptr)) {
+            if (pColEntity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE) {
+                auto pColVehicle = reinterpret_cast<CVehicle*>(pColEntity);
+                if (pColVehicle->m_nVehicleClass == eVehicleClass::CLASS_BIG
+                    && !pColVehicle->physicalFlags.bDestroyed
+                    && pColVehicle->GetMatrix()->GetUp().z > 0.0F) {
+
+                    physicalFlags.bSubmergedInWater = false;
+                    return;
+                }
+            }
+        }
+    }
+
+    // Those 4 are called for some reason
+    CTimeCycle::GetAmbientRed();
+    CTimeCycle::GetAmbientGreen();
+    CTimeCycle::GetAmbientBlue();
+    rand();
+	// Add splash particle if it's the first frame we're touching water, and
+	// the movement of ped is downward, preventing particles from being created
+	// if ped is standing still and water wave touches him
+    if (!physicalFlags.bTouchingWater && m_vecMoveSpeed.z < -0.01F) {
+        auto& vecPedPos = GetPosition();
+        auto vecMoveDir = m_vecMoveSpeed * CTimer::ms_fTimeStep * 4.0F;
+        auto vecSplashPos = vecPedPos + vecMoveDir;
+        float fWaterZ;
+        if (CWaterLevel::GetWaterLevel(vecSplashPos.x, vecSplashPos.y, vecSplashPos.z, &fWaterZ, true, nullptr)) {
+            vecSplashPos.z = fWaterZ;
+            g_fx.TriggerWaterSplash(vecSplashPos);
+            AudioEngine.ReportWaterSplash(this, -100.0F, 1U);
+        }
+    }
+
+    physicalFlags.bTouchingWater = true;
+    physicalFlags.bSubmergedInWater = true;
+    ApplyMoveForce(vecBuoyancy);
+
+    auto& vecPedPos = GetPosition();
+    if (CTimer::ms_fTimeStep / 125.0F < vecBuoyancy.z / m_fMass
+        || vecPedPos.z + 0.6F < mod_Buoyancy.m_fWaterLevel) {
+
+        bIsStanding = false;
+        bIsDrowning = true;
+
+        bool bPedSwimming = false;
+        int iUnused;
+        if (!IsPlayer()) {
+           
+            CEventInWater cEvent(0.75F);
+            iUnused = 1;
+            m_pIntelligence->m_eventGroup.Add(&cEvent, false);
+            iUnused = -1;
+        }
+        else {
+            auto pSwimTask = m_pIntelligence->GetTaskSwim();
+            if (pSwimTask) {
+                pSwimTask->m_fSwimStopTime = 0.0F;
+                bPedSwimming = true;
+            }
+            else if (m_pIntelligence->GetTaskClimb()) {
+                bPedSwimming = true;
+            }
+            else {
+                auto fAcceleration = vecBuoyancy.z / (CTimer::ms_fTimeStep / 125.0F * m_fMass);
+                CEventInWater cEvent(fAcceleration);
+                iUnused = 0;
+                m_pIntelligence->m_eventGroup.Add(&cEvent, false);
+                iUnused = 1;
+            }
+
+            if (bPedSwimming)
+                return;
+        }
+
+        float fTimeStep = pow(0.9F, CTimer::ms_fTimeStep);
+        m_vecMoveSpeed.x *= fTimeStep;
+        m_vecMoveSpeed.y *= fTimeStep;
+        if (m_vecMoveSpeed.z < 0.0F)
+            m_vecMoveSpeed.z *= fTimeStep;
+
+        return;
+    }
+
+    auto pSwimTask = m_pIntelligence->GetTaskSwim();
+    if (bIsStanding && pSwimTask)
+    {
+        pSwimTask->m_fSwimStopTime += CTimer::ms_fTimeStep;
+        return;
+    }
+
+    if (m_pPlayerData) {
+        CVector vecHeadPos(0.0F, 0.0F, 0.1F);
+        GetTransformedBonePosition(vecHeadPos, ePedBones::BONE_HEAD, false);
+        if (vecHeadPos.z < mod_Buoyancy.m_fWaterLevel) {
+            auto pPlayerPed = reinterpret_cast<CPlayerPed*>(this);
+            pPlayerPed->HandlePlayerBreath(true, 1.0F);
+        }
+    }
+#endif
 }
 
 // Converted from thiscall bool CPed::IsPedInControl(void) 0x5E3960
