@@ -594,7 +594,7 @@ void CPed::ProcessBuoyancy()
         bIsStanding = false;
         bIsDrowning = true;
 
-        bool bPedSwimming = false;
+        bool bPlayerSwimmingOrClimbing = false;
         int iUnused;
         if (!IsPlayer()) {
            
@@ -607,10 +607,10 @@ void CPed::ProcessBuoyancy()
             auto pSwimTask = m_pIntelligence->GetTaskSwim();
             if (pSwimTask) {
                 pSwimTask->m_fSwimStopTime = 0.0F;
-                bPedSwimming = true;
+                bPlayerSwimmingOrClimbing = true;
             }
             else if (m_pIntelligence->GetTaskClimb()) {
-                bPedSwimming = true;
+                bPlayerSwimmingOrClimbing = true;
             }
             else {
                 auto fAcceleration = vecBuoyancy.z / (CTimer::ms_fTimeStep / 125.0F * m_fMass);
@@ -620,7 +620,7 @@ void CPed::ProcessBuoyancy()
                 iUnused = 1;
             }
 
-            if (bPedSwimming)
+            if (bPlayerSwimmingOrClimbing)
                 return;
         }
 
