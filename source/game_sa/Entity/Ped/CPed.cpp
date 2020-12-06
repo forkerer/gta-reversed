@@ -544,12 +544,11 @@ void CPed::ProcessBuoyancy()
     }
 
     if (m_pPlayerData) {
-        auto& vecPedPos = GetPosition();
-        auto vecSplashPos = CVector(vecPedPos);
-        float fCheckZ = vecSplashPos.z - 3.0F;
+        const auto& vecPedPos = GetPosition();
+        float fCheckZ = vecPedPos.z - 3.0F;
         CColPoint lineColPoint;
         CEntity* pColEntity;
-        if (CWorld::ProcessVerticalLine(vecSplashPos, fCheckZ, lineColPoint, pColEntity, false, true, false, false, false, false, nullptr)) {
+        if (CWorld::ProcessVerticalLine(vecPedPos, fCheckZ, lineColPoint, pColEntity, false, true, false, false, false, false, nullptr)) {
             if (pColEntity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE) {
                 auto pColVehicle = reinterpret_cast<CVehicle*>(pColEntity);
                 if (pColVehicle->m_nVehicleClass == eVehicleClass::CLASS_BIG
@@ -572,7 +571,7 @@ void CPed::ProcessBuoyancy()
 	// the movement of ped is downward, preventing particles from being created
 	// if ped is standing still and water wave touches him
     if (!physicalFlags.bTouchingWater && m_vecMoveSpeed.z < -0.01F) {
-        auto& vecPedPos = GetPosition();
+        const auto& vecPedPos = GetPosition();
         auto vecMoveDir = m_vecMoveSpeed * CTimer::ms_fTimeStep * 4.0F;
         auto vecSplashPos = vecPedPos + vecMoveDir;
         float fWaterZ;
@@ -587,7 +586,7 @@ void CPed::ProcessBuoyancy()
     physicalFlags.bSubmergedInWater = true;
     ApplyMoveForce(vecBuoyancy);
 
-    auto& vecPedPos = GetPosition();
+    const auto& vecPedPos = GetPosition();
     if (CTimer::ms_fTimeStep / 125.0F < vecBuoyancy.z / m_fMass
         || vecPedPos.z + 0.6F < mod_Buoyancy.m_fWaterLevel) {
 

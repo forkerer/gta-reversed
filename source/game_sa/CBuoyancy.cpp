@@ -14,6 +14,7 @@ void cBuoyancy::InjectHooks()
     HookInstall(0x6C3030, &cBuoyancy::ProcessBuoyancyBoat);
     HookInstall(0x6C2750, &cBuoyancy::CalcBuoyancyForce);
     HookInstall(0x6C2B90, &cBuoyancy::PreCalcSetup);
+    HookInstall(0x6C34E0, &cBuoyancy::AddSplashParticles);
     HookInstall(0x6C3B00, &cBuoyancy::SimpleCalcBuoyancy);
     HookInstall(0x6C2970, &cBuoyancy::IntegratePointIntoCalculation);
     HookInstall(0x6C2810, &cBuoyancy::FindPointDistanceRelativeToWaterSurfaceNoNormal);
@@ -28,7 +29,7 @@ bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pV
 #else
     CVector& entityPosition = pEntity->GetPosition();
     if (CWaterLevel::GetWaterLevel(entityPosition.x, entityPosition.y, entityPosition.z,
-        &m_fWaterLevel, pEntity->physicalFlags.bTouchingWater, false))
+        &m_fWaterLevel, pEntity->physicalFlags.bTouchingWater, nullptr))
     {
         m_EntityMatrix = *pEntity->m_matrix;
         PreCalcSetup(pEntity, fBuoyancy);
@@ -37,27 +38,27 @@ bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pV
             pEntity->GetColModel(); // for some reason, this is here?
 
             m_bInWater = 1;
-            m_fEntityWaterImmersion = ((m_fWaterLevel - entityPosition.z) + 1.0f) / 1.9f;
-            if (m_fEntityWaterImmersion > 1.0f)
+            m_fEntityWaterImmersion = ((m_fWaterLevel - entityPosition.z) + 1.0F) / 1.9F;
+            if (m_fEntityWaterImmersion > 1.0F)
             {
-                m_fEntityWaterImmersion = 1.0f;
+                m_fEntityWaterImmersion = 1.0F;
             }
             else {
-                if (m_fEntityWaterImmersion < 0.0f) 
+                if (m_fEntityWaterImmersion < 0.0F) 
                 {
-                    m_fEntityWaterImmersion = 0.0f;
+                    m_fEntityWaterImmersion = 0.0F;
                     m_bInWater = 0;
                 }
             }
 
-            m_vecMoveForce = CVector(0.0f, 0.0f, 0.0f);
-            if (m_fEntityWaterImmersion > 0.0f && m_fEntityWaterImmersion < 1.0f)
+            m_vecMoveForce = CVector(0.0F, 0.0F, 0.0F);
+            if (m_fEntityWaterImmersion > 0.0F && m_fEntityWaterImmersion < 1.0F)
             {
                 float fDistanceZ = m_fWaterLevel - entityPosition.z;
                 CVector forward = pEntity->GetForwardVector();
                 cBuoyancy::AddSplashParticles
-                    (pEntity, CVector(0.0f, 0.0f, fDistanceZ), 
-                        CVector(0.0f, 0.0f, fDistanceZ), 
+                    (pEntity, CVector(0.0F, 0.0F, fDistanceZ), 
+                        CVector(0.0F, 0.0F, fDistanceZ), 
                         CVector(-forward.x, -forward.y,-forward.z), true);
             }
         }
@@ -82,9 +83,9 @@ bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector
     return plugin::CallMethodAndReturn<bool, 0x6C3030, cBuoyancy*, CVehicle*, float, CVector*, CVector*, bool>
         (this, pVehicle, fBuoyancy, pVecTurnSpeed, pVecUnknown, bUnderwater);
 #else
-    CVector& entityPosition = pVehicle->GetPosition();
+    const CVector& entityPosition = pVehicle->GetPosition();
     if (!CWaterLevel::GetWaterLevel(entityPosition.x, entityPosition.y, entityPosition.z,
-        &m_fWaterLevel, pVehicle->physicalFlags.bTouchingWater, false)) {
+        &m_fWaterLevel, pVehicle->physicalFlags.bTouchingWater, nullptr)) {
 
         return false;
     }
@@ -178,18 +179,18 @@ bool cBuoyancy::CalcBuoyancyForce(CPhysical* pEntity, CVector* pVecTurnSpeed, CV
     CVector vecOut;
     *pVecTurnSpeed = *Multiply3x3(&vecOut, &m_EntityMatrix, &m_vecMoveForce);
     const float fCurrentBuoyancy = m_fEntityWaterImmersion * m_fBuoyancy * CTimer::ms_fTimeStep;
-    *pBuoyancy = CVector(0.0f, 0.0f, fCurrentBuoyancy);
+    *pBuoyancy = CVector(0.0F, 0.0F, fCurrentBuoyancy);
 
     float fSubmerge = pEntity->m_fMass * pEntity->m_vecMoveSpeed.z;
-    if (fSubmerge <= fCurrentBuoyancy * 4.0f)
+    if (fSubmerge <= fCurrentBuoyancy * 4.0F)
     {
         return true;
     }
 
     float fBuoyancy = fCurrentBuoyancy - fSubmerge;
-    if (fBuoyancy < 0.0f)
+    if (fBuoyancy < 0.0F)
     {
-        fBuoyancy = 0.0f;
+        fBuoyancy = 0.0F;
     }
     pBuoyancy->z = fBuoyancy;
     return true;
@@ -302,9 +303,76 @@ void cBuoyancy::PreCalcSetup(CPhysical* pEntity, float fBuoyancy)
 #endif
 }
 
-void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecPoint1, CVector vecPoint2, CVector vecSplashDir, bool bUnknown)
+void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector vecTo, CVector vecSplashDir, bool bReduceParticleSize)
 {
-    plugin::CallMethod<0x6C34E0, cBuoyancy*, CPhysical*, CVector, CVector, CVector, bool>(this, pEntity, vecPoint1, vecPoint2, vecSplashDir, bUnknown);
+#ifdef USE_DEFAULT_FUNCTIONS
+    plugin::CallMethod<0x6C34E0, cBuoyancy*, CPhysical*, CVector, CVector, CVector, bool>(this, pEntity, vecFrom, vecTo, vecSplashDir, bReduceParticleSize);
+#else
+    auto fDistBetweenPoints = DistanceBetweenPoints(vecFrom, vecTo);
+    auto vecUsedSpeed = pEntity->m_vecMoveSpeed;
+    auto fMoveSpeed = vecUsedSpeed.Magnitude();
+    if (fMoveSpeed > 0.1F) {
+        auto fMult = 1.0F / fMoveSpeed;
+        vecUsedSpeed *= (fMult * 0.1F); // Get the speed in [0 : 0.1] range
+        vecSplashDir = vecUsedSpeed;
+        fMoveSpeed = 0.1F;
+    }
+
+    if (fMoveSpeed <= 0.05F)
+        return;
+
+    FxPrtMult_c curParticle(1.0F, 1.0F, 1.0F, 0.1F, 0.5F, 1.0F, 0.2F);
+    if (bReduceParticleSize) {
+        curParticle.m_fSize *= 0.5F;
+        curParticle.m_fLife *= 0.5F;
+    }
+
+    auto vecVelocityModifier = vecUsedSpeed * CVector(0.0F, 0.0F, -1.0F) * 120.0F;
+
+    auto iNumParticles = std::max(1, static_cast<int>(fDistBetweenPoints + fDistBetweenPoints));
+    for (int32_t iIter = 0; iIter < iNumParticles; ++iIter) {
+        auto fCurrentProgress = static_cast<float>(iIter) / static_cast<float>(iNumParticles);
+        auto vecCurPoint = Lerp(vecFrom, vecTo, fCurrentProgress);
+        auto vecTransformedPoint = (*pEntity->m_matrix) * vecCurPoint;
+
+        if (pEntity->m_nType != eEntityType::ENTITY_TYPE_PED) {
+            auto& vecEntPos = pEntity->GetPosition();
+            vecSplashDir = vecTransformedPoint - vecEntPos;
+        }
+        vecSplashDir.z = 0.0F;
+        vecSplashDir.Normalise();
+
+        auto vecVelocity = vecSplashDir * fMoveSpeed * 60.0F + vecVelocityModifier;
+        float fRand = CGeneral::GetRandomNumberInRange(0.0F, 0.5F);
+        vecTransformedPoint += (vecSplashDir * fRand);
+        g_fx.m_pPrtWatersplash->AddParticle(&vecTransformedPoint, &vecVelocity, 0.0F, &curParticle, -1.0F, 1.2F, 0.6F, 0);
+    }
+
+    if (pEntity->m_nType == eEntityType::ENTITY_TYPE_PED) {
+        auto pPed = reinterpret_cast<CPed*>(pEntity);
+        auto pSwimTask = pPed->m_pIntelligence->GetTaskSwim();
+        if (!pSwimTask) {
+            auto& vecPedForward = pEntity->GetForwardVector();
+            auto fPedAngle = CGeneral::GetAngleBetweenPoints(vecPedForward.x, vecPedForward.y, 0.0F, 0.0F);
+            fPedAngle = CGeneral::LimitAngle(fPedAngle) + 180.0F;
+
+            curParticle = FxPrtMult_c(1.0F, 1.0F, 1.0F, 0.2F, 0.4F, 0.0F, 0.5F);
+            auto vecPedVelocity = CVector(0.0F, 0.0F, 0.0F);
+            auto vecPedParticlePos = pEntity->GetPosition() + (vecPedForward * 0.4F);
+
+        
+            if (pPed->m_pPlayerData)
+                vecPedParticlePos.z = pPed->m_pPlayerData->m_fWaterHeight;
+            else
+                vecPedParticlePos.z += 0.5F;
+
+            g_fx.m_pPrtWake->AddParticle(&vecPedParticlePos, &vecPedVelocity, 0.0F, &curParticle, fPedAngle, 1.2F, 0.6F, 0);
+            pPed->m_pedAudio.AddAudioEvent(eAudioEvents::AE_PED_SWIM_WAKE, 0.0F, 1.0F, 0, 0, 0, 0);
+        }
+    }
+
+    AudioEngine.ReportWaterSplash(pEntity, -100.0F, 0);
+#endif
 }
 
 void cBuoyancy::SimpleCalcBuoyancy(CPhysical* pEntity)
