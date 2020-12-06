@@ -68,7 +68,7 @@ public:
     static float& fPointBuoyancyModifier;
     static CBuoyancyCalcStruct& calcStruct;
     static float(*afSpeedboatConsts)[3];     // 3x3 array of buoyancy modifiers for speedboats
-    static float(*afSmallBoatsConsts)[3];    // 3x3 array of buoyancy modifiers for small boats
+    static float(*afSmallBoatConsts)[3];    // 3x3 array of buoyancy modifiers for small boats
     static float(*afSailboatConsts)[3];      // 3x3 array of buoyancy modifiers for sailboats
     static float(*afGeneralBoatConsts)[3];   // 3x3 array of buoyancy modifiers for other boats
 
@@ -79,7 +79,7 @@ public:
     bool ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pVecUnknown, bool bUnderwater);
     bool CalcBuoyancyForce(CPhysical* pEntity, CVector* pVecTurnSpeed, CVector* pBuoyancy);
     void PreCalcSetup(CPhysical* pEntity, float fBuoyancy);
-    void AddSplashParticles(CPhysical* pEntity, CVector a3, CVector a4, CVector a5, bool bUnknown);
+    void AddSplashParticles(CPhysical* pEntity, CVector vecPoint1, CVector vecPoint2, CVector vecSplashDir, bool bUnknown);
     void SimpleCalcBuoyancy(CPhysical* pEntity);
     double IntegratePointIntoCalculation(CVector* vecPointRelativeToSurface, eBuoyancyPointState ePointState);
     void FindPointDistanceRelativeToWaterSurfaceNoNormal(CBuoyancyUnknStruct* buoyancyInfo, CVector* outVecOffset, eBuoyancyPointState* outInWaterState);

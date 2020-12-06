@@ -4,7 +4,7 @@ cBuoyancy& mod_Buoyancy = *(cBuoyancy*)0xC1C890;
 float& cBuoyancy::fPointBuoyancyModifier = *(float*)0x8D32C8;
 CBuoyancyCalcStruct& cBuoyancy::calcStruct = *(CBuoyancyCalcStruct*)0xC1C858;
 float(*cBuoyancy::afSpeedboatConsts)[3] = (float(*)[3])0x8D335C;
-float(*cBuoyancy::afSmallBoatsConsts)[3] = (float(*)[3])0x8D3338;
+float(*cBuoyancy::afSmallBoatConsts)[3] = (float(*)[3])0x8D3338;
 float(*cBuoyancy::afSailboatConsts)[3] = (float(*)[3])0x8D3314;
 float(*cBuoyancy::afGeneralBoatConsts)[3] = (float(*)[3])0x8D32CC;
 
@@ -117,7 +117,7 @@ bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector
                 break;
             case eModelID::MODEL_COASTG:
             case eModelID::MODEL_DINGHY:
-                cBuoyancy::fPointBuoyancyModifier = cBuoyancy::afSmallBoatsConsts[iYMult][iXMult];
+                cBuoyancy::fPointBuoyancyModifier = cBuoyancy::afSmallBoatConsts[iYMult][iXMult];
                 break;
             case eModelID::MODEL_MARQUIS:
                 cBuoyancy::fPointBuoyancyModifier = cBuoyancy::afSailboatConsts[iYMult][iXMult];
@@ -302,9 +302,9 @@ void cBuoyancy::PreCalcSetup(CPhysical* pEntity, float fBuoyancy)
 #endif
 }
 
-void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector a3, CVector a4, CVector a5, bool bUnknown)
+void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecPoint1, CVector vecPoint2, CVector vecSplashDir, bool bUnknown)
 {
-    plugin::CallMethod<0x6C34E0, cBuoyancy*, CPhysical*, CVector, CVector, CVector, bool>(this, pEntity, a3, a4, a5, bUnknown);
+    plugin::CallMethod<0x6C34E0, cBuoyancy*, CPhysical*, CVector, CVector, CVector, bool>(this, pEntity, vecPoint1, vecPoint2, vecSplashDir, bUnknown);
 }
 
 void cBuoyancy::SimpleCalcBuoyancy(CPhysical* pEntity)
