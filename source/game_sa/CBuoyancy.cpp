@@ -11,7 +11,7 @@ float(*cBuoyancy::afBoatVolumeDistributionCat)[3] = (float(*)[3])0x8D3314; // Ca
 
 void cBuoyancy::InjectHooks()
 {
-    /*HookInstall(0x6C3EF0, &cBuoyancy::ProcessBuoyancy);
+    HookInstall(0x6C3EF0, &cBuoyancy::ProcessBuoyancy);
     HookInstall(0x6C3030, &cBuoyancy::ProcessBuoyancyBoat);
     HookInstall(0x6C2750, &cBuoyancy::CalcBuoyancyForce);
     HookInstall(0x6C2B90, &cBuoyancy::PreCalcSetup);
@@ -19,7 +19,7 @@ void cBuoyancy::InjectHooks()
     HookInstall(0x6C3B00, &cBuoyancy::SimpleCalcBuoyancy);
     HookInstall(0x6C2970, &cBuoyancy::SimpleSumBuoyancyData);
     HookInstall(0x6C2810, &cBuoyancy::FindWaterLevel);
-    HookInstall(0x6C28C0, &cBuoyancy::FindWaterLevelNorm);*/
+    HookInstall(0x6C28C0, &cBuoyancy::FindWaterLevelNorm);
 }
 
 bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pBuoyancy)

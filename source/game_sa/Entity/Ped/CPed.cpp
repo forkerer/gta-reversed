@@ -21,7 +21,7 @@ void CPed::InjectHooks()
     HookInstall(0x5E6530, &CPed::ReplaceWeaponForScriptedCutscene);
     HookInstall(0x5E6550, &CPed::RemoveWeaponForScriptedCutscene);
     HookInstall(0x5E8AB0, &CPed::GiveWeaponAtStartOfFight);
-	/*HookInstall(0x5E1FA0, &CPed::ProcessBuoyancy);*/
+	//HookInstall(0x5E1FA0, &CPed::ProcessBuoyancy);
 }
 
 CPed::CPed(ePedType pedtype) : CPhysical(plugin::dummy), m_aWeapons{ plugin::dummy, plugin::dummy, plugin::dummy,
@@ -503,8 +503,9 @@ void CPed::UpdatePosition()
 // Converted from thiscall void CPed::ProcessBuoyancy(void) 0x5E1FA0
 void CPed::ProcessBuoyancy()
 {
-#ifdef USE_DEFAULT_FUNCTIONS
     ((void(__thiscall *)(CPed*))0x5E1FA0)(this);
+    return;
+#ifdef USE_DEFAULT_FUNCTIONS
 #else
     if (bInVehicle)
         return;
@@ -595,8 +596,7 @@ void CPed::ProcessBuoyancy()
         bIsDrowning = true;
 
         bool bPlayerSwimmingOrClimbing = false;
-        if (!IsPlayer()) {
-           
+        if (!IsPlayer()) {           
             CEventInWater cEvent(0.75F);
             GetEventGroup().Add(&cEvent, false);
         }
@@ -610,7 +610,7 @@ void CPed::ProcessBuoyancy()
                 bPlayerSwimmingOrClimbing = true;
             }
             else {
-                auto fAcceleration = vecBuoyancy.z / (CTimer::ms_fTimeStep / 125.0F * m_fMass);
+                auto fAcceleration = vecBuoyancy.z / (CTimer::ms_fTimeStep * m_fMass / 125.0F);
                 CEventInWater cEvent(fAcceleration);
                 GetEventGroup().Add(&cEvent, false);
             }
