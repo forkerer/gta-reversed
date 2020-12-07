@@ -314,7 +314,6 @@ void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector 
     if (fMoveSpeed > 0.1F) {
         auto fMult = 1.0F / fMoveSpeed;
         vecUsedSpeed *= (fMult * 0.1F); // Get the speed in [0 : 0.1] range
-        vecSplashDir = vecUsedSpeed;
         fMoveSpeed = 0.1F;
     }
 
@@ -359,7 +358,6 @@ void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector 
             curParticle = FxPrtMult_c(1.0F, 1.0F, 1.0F, 0.2F, 0.4F, 0.0F, 0.5F);
             auto vecPedVelocity = CVector(0.0F, 0.0F, 0.0F);
             auto vecPedParticlePos = pEntity->GetPosition() + (vecPedForward * 0.4F);
-
         
             if (pPed->m_pPlayerData)
                 vecPedParticlePos.z = pPed->m_pPlayerData->m_fWaterHeight;
