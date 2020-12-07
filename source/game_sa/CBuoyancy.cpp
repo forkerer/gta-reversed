@@ -11,7 +11,7 @@ float(*cBuoyancy::afBoatVolumeDistributionCat)[3] = (float(*)[3])0x8D3314; // Ca
 
 void cBuoyancy::InjectHooks()
 {
-    HookInstall(0x6C3EF0, &cBuoyancy::ProcessBuoyancy);
+    /*HookInstall(0x6C3EF0, &cBuoyancy::ProcessBuoyancy);
     HookInstall(0x6C3030, &cBuoyancy::ProcessBuoyancyBoat);
     HookInstall(0x6C2750, &cBuoyancy::CalcBuoyancyForce);
     HookInstall(0x6C2B90, &cBuoyancy::PreCalcSetup);
@@ -19,7 +19,7 @@ void cBuoyancy::InjectHooks()
     HookInstall(0x6C3B00, &cBuoyancy::SimpleCalcBuoyancy);
     HookInstall(0x6C2970, &cBuoyancy::SimpleSumBuoyancyData);
     HookInstall(0x6C2810, &cBuoyancy::FindWaterLevel);
-    HookInstall(0x6C28C0, &cBuoyancy::FindWaterLevelNorm);
+    HookInstall(0x6C28C0, &cBuoyancy::FindWaterLevelNorm);*/
 }
 
 bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pBuoyancy)
@@ -383,8 +383,8 @@ void cBuoyancy::SimpleCalcBuoyancy(CPhysical* pEntity)
             pCurVec.Set(0.0F, 0.0F, 0.0F);
 
             auto vecCurPoint = CVector();
-            vecCurPoint.x = m_vecBoundingMin.x + m_vecCenterOffset.x * iXMult;
-            vecCurPoint.y = m_vecBoundingMin.y + m_vecCenterOffset.y * iYMult;
+            vecCurPoint.x = m_vecBoundingMin.x + (m_vecCenterOffset.x * iXMult);
+            vecCurPoint.y = m_vecBoundingMin.y + (m_vecCenterOffset.y * iYMult);
             vecCurPoint.z = 0.0F;
             eBuoyancyPointState eState;
             FindWaterLevel(m_vecInitialZPos, &vecCurPoint, &eState);
@@ -399,7 +399,6 @@ void cBuoyancy::SimpleCalcBuoyancy(CPhysical* pEntity)
         }
     }
 
-    m_vecMoveForce.Set(0, 0, 0);
     auto fHeight = m_vecBoundingMax.z - m_vecBoundingMin.z;
     m_fEntityWaterImmersion = m_fEntityWaterImmersion / (9.0F * fHeight);
     auto fHalfHeightZ = m_vecBoundingMin.z + fHeight * 0.5F;
@@ -458,7 +457,7 @@ void cBuoyancy::SimpleCalcBuoyancy(CPhysical* pEntity)
 double cBuoyancy::SimpleSumBuoyancyData(CVector* vecWaterOffset, eBuoyancyPointState ePointState)
 {
 #ifdef USE_DEFAULT_FUNCTIONS
-    return plugin::CallMethodAndReturn<double, 0x6C2970, cBuoyancy*, CVector*, eBuoyancyPointState>(this, vecPointRelativeToSurface, ePointState);
+    return plugin::CallMethodAndReturn<double, 0x6C2970, cBuoyancy*, CVector*, eBuoyancyPointState>(this, vecWaterOffset, ePointState);
 #else
     if (!cBuoyancy::calcStruct.bBuoyancyDataSummed)
         cBuoyancy::calcStruct.bBuoyancyDataSummed = true;
@@ -477,7 +476,6 @@ double cBuoyancy::SimpleSumBuoyancyData(CVector* vecWaterOffset, eBuoyancyPointS
     cBuoyancy::calcStruct.vecAverageMoveForce.y = vecWaterOffset->y * m_vecNormalizedCenterOffset.y;
     cBuoyancy::calcStruct.vecAverageMoveForce.z = (vecWaterOffset->z + m_vecBoundingMin.z) * m_vecNormalizedCenterOffset.z * 0.5F;
 
-    CVector vecNewMoveForce;
     if (m_bFlipUnknVector)
         cBuoyancy::calcStruct.vecAverageMoveForce *= -1.0F;
 

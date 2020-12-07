@@ -21,7 +21,7 @@ void CPed::InjectHooks()
     HookInstall(0x5E6530, &CPed::ReplaceWeaponForScriptedCutscene);
     HookInstall(0x5E6550, &CPed::RemoveWeaponForScriptedCutscene);
     HookInstall(0x5E8AB0, &CPed::GiveWeaponAtStartOfFight);
-	HookInstall(0x5E1FA0, &CPed::ProcessBuoyancy);
+	/*HookInstall(0x5E1FA0, &CPed::ProcessBuoyancy);*/
 }
 
 CPed::CPed(ePedType pedtype) : CPhysical(plugin::dummy), m_aWeapons{ plugin::dummy, plugin::dummy, plugin::dummy,
