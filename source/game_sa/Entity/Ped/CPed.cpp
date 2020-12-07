@@ -563,17 +563,18 @@ void CPed::ProcessBuoyancy()
     }
 
     // Those 4 are called for some reason
+    /*
     CTimeCycle::GetAmbientRed();
     CTimeCycle::GetAmbientGreen();
     CTimeCycle::GetAmbientBlue();
     rand();
+    */
 	// Add splash particle if it's the first frame we're touching water, and
 	// the movement of ped is downward, preventing particles from being created
 	// if ped is standing still and water wave touches him
     if (!physicalFlags.bTouchingWater && m_vecMoveSpeed.z < -0.01F) {
-        const auto& vecPedPos = GetPosition();
         auto vecMoveDir = m_vecMoveSpeed * CTimer::ms_fTimeStep * 4.0F;
-        auto vecSplashPos = vecPedPos + vecMoveDir;
+        auto vecSplashPos = GetPosition() + vecMoveDir;
         float fWaterZ;
         if (CWaterLevel::GetWaterLevel(vecSplashPos.x, vecSplashPos.y, vecSplashPos.z, &fWaterZ, true, nullptr)) {
             vecSplashPos.z = fWaterZ;
@@ -588,19 +589,16 @@ void CPed::ProcessBuoyancy()
 
     const auto& vecPedPos = GetPosition();
     if (CTimer::ms_fTimeStep / 125.0F < vecBuoyancy.z / m_fMass
-        || vecPedPos.z + 0.6F < mod_Buoyancy.m_fWaterLevel) {
+        || GetPosition().z + 0.6F < mod_Buoyancy.m_fWaterLevel) {
 
         bIsStanding = false;
         bIsDrowning = true;
 
         bool bPlayerSwimmingOrClimbing = false;
-        int iUnused;
         if (!IsPlayer()) {
            
             CEventInWater cEvent(0.75F);
-            iUnused = 1;
-            m_pIntelligence->m_eventGroup.Add(&cEvent, false);
-            iUnused = -1;
+            GetEventGroup().Add(&cEvent, false);
         }
         else {
             auto pSwimTask = m_pIntelligence->GetTaskSwim();
@@ -614,9 +612,7 @@ void CPed::ProcessBuoyancy()
             else {
                 auto fAcceleration = vecBuoyancy.z / (CTimer::ms_fTimeStep / 125.0F * m_fMass);
                 CEventInWater cEvent(fAcceleration);
-                iUnused = 0;
-                m_pIntelligence->m_eventGroup.Add(&cEvent, false);
-                iUnused = 1;
+                GetEventGroup().Add(&cEvent, false);
             }
 
             if (bPlayerSwimmingOrClimbing)
