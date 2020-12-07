@@ -16,9 +16,9 @@ void cBuoyancy::InjectHooks()
     HookInstall(0x6C2B90, &cBuoyancy::PreCalcSetup);
     HookInstall(0x6C34E0, &cBuoyancy::AddSplashParticles);
     HookInstall(0x6C3B00, &cBuoyancy::SimpleCalcBuoyancy);
-    HookInstall(0x6C2970, &cBuoyancy::IntegratePointIntoCalculation);
-    HookInstall(0x6C2810, &cBuoyancy::FindPointDistanceRelativeToWaterSurfaceNoNormal);
-    HookInstall(0x6C28C0, &cBuoyancy::FindPointDistanceRelativeToWaterSurfaceWithNormal);
+    HookInstall(0x6C2970, &cBuoyancy::SimpleSumBuoyancyData);
+    HookInstall(0x6C2810, &cBuoyancy::FindWaterLevel);
+    HookInstall(0x6C28C0, &cBuoyancy::FindWaterLevelNorm);
 }
 
 bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pBuoyancy)
@@ -103,7 +103,7 @@ bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector
 
             auto vecWaveNormal = CVector(0.0F, 0.0F, 1.0F);
             eBuoyancyPointState eState;
-            FindPointDistanceRelativeToWaterSurfaceWithNormal(&m_unknStruct, &vecCurPoint, &eState, &vecWaveNormal);
+            FindWaterLevelNorm(m_vecInitialZPos, &vecCurPoint, &eState, &vecWaveNormal);
 
             auto fThird = 1.0F / 3.0F;
             vecWaveNormal.z += 2.0F;
@@ -131,7 +131,7 @@ bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector
             if (eState == eBuoyancyPointState::COMPLETELY_ABOVE_WATER)
                 continue;
 
-            auto fAddedDistToSurface = IntegratePointIntoCalculation(&vecCurPoint, eState);
+            auto fAddedDistToSurface = SimpleSumBuoyancyData(&vecCurPoint, eState);
             auto fCurBuoyancy = CTimer::ms_fTimeStep * m_fBuoyancy;
             auto fPointContribution = fCurBuoyancy * (fAddedDistToSurface * fBoatHeightRatio);
 
@@ -294,11 +294,7 @@ void cBuoyancy::PreCalcSetup(CPhysical* pEntity, float fBuoyancy)
     m_fEntityWaterImmersion = 0.0F;
     m_vecPos = pEntity->GetPosition();
     m_fWaterLevel += m_fUnkn2;
-
-    m_unknStruct.iUnkn1 = 0;
-    m_unknStruct.iUnkn2 = 0;
-    m_unknStruct.fEntityPosZ = m_vecPos.z;
-
+    m_vecInitialZPos.Set(0.0F, 0.0F, m_vecPos.z);
     m_fBuoyancy = fBuoyancy;
 #endif
 }
@@ -390,13 +386,13 @@ void cBuoyancy::SimpleCalcBuoyancy(CPhysical* pEntity)
             vecCurPoint.y = m_vecBoundingMin.y + m_vecCenterOffset.y * iYMult;
             vecCurPoint.z = 0.0F;
             eBuoyancyPointState eState;
-            FindPointDistanceRelativeToWaterSurfaceNoNormal(&m_unknStruct, &vecCurPoint, &eState);
+            FindWaterLevel(m_vecInitialZPos, &vecCurPoint, &eState);
             cBuoyancy::fPointBuoyancyModifier = 1.0F;
 
             if (eState == eBuoyancyPointState::COMPLETELY_ABOVE_WATER)
                 pCurVec.z = m_vecBoundingMin.z;
             else {
-                IntegratePointIntoCalculation(&vecCurPoint, eState);
+                SimpleSumBuoyancyData(&vecCurPoint, eState);
                 pCurVec = vecCurPoint;
             }
         }
@@ -458,7 +454,7 @@ void cBuoyancy::SimpleCalcBuoyancy(CPhysical* pEntity)
 #endif
 }
 
-double cBuoyancy::IntegratePointIntoCalculation(CVector* vecWaterOffset, eBuoyancyPointState ePointState)
+double cBuoyancy::SimpleSumBuoyancyData(CVector* vecWaterOffset, eBuoyancyPointState ePointState)
 {
 #ifdef USE_DEFAULT_FUNCTIONS
     return plugin::CallMethodAndReturn<double, 0x6C2970, cBuoyancy*, CVector*, eBuoyancyPointState>(this, vecPointRelativeToSurface, ePointState);
@@ -498,16 +494,16 @@ double cBuoyancy::IntegratePointIntoCalculation(CVector* vecWaterOffset, eBuoyan
 #endif
 }
 
-void cBuoyancy::FindPointDistanceRelativeToWaterSurfaceNoNormal(CBuoyancyUnknStruct* buoyancyInfo, CVector* outVecOffset, eBuoyancyPointState* outInWaterState)
+void cBuoyancy::FindWaterLevel(CVector const& vecInitialZPos, CVector* outVecOffset, eBuoyancyPointState* outInWaterState)
 {
 #ifdef USE_DEFAULT_FUNCTIONS
-    plugin::CallMethod<0x6C2810, cBuoyancy*, CBuoyancyUnknStruct*, CVector*, eBuoyancyPointState*>(this, buoyancyInfo, outVecOffset, outInWaterState);
+    plugin::CallMethod<0x6C2810, cBuoyancy*, CVector const&, CVector*, eBuoyancyPointState*>(this, vecInitialZPos, outVecOffset, outInWaterState);
 #else
     CVector transformedPos;
     Multiply3x3(&transformedPos, &m_EntityMatrix, outVecOffset);
     auto vecWorldPos = transformedPos + m_vecPos;
     CWaterLevel::GetWaterLevel(vecWorldPos.x, vecWorldPos.y, m_vecPos.z, &outVecOffset->z, true, nullptr);
-    outVecOffset->z -= (transformedPos.z + buoyancyInfo->fEntityPosZ);
+    outVecOffset->z -= (transformedPos.z + vecInitialZPos.z);
 
     if (outVecOffset->z > m_vecBoundingMax.z) {
         outVecOffset->z = m_vecBoundingMax.z;
@@ -523,16 +519,16 @@ void cBuoyancy::FindPointDistanceRelativeToWaterSurfaceNoNormal(CBuoyancyUnknStr
 #endif
 }
 
-void cBuoyancy::FindPointDistanceRelativeToWaterSurfaceWithNormal(CBuoyancyUnknStruct* buoyancyInfo, CVector* outVecOffset, eBuoyancyPointState* outInWaterState, CVector* outVecNormal)
+void cBuoyancy::FindWaterLevelNorm(CVector const& vecInitialZPos, CVector* outVecOffset, eBuoyancyPointState* outInWaterState, CVector* outVecNormal)
 {
 #ifdef USE_DEFAULT_FUNCTIONS
-    plugin::CallMethod<0x6C28C0, cBuoyancy*, CBuoyancyUnknStruct*, CVector*, eBuoyancyPointState*, CVector*>(this, buoyancyInfo, outVecOffset, outInWaterState, outVecNormal);
+    plugin::CallMethod<0x6C28C0, cBuoyancy*, CVector const&, CVector*, eBuoyancyPointState*, CVector*>(this, vecInitialZPos, outVecOffset, outInWaterState, outVecNormal);
 #else
     CVector transformedPos;
     Multiply3x3(&transformedPos, &m_EntityMatrix, outVecOffset);
     auto vecWorldPos = transformedPos + m_vecPos;
     CWaterLevel::GetWaterLevel(vecWorldPos.x, vecWorldPos.y, m_vecPos.z, &outVecOffset->z, true, outVecNormal);
-    outVecOffset->z -= (transformedPos.z + buoyancyInfo->fEntityPosZ);
+    outVecOffset->z -= (transformedPos.z + vecInitialZPos.z);
 
     if (outVecOffset->z > m_vecBoundingMax.z) {
         outVecOffset->z = m_vecBoundingMax.z;

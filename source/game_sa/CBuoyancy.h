@@ -13,14 +13,6 @@ enum class eBuoyancyPointState : int32_t
     COMPLETELY_UNDER_WATER = 0x2,
 };
 
-struct CBuoyancyUnknStruct {
-public:
-    unsigned int iUnkn1;
-    unsigned int iUnkn2;
-    float fEntityPosZ;
-};
-VALIDATE_SIZE(CBuoyancyUnknStruct, 0xC);
-
 #pragma pack(push, 8)
 struct CBuoyancyCalcStruct
 {
@@ -40,7 +32,7 @@ public:
     CVector             m_vecPos;                   // Position of the entity which buoyancy is being calculated
     CMatrix             m_EntityMatrix;             // Matrix of the entity which buoyancy is being calculated
     unsigned int        pad;
-    CBuoyancyUnknStruct m_unknStruct;               // Holds some info about current entity, only ever used to retrieve its Z coordinate, which is already stored in m_vecPos field 
+    CVector             m_vecInitialZPos;           // Holds some info about current entity, only ever used to retrieve its Z coordinate, which is already stored in m_vecPos field 
     float               m_fWaterLevel;              // Z coordinate of water at entity position
     float               m_fUnkn2;                   // 104
     float               m_fBuoyancy;                // 108
@@ -72,8 +64,6 @@ public:
     static float(*afSailboatConsts)[3];      // 3x3 array of buoyancy modifiers for sailboats
     static float(*afGeneralBoatConsts)[3];   // 3x3 array of buoyancy modifiers for other boats
 
-
-
     static void InjectHooks();
     bool ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pBuoyancy);
     bool ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pVecUnknown, bool bUnderwater);
@@ -81,9 +71,9 @@ public:
     void PreCalcSetup(CPhysical* pEntity, float fBuoyancy);
     void AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector vecTo, CVector vecSplashDir, bool bReduceParticleSize);
     void SimpleCalcBuoyancy(CPhysical* pEntity);
-    double IntegratePointIntoCalculation(CVector* vecPointRelativeToSurface, eBuoyancyPointState ePointState);
-    void FindPointDistanceRelativeToWaterSurfaceNoNormal(CBuoyancyUnknStruct* buoyancyInfo, CVector* outVecOffset, eBuoyancyPointState* outInWaterState);
-    void FindPointDistanceRelativeToWaterSurfaceWithNormal(CBuoyancyUnknStruct* buoyancyInfo, CVector* outVecOffset, eBuoyancyPointState* outInWaterState, CVector* outVecNormal);
+    double SimpleSumBuoyancyData(CVector* vecPointRelativeToSurface, eBuoyancyPointState ePointState);
+    void FindWaterLevel(CVector const& vecInitialZPos, CVector* outVecOffset, eBuoyancyPointState* outInWaterState);
+    void FindWaterLevelNorm(CVector const& vecInitialZPos, CVector* outVecOffset, eBuoyancyPointState* outInWaterState, CVector* outVecNormal);
 };
 
 VALIDATE_SIZE(cBuoyancy, 0xD0);
