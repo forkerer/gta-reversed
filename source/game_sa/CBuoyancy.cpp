@@ -1,12 +1,13 @@
 #include "StdInc.h"
 
 cBuoyancy& mod_Buoyancy = *(cBuoyancy*)0xC1C890;
-float& cBuoyancy::fPointBuoyancyModifier = *(float*)0x8D32C8;
+float& cBuoyancy::fPointVolMultiplier = *(float*)0x8D32C8;
 CBuoyancyCalcStruct& cBuoyancy::calcStruct = *(CBuoyancyCalcStruct*)0xC1C858;
-float(*cBuoyancy::afSpeedboatConsts)[3] = (float(*)[3])0x8D335C;
-float(*cBuoyancy::afSmallBoatConsts)[3] = (float(*)[3])0x8D3338;
-float(*cBuoyancy::afSailboatConsts)[3] = (float(*)[3])0x8D3314;
-float(*cBuoyancy::afGeneralBoatConsts)[3] = (float(*)[3])0x8D32CC;
+float(*cBuoyancy::afBoatVolumeDistributionSpeed)[3] = (float(*)[3])0x8D335C;
+float(*cBuoyancy::afBoatVolumeDistributionDinghy)[3] = (float(*)[3])0x8D3338;
+float(*cBuoyancy::afBoatVolumeDistributionSail)[3] = (float(*)[3])0x8D3314;
+float(*cBuoyancy::afBoatVolumeDistribution)[3] = (float(*)[3])0x8D32CC;
+float(*cBuoyancy::afBoatVolumeDistributionCat)[3] = (float(*)[3])0x8D3314; // Catamaran volume distribution, unused in game, as there is no matching vehicle
 
 void cBuoyancy::InjectHooks()
 {
@@ -110,21 +111,21 @@ bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector
             vecWaveNormal *= fThird;
 
             switch (pVehicle->m_nModelIndex) {
-            case eModelID::MODEL_SQUALO:
-            case eModelID::MODEL_SPEEDER:
-            case eModelID::MODEL_JETMAX:
-            case eModelID::MODEL_LAUNCH:
-                cBuoyancy::fPointBuoyancyModifier = cBuoyancy::afSpeedboatConsts[iYMult][iXMult];
+            case eModelID::MODEL_SQUALO:  //446
+            case eModelID::MODEL_SPEEDER: //452
+            case eModelID::MODEL_JETMAX:  //493
+            case eModelID::MODEL_LAUNCH:  //595
+                cBuoyancy::fPointVolMultiplier = cBuoyancy::afBoatVolumeDistributionSpeed[iYMult][iXMult];
                 break;
-            case eModelID::MODEL_COASTG:
-            case eModelID::MODEL_DINGHY:
-                cBuoyancy::fPointBuoyancyModifier = cBuoyancy::afSmallBoatConsts[iYMult][iXMult];
+            case eModelID::MODEL_COASTG:  //472
+            case eModelID::MODEL_DINGHY:  //473
+                cBuoyancy::fPointVolMultiplier = cBuoyancy::afBoatVolumeDistributionDinghy[iYMult][iXMult];
                 break;
-            case eModelID::MODEL_MARQUIS:
-                cBuoyancy::fPointBuoyancyModifier = cBuoyancy::afSailboatConsts[iYMult][iXMult];
+            case eModelID::MODEL_MARQUIS: //484
+                cBuoyancy::fPointVolMultiplier = cBuoyancy::afBoatVolumeDistributionSail[iYMult][iXMult];
                 break;
             default:
-                cBuoyancy::fPointBuoyancyModifier = cBuoyancy::afGeneralBoatConsts[iYMult][iXMult];
+                cBuoyancy::fPointVolMultiplier = cBuoyancy::afBoatVolumeDistribution[iYMult][iXMult];
                 break;
             }
 
@@ -387,7 +388,7 @@ void cBuoyancy::SimpleCalcBuoyancy(CPhysical* pEntity)
             vecCurPoint.z = 0.0F;
             eBuoyancyPointState eState;
             FindWaterLevel(m_vecInitialZPos, &vecCurPoint, &eState);
-            cBuoyancy::fPointBuoyancyModifier = 1.0F;
+            cBuoyancy::fPointVolMultiplier = 1.0F;
 
             if (eState == eBuoyancyPointState::COMPLETELY_ABOVE_WATER)
                 pCurVec.z = m_vecBoundingMin.z;
@@ -462,13 +463,13 @@ double cBuoyancy::SimpleSumBuoyancyData(CVector* vecWaterOffset, eBuoyancyPointS
     if (!cBuoyancy::calcStruct.bBuoyancyDataSummed)
         cBuoyancy::calcStruct.bBuoyancyDataSummed = true;
 
-    auto fPointDistanceToWaterSurface = fabs(vecWaterOffset->z - m_vecBoundingMin.z) - (1.0F - cBuoyancy::fPointBuoyancyModifier);
+    auto fPointDistanceToWaterSurface = fabs(vecWaterOffset->z - m_vecBoundingMin.z) - (1.0F - cBuoyancy::fPointVolMultiplier);
     cBuoyancy::calcStruct.fAddedDistToWaterSurface = fPointDistanceToWaterSurface;
     if (fPointDistanceToWaterSurface < 0.0F)
         return 0.0F;
 
     if (m_bProcessingBoat)
-        cBuoyancy::calcStruct.fAddedDistToWaterSurface = pow(cBuoyancy::calcStruct.fAddedDistToWaterSurface * cBuoyancy::fPointBuoyancyModifier, 2);
+        cBuoyancy::calcStruct.fAddedDistToWaterSurface = pow(cBuoyancy::calcStruct.fAddedDistToWaterSurface * cBuoyancy::fPointVolMultiplier, 2);
 
     m_fEntityWaterImmersion += cBuoyancy::calcStruct.fAddedDistToWaterSurface;
 

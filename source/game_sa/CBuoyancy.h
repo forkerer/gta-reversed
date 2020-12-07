@@ -57,12 +57,13 @@ public:
     CVector             m_vecMoveForce;             // Calculated buoyancy move force
     unsigned int        field_CC;                   // 204
 
-    static float& fPointBuoyancyModifier;
+    static float& fPointVolMultiplier;
     static CBuoyancyCalcStruct& calcStruct;
-    static float(*afSpeedboatConsts)[3];     // 3x3 array of buoyancy modifiers for speedboats
-    static float(*afSmallBoatConsts)[3];    // 3x3 array of buoyancy modifiers for small boats
-    static float(*afSailboatConsts)[3];      // 3x3 array of buoyancy modifiers for sailboats
-    static float(*afGeneralBoatConsts)[3];   // 3x3 array of buoyancy modifiers for other boats
+    static float(*afBoatVolumeDistributionSpeed)[3];     // 3x3 array of buoyancy modifiers for speedboats
+    static float(*afBoatVolumeDistributionDinghy)[3];    // 3x3 array of buoyancy modifiers for small boats
+    static float(*afBoatVolumeDistributionSail)[3];      // 3x3 array of buoyancy modifiers for sailboats
+    static float(*afBoatVolumeDistribution)[3];          // 3x3 array of buoyancy modifiers for other boats
+    static float(*afBoatVolumeDistributionCat)[3];       // Catamaran volume distribution, unused in game, as there is no matching vehicle
 
     static void InjectHooks();
     bool ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pBuoyancy);
