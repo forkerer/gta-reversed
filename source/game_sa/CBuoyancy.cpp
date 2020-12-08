@@ -36,7 +36,7 @@ bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pV
 
     m_EntityMatrix = *pEntity->m_matrix;
     PreCalcSetup(pEntity, fBuoyancy);
-    if (pEntity->m_nType == ENTITY_TYPE_PED)
+    if (pEntity->IsPed())
     {
         pEntity->GetColModel(); // for some reason, this is here?
 
@@ -197,8 +197,8 @@ void cBuoyancy::PreCalcSetup(CPhysical* pEntity, float fBuoyancy)
         return;
     }
 
-    auto bIsVehicle = pEntity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE;
-    m_bProcessingBoat = bIsVehicle && ((CVehicle*)pEntity)->m_nVehicleClass == eVehicleClass::CLASS_BIG;
+    auto pVehicleEntity = static_cast<CVehicle*>(pEntity);
+    m_bProcessingBoat = pEntity->IsVehicle() && pVehicleEntity->IsBoat();
     auto pColModel = pEntity->GetColModel();
     m_vecBoundingMin = pColModel->m_boundBox.m_vecMin;
     m_vecBoundingMax = pColModel->m_boundBox.m_vecMax;
@@ -217,7 +217,7 @@ void cBuoyancy::PreCalcSetup(CPhysical* pEntity, float fBuoyancy)
             m_vecBoundingMax.y *= 1.4F;
             break;
         default:
-            if (bIsVehicle && ((CVehicle*)pEntity)->m_nVehicleSubClass == 3) {
+            if (pEntity->IsVehicle() && pVehicleEntity->IsHeli()) {
                 m_vecBoundingMin.y = -m_vecBoundingMax.y;
                 m_vecBoundingMax.z = m_vecBoundingMin.z * -1.1F;
                 m_vecBoundingMin.z *= 0.85F;
@@ -326,8 +326,8 @@ void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector 
         auto vecCurPoint = Lerp(vecFrom, vecTo, fCurrentProgress);
         auto vecTransformedPoint = (*pEntity->m_matrix) * vecCurPoint;
 
-        if (pEntity->m_nType != eEntityType::ENTITY_TYPE_PED) {
-            auto& vecEntPos = pEntity->GetPosition();
+        if (!pEntity->IsPed()) {
+            const auto& vecEntPos = pEntity->GetPosition();
             vecSplashDir = vecTransformedPoint - vecEntPos;
         }
         vecSplashDir.z = 0.0F;
@@ -339,7 +339,7 @@ void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector 
         g_fx.m_pPrtWatersplash->AddParticle(&vecTransformedPoint, &vecVelocity, 0.0F, &curParticle, -1.0F, 1.2F, 0.6F, 0);
     }
 
-    if (pEntity->m_nType == eEntityType::ENTITY_TYPE_PED) {
+    if (pEntity->IsPed()) {
         auto pPed = reinterpret_cast<CPed*>(pEntity);
         auto pSwimTask = pPed->m_pIntelligence->GetTaskSwim();
         if (!pSwimTask) {
@@ -448,10 +448,10 @@ void cBuoyancy::SimpleCalcBuoyancy(CPhysical* pEntity)
     }
 }
 
-double cBuoyancy::SimpleSumBuoyancyData(CVector* vecWaterOffset, eBuoyancyPointState ePointState)
+float cBuoyancy::SimpleSumBuoyancyData(CVector* vecWaterOffset, eBuoyancyPointState ePointState)
 {
     if (!ReversibleHooks::Hooked("cBuoyancy", "SimpleSumBuoyancyData")) {
-        return plugin::CallMethodAndReturn<double, 0x6C2970, cBuoyancy*, CVector*, eBuoyancyPointState>(this, vecWaterOffset, ePointState);
+        return plugin::CallMethodAndReturn<float, 0x6C2970, cBuoyancy*, CVector*, eBuoyancyPointState>(this, vecWaterOffset, ePointState);
     }
 
     if (!cBuoyancy::calcStruct.bBuoyancyDataSummed)

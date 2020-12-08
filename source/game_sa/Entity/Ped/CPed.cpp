@@ -531,9 +531,7 @@ void CPed::ProcessBuoyancy()
         auto& pStandingOnEntity = m_pContactEntity;
         if (pStandingOnEntity && pStandingOnEntity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE) {
             auto pStandingOnVehicle = reinterpret_cast<CVehicle*>(pStandingOnEntity);
-            if (pStandingOnVehicle->m_nVehicleClass == eVehicleClass::CLASS_BIG
-                && !pStandingOnVehicle->physicalFlags.bDestroyed) {
-
+            if (pStandingOnVehicle->IsBoat() && !pStandingOnVehicle->physicalFlags.bDestroyed) {
                 physicalFlags.bSubmergedInWater = false;
                 auto pSwimTask = m_pIntelligence->GetTaskSwim();
                 if (!pSwimTask)
@@ -553,7 +551,7 @@ void CPed::ProcessBuoyancy()
         if (CWorld::ProcessVerticalLine(vecPedPos, fCheckZ, lineColPoint, pColEntity, false, true, false, false, false, false, nullptr)) {
             if (pColEntity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE) {
                 auto pColVehicle = reinterpret_cast<CVehicle*>(pColEntity);
-                if (pColVehicle->m_nVehicleClass == eVehicleClass::CLASS_BIG
+                if (pColVehicle->IsBoat()
                     && !pColVehicle->physicalFlags.bDestroyed
                     && pColVehicle->GetMatrix()->GetUp().z > 0.0F) {
 
@@ -971,7 +969,7 @@ void CPed::GiveWeaponAtStartOfFight()
 #else
     if (m_nCreatedBy != PED_MISSION && GetActiveWeapon().m_nType == eWeaponType::WEAPON_UNARMED)
     {
-        const auto GiveRandomWeaponByType = [this](eWeaponType type, auto maxRandom)
+        const auto GiveRandomWeaponByType = [this](eWeaponType type, uint16_t maxRandom)
         {
             if ((m_nRandomSeed & 0x3FFu) >= maxRandom)
                 return;
