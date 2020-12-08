@@ -1,10 +1,9 @@
 #include "StdInc.h"
 
-template<typename T>
-inline void ReversibleHooks::HookInstall(const std::string& sIdentifier, const std::string& sFuncName, unsigned int installAddress, T addressToJumpTo, int iJmpCodeSize)
+void ReversibleHooks::HookInstall(const std::string& sIdentifier, const std::string& sFuncName, unsigned int installAddress, void* addressToJumpTo, int iJmpCodeSize)
 {
     if (m_HooksMap.find(sIdentifier) == m_HooksMap.end())
-        m_HooksMap.insert(sIdentifier, std::vector<SReversibleHook>());
+        m_HooksMap[sIdentifier] = std::vector<SReversibleHook>();
 
     auto& usedVector = m_HooksMap[sIdentifier];
 
@@ -45,6 +44,7 @@ inline void ReversibleHooks::HookInstall(const std::string& sIdentifier, const s
             memcpy((void*)installAddress, &theHook.m_HookContent, x86FixedJumpSize);
             VirtualProtect((void*)installAddress, 5, dwProtectHoodlum[0], &dwProtectHoodlum[1]);
             theHook.m_bIsHooked = true;
+            theHook.m_bImguiHooked = true;
         }
         else {
             printf("HookInstall: Couldn't find the jump for address = %#.8x\n", installAddress);
@@ -52,6 +52,7 @@ inline void ReversibleHooks::HookInstall(const std::string& sIdentifier, const s
             memcpy((void*)&theHook.m_OriginalFunctionContent, (void*)installAddress, iJmpCodeSize);
             memcpy((void*)installAddress, &theHook.m_HookContent, iJmpCodeSize);
             theHook.m_bIsHooked = true;
+            theHook.m_bImguiHooked = true;
         }
     }
     else {
@@ -59,10 +60,11 @@ inline void ReversibleHooks::HookInstall(const std::string& sIdentifier, const s
         memcpy((void*)&theHook.m_OriginalFunctionContent, (void*)installAddress, iJmpCodeSize);
         memcpy((void*)installAddress, &theHook.m_HookContent, iJmpCodeSize);
         theHook.m_bIsHooked = true;
+        theHook.m_bImguiHooked = true;
     }
     VirtualProtect((void*)installAddress, maxBytesToProtect, dwProtect[0], &dwProtect[1]);
 
-    usedVector.insert(std::move(theHook));
+    usedVector.push_back(std::move(theHook));
 }
 
 void ReversibleHooks::HookSwitch(SReversibleHook& sHook)
@@ -78,6 +80,7 @@ void ReversibleHooks::HookSwitch(SReversibleHook& sHook)
     memcpy(pDst, pSrc, sHook.m_iHookedBytes);
     VirtualProtect(pDst, sHook.m_iHookedBytes, dwProtect[0], &dwProtect[1]);
     sHook.m_bIsHooked = !sHook.m_bIsHooked;
+    sHook.m_bImguiHooked = sHook.m_bIsHooked;
 }
 
 bool ReversibleHooks::IsFunctionHooked(const std::string& sIdentifier, const std::string& sFuncName)

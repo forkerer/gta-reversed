@@ -15,33 +15,37 @@ unsigned int* CBirds::auRenderIndices = (unsigned int*)0x8D52F8; // Size: 30
 
 void CBirds::InjectHooks()
 {
-    HookInstall(0x711EC0, &CBirds::Init);
-    HookInstall(0x712300, &CBirds::Shutdown);
-    HookInstall(0x712E40, &CBirds::HandleGunShot);
-    HookInstall(0x712330, &CBirds::Update);
-    HookInstall(0x711EF0, &CBirds::CreateNumberOfBirds);
-    HookInstall(0x712810, &CBirds::Render);
+    ReversibleHooks::Install("CBirds", "Init", 0x711EC0, &CBirds::Init);
+    ReversibleHooks::Install("CBirds", "Shutdown", 0x712300, &CBirds::Shutdown);
+    ReversibleHooks::Install("CBirds", "HandleGunShot", 0x712E40, &CBirds::HandleGunShot);
+    ReversibleHooks::Install("CBirds", "Update", 0x712330, &CBirds::Update);
+    ReversibleHooks::Install("CBirds", "CreateNumberOfBirds", 0x711EF0, &CBirds::CreateNumberOfBirds);
+    ReversibleHooks::Install("CBirds", "Render", 0x712810, &CBirds::Render);
 }
 
 void CBirds::Init()
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    plugin::Call<0x711EC0>();
-#else
+    if (!ReversibleHooks::Hooked("CBirds", "Init")) {
+        plugin::Call<0x711EC0>();
+        return;
+    }
+
     for (int32_t i = 0; i < MAX_BIRDS; ++i) {
         auto& pBird = aBirds[i];
         pBird.m_bCreated = false;
     }
     CBirds::uiNumberOfBirds = 0;
     CBirds::bHasBirdBeenShot = false;
-#endif
 }
 
 void CBirds::CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    plugin::Call<0x711EF0, CVector, CVector, int, eBirdsBiome, bool>(vecStartPos, vecTargetPos, iBirdCount, eBiome, bCheckObstacles);
-#else
+
+    if (!ReversibleHooks::Hooked("CBirds", "CreateNumberOfBirds")) {
+        plugin::Call<0x711EF0, CVector, CVector, int, eBirdsBiome, bool>(vecStartPos, vecTargetPos, iBirdCount, eBiome, bCheckObstacles);
+        return;
+    }
+
     float fMaxDistance;
 
     switch (eBiome) {
@@ -131,28 +135,30 @@ void CBirds::CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int 
         pBird.m_vecTargetVelocity = vecBirdDirection * fSpeedMult;
         pBird.m_vecCurrentVelocity = pBird.m_vecTargetVelocity;
     }
-#endif
 }
 
 void CBirds::Shutdown()
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    plugin::Call<0x712300>();
-#else
+    if (!ReversibleHooks::Hooked("CBirds", "Shutdown")) {
+        plugin::Call<0x712300>();
+        return;
+    }
+
     for (int32_t i = 0; i < MAX_BIRDS; ++i) {
         auto& pBird = aBirds[i];
         if (pBird.m_bCreated)
             pBird.m_bCreated = false;
     }
     CBirds::uiNumberOfBirds = 0;
-#endif
 }
 
 void CBirds::Update()
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    plugin::Call<0x712330>();
-#else
+    if (!ReversibleHooks::Hooked("CBirds", "Update")) {
+        plugin::Call<0x712330>();
+        return;
+    }
+
     auto const& vecCamPos = TheCamera.GetPosition();
 
     if (!CGame::currArea
@@ -266,14 +272,15 @@ void CBirds::Update()
         pBird.m_vecPosn += (fTimeStep * pBird.m_vecCurrentVelocity);
         pBird.m_fAngle = atan2(pBird.m_vecTargetVelocity.x, pBird.m_vecTargetVelocity.y);
     }
-#endif
 }
 
 void CBirds::Render()
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    plugin::Call<0x712810>();
-#else
+    if (!ReversibleHooks::Hooked("CBirds", "Render")) {
+        plugin::Call<0x712810>();
+        return;
+    }
+
     if (!CBirds::uiNumberOfBirds)
         return;
 
@@ -412,14 +419,15 @@ void CBirds::Render()
         RwRenderStateSet(rwRENDERSTATETEXTURERASTER, (void*)gpCloudTex[1]->raster);
         CBrightLights::RenderOutGeometryBuffer();
     }
-#endif
 }
 
 void CBirds::HandleGunShot(CVector const* pointA, CVector const* pointB)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    plugin::Call<0x712E40, CVector const*, CVector const*>(pointA, pointB);
-#else
+    if (!ReversibleHooks::Hooked("CBirds", "HandleGunShot")) {
+        plugin::Call<0x712E40, CVector const*, CVector const*>(pointA, pointB);
+        return;
+    }
+
     CColLine colLine(*pointA, *pointB);
 
     for (int32_t i = 0; i < MAX_BIRDS; ++i) {
@@ -439,5 +447,4 @@ void CBirds::HandleGunShot(CVector const* pointA, CVector const* pointB)
             pBird.m_bCreated = false;
         }
     }
-#endif
 }
