@@ -971,7 +971,7 @@ void CPed::GiveWeaponAtStartOfFight()
 #else
     if (m_nCreatedBy != PED_MISSION && GetActiveWeapon().m_nType == eWeaponType::WEAPON_UNARMED)
     {
-        const auto GiveRandomWeaponByType = [this](eWeaponType type, auto maxRandom)
+        const auto GiveRandomWeaponByType = [this](eWeaponType type, uint16_t maxRandom)
         {
             if ((m_nRandomSeed & 0x3FFu) >= maxRandom)
                 return;

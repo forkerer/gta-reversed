@@ -19,5 +19,5 @@ void CAudioEngine::DisplayRadioStationName()
 }
 
 void CAudioEngine::ReportWaterSplash(CPhysical* pPhysical, float volume, bool forcePlaySplashSound) {
-    return plugin::CallMethod <0x506F00, CAudioEngine*, CPhysical*, float, unsigned char>(this, pPhysical, fUnkn, ucUnkn);
+    return plugin::CallMethod<0x506F00, CAudioEngine*, CPhysical*, float, unsigned char>(this, pPhysical, volume, forcePlaySplashSound);
 }
