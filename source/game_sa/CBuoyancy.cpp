@@ -11,23 +11,24 @@ float(*cBuoyancy::afBoatVolumeDistributionCat)[3] = (float(*)[3])0x8D3314; // Ca
 
 void cBuoyancy::InjectHooks()
 {
-    //HookInstall(0x6C3EF0, &cBuoyancy::ProcessBuoyancy);
-    HookInstall(0x6C3030, &cBuoyancy::ProcessBuoyancyBoat);
-    //HookInstall(0x6C2750, &cBuoyancy::CalcBuoyancyForce);
-    //HookInstall(0x6C2B90, &cBuoyancy::PreCalcSetup);
-    //HookInstall(0x6C34E0, &cBuoyancy::AddSplashParticles);
-    HookInstall(0x6C3B00, &cBuoyancy::SimpleCalcBuoyancy);
-    HookInstall(0x6C2970, &cBuoyancy::SimpleSumBuoyancyData);
-    HookInstall(0x6C2810, &cBuoyancy::FindWaterLevel);
-    HookInstall(0x6C28C0, &cBuoyancy::FindWaterLevelNorm);
+    ReversibleHooks::Install("cBuoyancy", "ProcessBuoyancy", 0x6C3EF0, &cBuoyancy::ProcessBuoyancy);
+    ReversibleHooks::Install("cBuoyancy", "ProcessBuoyancyBoat", 0x6C3030, &cBuoyancy::ProcessBuoyancyBoat);
+    ReversibleHooks::Install("cBuoyancy", "CalcBuoyancyForce", 0x6C2750, &cBuoyancy::CalcBuoyancyForce);
+    ReversibleHooks::Install("cBuoyancy", "PreCalcSetup", 0x6C2B90, &cBuoyancy::PreCalcSetup);
+    ReversibleHooks::Install("cBuoyancy", "AddSplashParticles", 0x6C34E0, &cBuoyancy::AddSplashParticles);
+    ReversibleHooks::Install("cBuoyancy", "SimpleCalcBuoyancy", 0x6C3B00, &cBuoyancy::SimpleCalcBuoyancy);
+    ReversibleHooks::Install("cBuoyancy", "SimpleSumBuoyancyData", 0x6C2970, &cBuoyancy::SimpleSumBuoyancyData);
+    ReversibleHooks::Install("cBuoyancy", "FindWaterLevel", 0x6C2810, &cBuoyancy::FindWaterLevel);
+    ReversibleHooks::Install("cBuoyancy", "FindWaterLevelNorm", 0x6C28C0, &cBuoyancy::FindWaterLevelNorm);
 }
 
 bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pBuoyancy)
 {
-    return plugin::CallMethodAndReturn<bool, 0x6C3EF0, cBuoyancy*, CEntity*, float, CVector*, CVector*> 
-        (this, pEntity, fBuoyancy, pVecTurnSpeed, pBuoyancy);
-#ifdef USE_DEFAULT_FUNCTIONS
-#else
+    if (!ReversibleHooks::Hooked("cBuoyancy", "ProcessBuoyancy")) {
+        return plugin::CallMethodAndReturn<bool, 0x6C3EF0, cBuoyancy*, CEntity*, float, CVector*, CVector*>
+            (this, pEntity, fBuoyancy, pVecTurnSpeed, pBuoyancy);
+    }
+
     CVector& entityPosition = pEntity->GetPosition();
     if (!CWaterLevel::GetWaterLevel(entityPosition.x, entityPosition.y, entityPosition.z,
         &m_fWaterLevel, pEntity->physicalFlags.bTouchingWater, nullptr))
@@ -74,15 +75,15 @@ bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pV
     }
 
     return false;
-#endif
 }
 
 bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pVecUnknown, bool bUnderwater)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    return plugin::CallMethodAndReturn<bool, 0x6C3030, cBuoyancy*, CVehicle*, float, CVector*, CVector*, bool>
-        (this, pVehicle, fBuoyancy, pVecTurnSpeed, pVecUnknown, bUnderwater);
-#else
+    if (!ReversibleHooks::Hooked("cBuoyancy", "ProcessBuoyancyBoat")) {
+        return plugin::CallMethodAndReturn<bool, 0x6C3030, cBuoyancy*, CVehicle*, float, CVector*, CVector*, bool>
+            (this, pVehicle, fBuoyancy, pVecTurnSpeed, pVecUnknown, bUnderwater);
+    }
+
     const CVector& entityPosition = pVehicle->GetPosition();
     if (!CWaterLevel::GetWaterLevel(entityPosition.x, entityPosition.y, entityPosition.z,
         &m_fWaterLevel, pVehicle->physicalFlags.bTouchingWater, nullptr)) {
@@ -163,14 +164,14 @@ bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector
         return true;
 
     return m_bInWater;
-#endif
 }
 
 bool cBuoyancy::CalcBuoyancyForce(CPhysical* pEntity, CVector* pVecTurnSpeed, CVector* pBuoyancy)
 {
-    return plugin::CallMethodAndReturn<bool, 0x6C2750, cBuoyancy*, CPhysical* , CVector*, CVector*>(this, pEntity, pVecTurnSpeed, pBuoyancy);
-#ifdef USE_DEFAULT_FUNCTIONS
-#else
+    if (!ReversibleHooks::Hooked("cBuoyancy", "CalcBuoyancyForce")) {
+        return plugin::CallMethodAndReturn<bool, 0x6C2750, cBuoyancy*, CPhysical* , CVector*, CVector*>(this, pEntity, pVecTurnSpeed, pBuoyancy);
+    }
+
     if (!m_bInWater)
     {
         return false;
@@ -194,15 +195,15 @@ bool cBuoyancy::CalcBuoyancyForce(CPhysical* pEntity, CVector* pVecTurnSpeed, CV
     }
     pBuoyancy->z = fBuoyancy;
     return true;
-#endif
 }
 
 void cBuoyancy::PreCalcSetup(CPhysical* pEntity, float fBuoyancy)
 {
-    plugin::CallMethod<0x6C2B90, cBuoyancy*, CPhysical*, float>(this, pEntity, fBuoyancy);
-    return;
-#ifdef USE_DEFAULT_FUNCTIONS
-#else
+    if (!ReversibleHooks::Hooked("cBuoyancy", "PreCalcSetup")) {
+        plugin::CallMethod<0x6C2B90, cBuoyancy*, CPhysical*, float>(this, pEntity, fBuoyancy);
+        return;
+    }
+
     auto bIsVehicle = pEntity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE;
     m_bProcessingBoat = bIsVehicle && ((CVehicle*)pEntity)->m_nVehicleClass == eVehicleClass::CLASS_BIG;
     auto pColModel = pEntity->GetColModel();
@@ -297,15 +298,15 @@ void cBuoyancy::PreCalcSetup(CPhysical* pEntity, float fBuoyancy)
     m_fWaterLevel += m_fUnkn2;
     m_vecInitialZPos.Set(0.0F, 0.0F, m_vecPos.z);
     m_fBuoyancy = fBuoyancy;
-#endif
 }
 
 void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector vecTo, CVector vecSplashDir, bool bReduceParticleSize)
 {
-    plugin::CallMethod<0x6C34E0, cBuoyancy*, CPhysical*, CVector, CVector, CVector, bool>(this, pEntity, vecFrom, vecTo, vecSplashDir, bReduceParticleSize);
-    return;
-#ifdef USE_DEFAULT_FUNCTIONS
-#else
+    if (!ReversibleHooks::Hooked("cBuoyancy", "AddSplashParticles")) {
+        plugin::CallMethod<0x6C34E0, cBuoyancy*, CPhysical*, CVector, CVector, CVector, bool>(this, pEntity, vecFrom, vecTo, vecSplashDir, bReduceParticleSize);
+        return;
+    }
+
     auto fDistBetweenPoints = DistanceBetweenPoints(vecFrom, vecTo);
     auto vecUsedSpeed = pEntity->m_vecMoveSpeed;
     auto fMoveSpeed = vecUsedSpeed.Magnitude();
@@ -368,14 +369,15 @@ void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector 
     }
 
     AudioEngine.ReportWaterSplash(pEntity, -100.0F, 0);
-#endif
 }
 
 void cBuoyancy::SimpleCalcBuoyancy(CPhysical* pEntity)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    plugin::CallMethod<0x6C3B00, cBuoyancy*, CPhysical*>(this, pEntity);
-#else
+    if (!ReversibleHooks::Hooked("cBuoyancy", "SimpleCalcBuoyancy")) {
+        plugin::CallMethod<0x6C3B00, cBuoyancy*, CPhysical*>(this, pEntity);
+        return;
+    }
+
     CVector vecAllPoints[3][3];
 
     for (int32_t iXMult = 0; iXMult < 3; ++iXMult) {
@@ -451,15 +453,14 @@ void cBuoyancy::SimpleCalcBuoyancy(CPhysical* pEntity)
             AddSplashParticles(pEntity, vecAllPoints[i][2], vecAllPoints[i + 1][2], vecDir, false);
         }
     }
-
-#endif
 }
 
 double cBuoyancy::SimpleSumBuoyancyData(CVector* vecWaterOffset, eBuoyancyPointState ePointState)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    return plugin::CallMethodAndReturn<double, 0x6C2970, cBuoyancy*, CVector*, eBuoyancyPointState>(this, vecWaterOffset, ePointState);
-#else
+    if (!ReversibleHooks::Hooked("cBuoyancy", "SimpleSumBuoyancyData")) {
+        return plugin::CallMethodAndReturn<double, 0x6C2970, cBuoyancy*, CVector*, eBuoyancyPointState>(this, vecWaterOffset, ePointState);
+    }
+
     if (!cBuoyancy::calcStruct.bBuoyancyDataSummed)
         cBuoyancy::calcStruct.bBuoyancyDataSummed = true;
 
@@ -491,14 +492,15 @@ double cBuoyancy::SimpleSumBuoyancyData(CVector* vecWaterOffset, eBuoyancyPointS
     m_bInWater = true;
 
     return cBuoyancy::calcStruct.fAddedDistToWaterSurface;
-#endif
 }
 
 void cBuoyancy::FindWaterLevel(CVector const& vecInitialZPos, CVector* outVecOffset, eBuoyancyPointState* outInWaterState)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    plugin::CallMethod<0x6C2810, cBuoyancy*, CVector const&, CVector*, eBuoyancyPointState*>(this, vecInitialZPos, outVecOffset, outInWaterState);
-#else
+    if (!ReversibleHooks::Hooked("cBuoyancy", "FindWaterLevel")) {
+        plugin::CallMethod<0x6C2810, cBuoyancy*, CVector const&, CVector*, eBuoyancyPointState*>(this, vecInitialZPos, outVecOffset, outInWaterState);
+        return;
+    }
+
     CVector transformedPos;
     Multiply3x3(&transformedPos, &m_EntityMatrix, outVecOffset);
     auto vecWorldPos = transformedPos + m_vecPos;
@@ -516,14 +518,15 @@ void cBuoyancy::FindWaterLevel(CVector const& vecInitialZPos, CVector* outVecOff
     else {
         *outInWaterState = eBuoyancyPointState::COLLIDING_WITH_WATER;
     }
-#endif
 }
 
 void cBuoyancy::FindWaterLevelNorm(CVector const& vecInitialZPos, CVector* outVecOffset, eBuoyancyPointState* outInWaterState, CVector* outVecNormal)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    plugin::CallMethod<0x6C28C0, cBuoyancy*, CVector const&, CVector*, eBuoyancyPointState*, CVector*>(this, vecInitialZPos, outVecOffset, outInWaterState, outVecNormal);
-#else
+    if (!ReversibleHooks::Hooked("cBuoyancy", "FindWaterLevelNorm")) {
+        plugin::CallMethod<0x6C28C0, cBuoyancy*, CVector const&, CVector*, eBuoyancyPointState*, CVector*>(this, vecInitialZPos, outVecOffset, outInWaterState, outVecNormal);
+        return;
+    }
+
     CVector transformedPos;
     Multiply3x3(&transformedPos, &m_EntityMatrix, outVecOffset);
     auto vecWorldPos = transformedPos + m_vecPos;
@@ -541,5 +544,4 @@ void cBuoyancy::FindWaterLevelNorm(CVector const& vecInitialZPos, CVector* outVe
     else {
         *outInWaterState = eBuoyancyPointState::COLLIDING_WITH_WATER;
     }
-#endif
 }
