@@ -71,7 +71,7 @@ public:
     void PreCalcSetup(CPhysical* pEntity, float fBuoyancy);
     void AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector vecTo, CVector vecSplashDir, bool bReduceParticleSize);
     void SimpleCalcBuoyancy(CPhysical* pEntity);
-    double SimpleSumBuoyancyData(CVector* vecPointRelativeToSurface, eBuoyancyPointState ePointState);
+    float SimpleSumBuoyancyData(CVector* vecPointRelativeToSurface, eBuoyancyPointState ePointState);
     void FindWaterLevel(CVector const& vecInitialZPos, CVector* outVecOffset, eBuoyancyPointState* outInWaterState);
     void FindWaterLevelNorm(CVector const& vecInitialZPos, CVector* outVecOffset, eBuoyancyPointState* outInWaterState, CVector* outVecNormal);
 };
