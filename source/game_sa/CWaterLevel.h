@@ -18,13 +18,16 @@ struct CWaterVertex
 class CWaterLevel
 {
 public:
+    static void InjectHooks();
     /*
     * AddToQuadsAndTrianglesList(int, int, int, unsigned int)
     * AddWaterLevelQuad(int, int, CRenPar, int, int, CRenPar, int, int, CRenPar, int, int, CRenPar, unsigned int)
     * AddWaterLevelTriangle(int, int, CRenPar, int, int, CRenPar, int, int, CRenPar, unsigned int)
     */
     static int AddWaterLevelVertex(int x, int y, CRenPar renPar);
-    /* AddWaveToResult(float, float, float*, float, float, CVector*)
+    static void AddWaveToResult(float x, float y, float* pfWaterLevel, float fUnkn1, float fUnkn2, CVector* pVecNormal);
+    /*
+    * static void AddWaveToResult(float x, float y, float z, float* pLevel, unsigned char bTouchingWater, CVector* normalVec);
     * AddWaveToResult(int, int, float*, float, float)
     * BlockHit(int, int)
     * CalculateWavesForCoordinate(int, int, float, float, float*, float*, float*, CVector*)
@@ -38,7 +41,7 @@ public:
     * GetGroundLevel_WS(CVector const&, float*, ColData*, float)
     * GetWaterDepth(CVector const&, float*, float*, float*)
     */
-    static bool GetWaterLevel(float x, float y, float z, float * pOutWaterLevel, unsigned char bUnderWater, CVector* pVector);
+    static bool GetWaterLevel(float x, float y, float z, float * pOutWaterLevel, unsigned char bTouchingWater, CVector* pVecNormals);
     static bool GetWaterLevelNoWaves(float x, float y, float z, float* pOutWaterLevel, float* fUnkn1, float* fUnkn2);
     /*
     * HandleBeachToysStuff()

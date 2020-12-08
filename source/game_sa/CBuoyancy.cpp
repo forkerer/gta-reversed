@@ -177,22 +177,15 @@ bool cBuoyancy::CalcBuoyancyForce(CPhysical* pEntity, CVector* pVecTurnSpeed, CV
         return false;
     }
 
-    CVector vecOut;
-    *pVecTurnSpeed = *Multiply3x3(&vecOut, &m_EntityMatrix, &m_vecMoveForce);
-    const float fCurrentBuoyancy = m_fEntityWaterImmersion * m_fBuoyancy * CTimer::ms_fTimeStep;
-    *pBuoyancy = CVector(0.0F, 0.0F, fCurrentBuoyancy);
+    Multiply3x3(pVecTurnSpeed, &m_EntityMatrix, &m_vecMoveForce);
+    auto fCurrentBuoyancy = m_fEntityWaterImmersion * m_fBuoyancy * CTimer::ms_fTimeStep;
+    pBuoyancy->Set(0.0F, 0.0F, fCurrentBuoyancy);
 
-    float fSubmerge = pEntity->m_fMass * pEntity->m_vecMoveSpeed.z;
-    if (fSubmerge <= fCurrentBuoyancy * 4.0F)
-    {
+    float fMoveForceZ = pEntity->m_fMass * pEntity->m_vecMoveSpeed.z;
+    if (fMoveForceZ <= fCurrentBuoyancy * 4.0F)
         return true;
-    }
 
-    float fBuoyancy = fCurrentBuoyancy - fSubmerge;
-    if (fBuoyancy < 0.0F)
-    {
-        fBuoyancy = 0.0F;
-    }
+    float fBuoyancy = std::max(0.0F, fCurrentBuoyancy - fMoveForceZ);
     pBuoyancy->z = fBuoyancy;
     return true;
 }
