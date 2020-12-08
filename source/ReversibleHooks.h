@@ -33,8 +33,10 @@ public:
         return instance;
     }
 
-    static void Install(const std::string& sIdentifier, const std::string& sFuncName, DWORD installAddress, void* addressToJumpTo, int iJmpCodeSize = 5) {
-        ReversibleHooks::GetInstance().HookInstall(sIdentifier, sFuncName, installAddress, addressToJumpTo, iJmpCodeSize);
+    template <typename T>
+    static void Install(const std::string& sIdentifier, const std::string& sFuncName, DWORD installAddress, T addressToJumpTo, int iJmpCodeSize = 5) {
+        auto ptr = FunctionPointerToVoidP(addressToJumpTo);
+        ReversibleHooks::GetInstance().HookInstall(sIdentifier, sFuncName, installAddress, ptr, iJmpCodeSize);
     }
     static void Switch(SReversibleHook& sHook) {
         ReversibleHooks::GetInstance().HookSwitch(sHook);
