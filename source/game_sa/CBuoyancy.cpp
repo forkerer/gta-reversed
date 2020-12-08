@@ -300,10 +300,10 @@ void cBuoyancy::PreCalcSetup(CPhysical* pEntity, float fBuoyancy)
     m_fBuoyancy = fBuoyancy;
 }
 
-void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector vecTo, CVector vecSplashDir, bool bReduceParticleSize)
+void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector vecTo, CVector vecSplashDir, unsigned char bReduceParticleSize)
 {
     if (!ReversibleHooks::Hooked("cBuoyancy", "AddSplashParticles")) {
-        plugin::CallMethod<0x6C34E0, cBuoyancy*, CPhysical*, CVector, CVector, CVector, bool>(this, pEntity, vecFrom, vecTo, vecSplashDir, bReduceParticleSize);
+        plugin::CallMethod<0x6C34E0, cBuoyancy*, CPhysical*, CVector, CVector, CVector, unsigned char>(this, pEntity, vecFrom, vecTo, vecSplashDir, bReduceParticleSize);
         return;
     }
 

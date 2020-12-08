@@ -70,7 +70,7 @@ public:
     bool ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pVecUnknown, bool bUnderwater);
     bool CalcBuoyancyForce(CPhysical* pEntity, CVector* pVecTurnSpeed, CVector* pBuoyancy);
     void PreCalcSetup(CPhysical* pEntity, float fBuoyancy);
-    void AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector vecTo, CVector vecSplashDir, bool bReduceParticleSize);
+    void AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector vecTo, CVector vecSplashDir, unsigned char bReduceParticleSize);
     void SimpleCalcBuoyancy(CPhysical* pEntity);
     double SimpleSumBuoyancyData(CVector* vecPointRelativeToSurface, eBuoyancyPointState ePointState);
     void FindWaterLevel(CVector const& vecInitialZPos, CVector* outVecOffset, eBuoyancyPointState* outInWaterState);

@@ -709,7 +709,8 @@ void CDebugMenu::ImguiDisplayPlayerInfo()
 void CDebugMenu::ImguiDrawLoop()
 {
     CPad* pad = CPad::GetPad(0);
-    if (pad->IsCtrlPressed() && pad->IsStandardKeyJustDown('M')) {
+    auto bF7JustPressed = (pad->NewKeyState.FKeys[6] && !pad->OldKeyState.FKeys[6]);
+    if ((pad->IsCtrlPressed() && pad->IsStandardKeyJustDown('M')) || bF7JustPressed) {
         m_showMenu = !m_showMenu;
         pad->bPlayerSafe = m_showMenu;
     }
