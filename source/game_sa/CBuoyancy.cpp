@@ -11,11 +11,11 @@ float(*cBuoyancy::afBoatVolumeDistributionCat)[3] = (float(*)[3])0x8D3314; // Ca
 
 void cBuoyancy::InjectHooks()
 {
-    HookInstall(0x6C3EF0, &cBuoyancy::ProcessBuoyancy);
+    //HookInstall(0x6C3EF0, &cBuoyancy::ProcessBuoyancy);
     HookInstall(0x6C3030, &cBuoyancy::ProcessBuoyancyBoat);
-    HookInstall(0x6C2750, &cBuoyancy::CalcBuoyancyForce);
-    HookInstall(0x6C2B90, &cBuoyancy::PreCalcSetup);
-    HookInstall(0x6C34E0, &cBuoyancy::AddSplashParticles);
+    //HookInstall(0x6C2750, &cBuoyancy::CalcBuoyancyForce);
+    //HookInstall(0x6C2B90, &cBuoyancy::PreCalcSetup);
+    //HookInstall(0x6C34E0, &cBuoyancy::AddSplashParticles);
     HookInstall(0x6C3B00, &cBuoyancy::SimpleCalcBuoyancy);
     HookInstall(0x6C2970, &cBuoyancy::SimpleSumBuoyancyData);
     HookInstall(0x6C2810, &cBuoyancy::FindWaterLevel);
@@ -24,56 +24,55 @@ void cBuoyancy::InjectHooks()
 
 bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pBuoyancy)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
     return plugin::CallMethodAndReturn<bool, 0x6C3EF0, cBuoyancy*, CEntity*, float, CVector*, CVector*> 
         (this, pEntity, fBuoyancy, pVecTurnSpeed, pBuoyancy);
+#ifdef USE_DEFAULT_FUNCTIONS
 #else
     CVector& entityPosition = pEntity->GetPosition();
-    if (CWaterLevel::GetWaterLevel(entityPosition.x, entityPosition.y, entityPosition.z,
+    if (!CWaterLevel::GetWaterLevel(entityPosition.x, entityPosition.y, entityPosition.z,
         &m_fWaterLevel, pEntity->physicalFlags.bTouchingWater, nullptr))
+        return false;
+
+    m_EntityMatrix = *pEntity->m_matrix;
+    PreCalcSetup(pEntity, fBuoyancy);
+    if (pEntity->m_nType == ENTITY_TYPE_PED)
     {
-        m_EntityMatrix = *pEntity->m_matrix;
-        PreCalcSetup(pEntity, fBuoyancy);
-        if (pEntity->m_nType == ENTITY_TYPE_PED)
+        pEntity->GetColModel(); // for some reason, this is here?
+
+        m_bInWater = 1;
+        m_fEntityWaterImmersion = (m_fWaterLevel - entityPosition.z + 1.0F) / 1.9F;
+        if (m_fEntityWaterImmersion > 1.0F)
         {
-            pEntity->GetColModel(); // for some reason, this is here?
-
-            m_bInWater = 1;
-            m_fEntityWaterImmersion = ((m_fWaterLevel - entityPosition.z) + 1.0F) / 1.9F;
-            if (m_fEntityWaterImmersion > 1.0F)
-            {
-                m_fEntityWaterImmersion = 1.0F;
-            }
-            else {
-                if (m_fEntityWaterImmersion < 0.0F) 
-                {
-                    m_fEntityWaterImmersion = 0.0F;
-                    m_bInWater = 0;
-                }
-            }
-
-            m_vecMoveForce = CVector(0.0F, 0.0F, 0.0F);
-            if (m_fEntityWaterImmersion > 0.0F && m_fEntityWaterImmersion < 1.0F)
-            {
-                float fDistanceZ = m_fWaterLevel - entityPosition.z;
-                CVector forward = pEntity->GetForwardVector();
-                cBuoyancy::AddSplashParticles
-                    (pEntity, CVector(0.0F, 0.0F, fDistanceZ), 
-                        CVector(0.0F, 0.0F, fDistanceZ), 
-                        CVector(-forward.x, -forward.y,-forward.z), true);
-            }
+            m_fEntityWaterImmersion = 1.0F;
         }
-        else 
+        else if (m_fEntityWaterImmersion < 0.0F) 
         {
-            SimpleCalcBuoyancy(pEntity);
+            m_fEntityWaterImmersion = 0.0F;
+            m_bInWater = 0;
         }
 
-        bool bCalcBuoyancyForce = CalcBuoyancyForce(pEntity, pVecTurnSpeed, pBuoyancy);
-        if (m_bProcessingBoat || bCalcBuoyancyForce)
+        m_vecMoveForce = CVector(0.0F, 0.0F, 0.0F);
+        if (m_fEntityWaterImmersion > 0.0F && m_fEntityWaterImmersion < 1.0F)
         {
-            return true;
+            float fDistanceZ = m_fWaterLevel - entityPosition.z;
+            CVector forward = pEntity->GetForwardVector();
+            cBuoyancy::AddSplashParticles
+                (pEntity, CVector(0.0F, 0.0F, fDistanceZ), 
+                    CVector(0.0F, 0.0F, fDistanceZ), 
+                    CVector(-forward.x, -forward.y,-forward.z), true);
         }
     }
+    else 
+    {
+        SimpleCalcBuoyancy(pEntity);
+    }
+
+    bool bCalcBuoyancyForce = CalcBuoyancyForce(pEntity, pVecTurnSpeed, pBuoyancy);
+    if (m_bProcessingBoat || bCalcBuoyancyForce)
+    {
+        return true;
+    }
+
     return false;
 #endif
 }
@@ -169,8 +168,8 @@ bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector
 
 bool cBuoyancy::CalcBuoyancyForce(CPhysical* pEntity, CVector* pVecTurnSpeed, CVector* pBuoyancy)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
     return plugin::CallMethodAndReturn<bool, 0x6C2750, cBuoyancy*, CPhysical* , CVector*, CVector*>(this, pEntity, pVecTurnSpeed, pBuoyancy);
+#ifdef USE_DEFAULT_FUNCTIONS
 #else
     if (!m_bInWater)
     {
@@ -200,8 +199,9 @@ bool cBuoyancy::CalcBuoyancyForce(CPhysical* pEntity, CVector* pVecTurnSpeed, CV
 
 void cBuoyancy::PreCalcSetup(CPhysical* pEntity, float fBuoyancy)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
     plugin::CallMethod<0x6C2B90, cBuoyancy*, CPhysical*, float>(this, pEntity, fBuoyancy);
+    return;
+#ifdef USE_DEFAULT_FUNCTIONS
 #else
     auto bIsVehicle = pEntity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE;
     m_bProcessingBoat = bIsVehicle && ((CVehicle*)pEntity)->m_nVehicleClass == eVehicleClass::CLASS_BIG;
@@ -302,8 +302,9 @@ void cBuoyancy::PreCalcSetup(CPhysical* pEntity, float fBuoyancy)
 
 void cBuoyancy::AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector vecTo, CVector vecSplashDir, bool bReduceParticleSize)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
     plugin::CallMethod<0x6C34E0, cBuoyancy*, CPhysical*, CVector, CVector, CVector, bool>(this, pEntity, vecFrom, vecTo, vecSplashDir, bReduceParticleSize);
+    return;
+#ifdef USE_DEFAULT_FUNCTIONS
 #else
     auto fDistBetweenPoints = DistanceBetweenPoints(vecFrom, vecTo);
     auto vecUsedSpeed = pEntity->m_vecMoveSpeed;

@@ -1,8 +1,8 @@
 #include "StdInc.h"
 
-bool CWaterLevel::GetWaterLevel(float x, float y, float z, float * pOutWaterLevel, char bUnderWater, CVector* pVector)
+bool CWaterLevel::GetWaterLevel(float x, float y, float z, float * pOutWaterLevel, unsigned char bUnderWater, CVector* pVector)
 {
-    return plugin::CallAndReturn<bool, 0x6EB690, float, float, float, float*, char, CVector*>(x, y, z, pOutWaterLevel, bUnderWater, pVector);
+    return plugin::CallAndReturn<bool, 0x6EB690, float, float, float, float*, unsigned char, CVector*>(x, y, z, pOutWaterLevel, bUnderWater, pVector);
 }
 
 bool CWaterLevel::GetWaterLevelNoWaves(float x, float y, float z, float* pOutWaterLevel, float* fUnkn1, float* fUnkn2) {
