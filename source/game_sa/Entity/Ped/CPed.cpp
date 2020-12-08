@@ -21,7 +21,7 @@ void CPed::InjectHooks()
     HookInstall(0x5E6530, &CPed::ReplaceWeaponForScriptedCutscene);
     HookInstall(0x5E6550, &CPed::RemoveWeaponForScriptedCutscene);
     HookInstall(0x5E8AB0, &CPed::GiveWeaponAtStartOfFight);
-	//HookInstall(0x5E1FA0, &CPed::ProcessBuoyancy);
+    ReversibleHooks::Install("CPed", "ProcessBuoyancy", 0x5E1FA0, &CPed::ProcessBuoyancy);
 }
 
 CPed::CPed(ePedType pedtype) : CPhysical(plugin::dummy), m_aWeapons{ plugin::dummy, plugin::dummy, plugin::dummy,
@@ -503,10 +503,11 @@ void CPed::UpdatePosition()
 // Converted from thiscall void CPed::ProcessBuoyancy(void) 0x5E1FA0
 void CPed::ProcessBuoyancy()
 {
-    ((void(__thiscall *)(CPed*))0x5E1FA0)(this);
-    return;
-#ifdef USE_DEFAULT_FUNCTIONS
-#else
+    if (!ReversibleHooks::Hooked("CPed", "ProcessBuoyancy")) {
+        plugin::CallMethod<0x5E1FA0, CPed*>(this);
+        return;
+    }
+
     if (bInVehicle)
         return;
 
@@ -643,7 +644,6 @@ void CPed::ProcessBuoyancy()
             pPlayerPed->HandlePlayerBreath(true, 1.0F);
         }
     }
-#endif
 }
 
 // Converted from thiscall bool CPed::IsPedInControl(void) 0x5E3960
