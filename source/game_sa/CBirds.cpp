@@ -295,7 +295,7 @@ void CBirds::Render()
         if (pBird.m_eBirdMode == eBirdMode::BIRD_DRAW_NOUPDATE || pBird.m_eBirdMode == eBirdMode::BIRD_DRAW_UPDATE) {
             auto& vecPos = matBirdTransform.GetPosition();
             auto uiTime = CTimer::m_snTimeInMilliseconds + uiWingMoveTimeOffset;
-            vecPos.z += sin((double)(uiTime % pBird.m_nWingStillness) * (6.28F / (double)pBird.m_nWingStillness)) * 0.1F;
+            vecPos.z += sin((float)(uiTime % pBird.m_nWingStillness) * (TWO_PI / (float)pBird.m_nWingStillness)) * 0.1F;
         }
 
         auto vecScreenPos = RwV3d();
@@ -318,8 +318,8 @@ void CBirds::Render()
                 }
 
                 auto uiTime = CTimer::m_snTimeInMilliseconds + uiWingMoveTimeOffset;
-                auto fSin1 = -sin((double)((uiTime + pBird.m_nWingStillness / 6) % pBird.m_nWingStillness) * 6.28F / (double)pBird.m_nWingStillness);
-                auto fSin2 = -sin((double)((uiTime + pBird.m_nWingStillness) % pBird.m_nWingStillness) * 6.28F / (double)pBird.m_nWingStillness);
+                auto fSin1 = -sin((float)((uiTime + pBird.m_nWingStillness / 6) % pBird.m_nWingStillness) * TWO_PI / (float)pBird.m_nWingStillness);
+                auto fSin2 = -sin((float)((uiTime + pBird.m_nWingStillness) % pBird.m_nWingStillness) * TWO_PI / (float)pBird.m_nWingStillness);
 
                 auto fSizeUsed = std::max(1.0F, pBird.m_fSize);
                 auto fSin1Factor = fSin1 / fSizeUsed;
