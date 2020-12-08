@@ -629,6 +629,29 @@ void CDebugMenu::ProcessMissionTool()
     }
 }
 
+void CDebugMenu::ProcessHooksTool()
+{
+    if (ImGui::TreeNode("Reversible Hooks"))
+    {
+        static std::string sHookIdentifier;
+        static std::string sHookFunctionName;
+
+        auto& pReversibleHooks = ReversibleHooks::GetInstance();
+        auto& allHooks = pReversibleHooks.GetAllHooks();
+        for (auto& classHooks : allHooks) {
+            if (ImGui::TreeNode(classHooks.first.c_str())) {
+                for (auto& hook : classHooks.second) {
+                    ImGui::Checkbox(hook.m_sFunctionName.c_str(), &hook.m_bIsHooked);
+                }
+
+                ImGui::TreePop();
+            }
+        }
+
+        ImGui::TreePop();
+    }
+}
+
 void CDebugMenu::ImguiDisplayPlayerInfo()
 {
     if (!CTimer::GetIsPaused()) {
@@ -665,6 +688,11 @@ void CDebugMenu::ImguiDisplayPlayerInfo()
                 if (ImGui::BeginTabItem("Missions"))
                 {
                     ProcessMissionTool();
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Hooks"))
+                {
+                    ProcessHooksTool();
                     ImGui::EndTabItem();
                 }
                 ImGui::EndTabBar();
