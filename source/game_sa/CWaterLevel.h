@@ -75,12 +75,12 @@ public:
     * SplitWaterRectangleAlongYLine(int, int, int, int, int, CRenPar, CRenPar, CRenPar, CRenPar)
     * SplitWaterTriangleAlongXLine(int, int, int, CRenPar, int, int, CRenPar, int, int, CRenPar)
     * SplitWaterTriangleAlongYLine(int, int, int, CRenPar, int, int, CRenPar, int, int, CRenPar)
-    * SyncWater()
     * TestLineAgainstWater(CVector, CVector, CVector*)
     * TestQuadToGetWaterLevel(CWaterQuad*, float, float, float, float*, float*, float*)
     * TestTriangleToGetWaterLevel(CWaterTriangle*, float, float, float, float*, float*, float*)
     * WaterLevelInitialise()
     */
+    static void SyncWater();
 private:
     /*
     * m_BlocksToBeRenderedOutsideWorldX
@@ -110,8 +110,8 @@ private:
     * m_nNumOfWaterTriangles
     */
     static uint32_t m_nNumOfWaterVertices;
+    static uint32_t& m_nWaterTimeOffset;
     /* m_nWaterConfiguration
-    * m_nWaterTimeOffset
     * ms_WaterFog
     */
 };

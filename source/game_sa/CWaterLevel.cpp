@@ -1,8 +1,10 @@
 #include "StdInc.h"
 
+uint32_t& CWaterLevel::m_nWaterTimeOffset = *(uint32_t*)0xC228A4;
 void CWaterLevel::InjectHooks()
 {
     ReversibleHooks::Install("CWaterLevel", "GetWaterLevel", 0x6EB690, &CWaterLevel::GetWaterLevel);
+    ReversibleHooks::Install("CWaterLevel", "SyncWater", 0x6E76E0, &CWaterLevel::SyncWater);
     //ReversibleHooks::Install("CWaterLevel", "AddWaveToResult", 0x6E81E0, &CWaterLevel::AddWaveToResult);
     //ReversibleHooks::Install("CWaterLevel", "GetWaterLevelNoWaves", 0x6E8580, &CWaterLevel::GetWaterLevelNoWaves);
 }
@@ -39,4 +41,13 @@ bool CWaterLevel::GetWaterLevel(float x, float y, float z, float* pOutWaterLevel
 
 bool CWaterLevel::GetWaterLevelNoWaves(float x, float y, float z, float* pOutWaterLevel, float* fUnkn1, float* fUnkn2) {
     return plugin::CallAndReturn<bool, 0x6E8580, float, float, float, float*, float*, float*>(x, y, z, pOutWaterLevel, fUnkn1, fUnkn2);
+}
+
+void CWaterLevel::SyncWater()
+{
+    if (!ReversibleHooks::Hooked("CWaterLevel", __func__)) {
+        plugin::Call<0x6E81E0>();
+        return;
+    }
+    CWaterLevel::m_nWaterTimeOffset = CTimer::m_snTimeInMilliseconds;
 }
