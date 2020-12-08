@@ -34,15 +34,15 @@ void ReversibleHooks::HookInstall(const std::string& sIdentifier, const std::str
         }
         if (bJumpFound) {
             DWORD newInstallAddress = installAddress + i;
-            DWORD jumpDestination = *(DWORD*)(newInstallAddress + 1) + newInstallAddress + x86FixedJumpSize;
-            theHook.m_iRealHookedAddress = jumpDestination;
-            theHook.m_HookContent.jumpLocation = (DWORD)jumpDestination - (DWORD)installAddress - (DWORD)x86FixedJumpSize;
+            DWORD hoodlumHookAddress = *(DWORD*)(newInstallAddress + 1) + newInstallAddress + x86FixedJumpSize;
+            theHook.m_iRealHookedAddress = hoodlumHookAddress;
+            theHook.m_HookContent.jumpLocation = dwAddressToJumpTo - hoodlumHookAddress - x86FixedJumpSize;
             theHook.m_iHookedBytes = 5U;
             DWORD dwProtectHoodlum[2] = { 0 };
-            VirtualProtect((void*)installAddress, 5, PAGE_EXECUTE_READWRITE, &dwProtectHoodlum[0]);
-            memcpy((void*)&theHook.m_OriginalFunctionContent, (void*)installAddress, 5U);
-            memcpy((void*)installAddress, &theHook.m_HookContent, x86FixedJumpSize);
-            VirtualProtect((void*)installAddress, 5, dwProtectHoodlum[0], &dwProtectHoodlum[1]);
+            VirtualProtect((void*)hoodlumHookAddress, x86FixedJumpSize, PAGE_EXECUTE_READWRITE, &dwProtectHoodlum[0]);
+            memcpy((void*)&theHook.m_OriginalFunctionContent, (void*)hoodlumHookAddress, x86FixedJumpSize);
+            memcpy((void*)hoodlumHookAddress, &theHook.m_HookContent, x86FixedJumpSize);
+            VirtualProtect((void*)hoodlumHookAddress, x86FixedJumpSize, dwProtectHoodlum[0], &dwProtectHoodlum[1]);
             theHook.m_bIsHooked = true;
             theHook.m_bImguiHooked = true;
         }
@@ -72,7 +72,7 @@ void ReversibleHooks::HookSwitch(SReversibleHook& sHook)
     DWORD dwProtect[2] = { 0 };
     auto pDst = (void*)sHook.m_iRealHookedAddress;
     auto pSrc = (void*)&sHook.m_OriginalFunctionContent;
-    if (!sHook.m_bIsHooked)
+    if (!sHook.m_bIsHooked) 
         pSrc = (void*)&sHook.m_HookContent;
 
 
