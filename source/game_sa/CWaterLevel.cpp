@@ -27,7 +27,7 @@ void CWaterLevel::AddWaveToResult(float x, float y, float* pfWaterLevel, float f
 void CWaterLevel::CalculateWavesOnlyForCoordinate(int x, int y, float fUnkn1, float fUnkn2, float* fOutWave)
 {
     if (!ReversibleHooks::Hooked("CWaterLevel", __func__)) {
-        return plugin::Call<0x6E81E0, int, int, float, float, float*>(x, y, fUnkn1, fUnkn2, fOutWave);
+        return plugin::Call<0x6E7210, int, int, float, float, float*>(x, y, fUnkn1, fUnkn2, fOutWave);
     }
 
     if (x < 0)
