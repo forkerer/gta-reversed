@@ -11,9 +11,15 @@ CVector& CAutomobile::vecHunterGunPos = *(CVector*)0x8D3394;
 CMatrix* CAutomobile::matW2B = (CMatrix*)0xC1C220;
 CColPoint* aAutomobileColPoints = (CColPoint*)0xC1BFF8;
 
+void CAutomobile::InjectHooks()
+{
+    ReversibleHooks::Install("CAutomobile", "ProcessBuoyancy", 0x6C3EF0, &CAutomobile::ProcessBuoyancy);
+}
+
 CAutomobile::CAutomobile(int modelIndex, unsigned char createdBy, bool setupSuspensionLines) : CVehicle(plugin::dummy) {
     ((void(__thiscall*)(CAutomobile*, int, unsigned char, bool))0x6B0A90)(this, modelIndex, createdBy, setupSuspensionLines);
 }
+
 
 CVector* CAutomobile::AddMovingCollisionSpeed(CVector* out, CVector& vecSpeed)
 {
@@ -369,7 +375,30 @@ CObject* CAutomobile::SpawnFlyingComponent(int nodeIndex, unsigned int collision
 // Converted from thiscall void CAutomobile::ProcessBuoyancy(void) 0x6A8C00
 void CAutomobile::ProcessBuoyancy()
 {
-    ((void(__thiscall*)(CAutomobile*))0x6A8C00)(this);
+    if (!ReversibleHooks::Hooked("CAutomobile", "ProcessBuoyancy")) {
+        return plugin::CallMethod<0x6A8C00, CAutomobile*>(this);
+    }
+
+    /* Unused code in sa function
+    CTimeCycle::GetAmbientRed_Obj();
+    CTimeCycle::GetAmbientGreen_Obj();
+    CTimeCycle::GetAmbientBlue_Obj();
+    rand();
+    */
+
+    CVector vecTurnSpeed;
+    CVector vecBuoyancy;
+    if (!mod_Buoyancy.ProcessBuoyancy(this, m_fBuoyancyConstant, &vecTurnSpeed, &vecBuoyancy)) {
+        vehicleFlags.bIsDrowning = false;
+        physicalFlags.bSubmergedInWater = false;
+        physicalFlags.bTouchingWater = false;
+
+        m_fBuoyancyConstant = m_pHandlingData->m_fBuoyancyConstant;
+        for (int32_t i = 0; i < 4; ++i) {
+            if (m_wheelsDistancesToGround1[i] < 1.0F && CSurfaceTable::IsWater)
+        }
+        return;
+    }
 }
 
 // Converted from thiscall void CAutomobile::ProcessHarvester(void) 0x6A9680

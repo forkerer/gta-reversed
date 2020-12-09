@@ -153,6 +153,7 @@ public:
     virtual void DoHoverSuspensionRatios();
     virtual void ProcessSuspension();
 
+    static void InjectHooks();
     //funcs
     CAutomobile(int modelIndex, unsigned char createdBy, bool setupSuspensionLines);
 
