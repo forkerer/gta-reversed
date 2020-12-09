@@ -274,6 +274,7 @@
 #include "game_sa\tTransmissionGear.h"
 #include "game_sa\TxdDef.h"
 #include "game_sa\CGameLogic.h"
+#include "game_sa\CMaths.h"
 #include "game_sa\Animation\AnimAssociationData.h"
 #include "game_sa\Animation\AnimationId.h"
 #include "game_sa\Animation\AnimBlendFrameData.h"
