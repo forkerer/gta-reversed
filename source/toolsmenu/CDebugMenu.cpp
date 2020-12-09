@@ -126,11 +126,11 @@ void CDebugMenu::ImguiInputUpdate() {
     if (m_MousePos.y >= (float)RsGlobal.maximumHeight)
         m_MousePos.y = (float)RsGlobal.maximumHeight;
 
-    if (pad->NewMouseControllerState.wheelDown && !pad->OldMouseControllerState.wheelDown)
-        io->MouseWheel -= 1.0F;
+    if (pad->NewMouseControllerState.wheelDown)
+        io->MouseWheel -= (20.0F * io->DeltaTime);
 
-    if (pad->NewMouseControllerState.wheelUp && !pad->OldMouseControllerState.wheelUp)
-        io->MouseWheel += 1.0F;
+    if (pad->NewMouseControllerState.wheelUp)
+        io->MouseWheel += (20.0F * io->DeltaTime);
 
     io->MousePos = ImVec2(m_MousePos.x, m_MousePos.y);
     io->MouseDown[0] = pad->NewMouseControllerState.lmb;
