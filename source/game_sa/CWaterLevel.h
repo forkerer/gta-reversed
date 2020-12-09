@@ -26,12 +26,12 @@ public:
     */
     static int AddWaterLevelVertex(int x, int y, CRenPar renPar);
     static void AddWaveToResult(float x, float y, float* pfWaterLevel, float fUnkn1, float fUnkn2, CVector* pVecNormal);
+    static void CalculateWavesOnlyForCoordinate(int x, int y, float fUnkn1, float fUnkn2, float* fOutWave);
     /*
     * static void AddWaveToResult(float x, float y, float z, float* pLevel, unsigned char bTouchingWater, CVector* normalVec);
     * AddWaveToResult(int, int, float*, float, float)
     * BlockHit(int, int)
     * CalculateWavesForCoordinate(int, int, float, float, float*, float*, float*, CVector*)
-    * CalculateWavesOnlyForCoordinate(int, int, float, float, float*)
     * ChangeWaterConfiguration(int)
     * CreateBeachToy(CVector const&, eBeachToy)
     * FillQuadsAndTrianglesList()
@@ -111,6 +111,8 @@ private:
     */
     static uint32_t m_nNumOfWaterVertices;
     static uint32_t& m_nWaterTimeOffset;
+    static float* faWaveMultipliersX;
+    static float* faWaveMultipliersY;
     /* m_nWaterConfiguration
     * ms_WaterFog
     */
