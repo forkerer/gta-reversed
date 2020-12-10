@@ -645,18 +645,33 @@ void CDebugMenu::ProcessHooksTool()
 
         auto& allHooks = ReversibleHooks::GetAllHooks();
         for (auto& classHooks : allHooks) {
-            if (ImGui::TreeNode(classHooks.first.c_str())) {
-                for (auto& hook : classHooks.second) {
-                    if (hook.m_bIsHooked != hook.m_bImguiHooked)
-                        ReversibleHooks::Switch(hook);
+            ImGui::AlignTextToFramePadding();
+            bool treeOpen = ImGui::TreeNodeEx(classHooks.first.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap);
+            ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 40);
+            if (ImGui::Button("-")) {
+                for (auto& hook : classHooks.second)
+                    hook.m_bImguiHooked = false;
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Disable all");
 
+            ImGui::SameLine();
+            if (ImGui::Button("+")) {
+                for (auto& hook : classHooks.second)
+                    hook.m_bImguiHooked = true;
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable all");
+
+            for (auto& hook : classHooks.second)
+                if (hook.m_bIsHooked != hook.m_bImguiHooked)
+                    ReversibleHooks::Switch(hook);
+
+            if (treeOpen) {
+                for (auto& hook : classHooks.second) {
                     ImGui::Checkbox(hook.m_sFunctionName.c_str(), &hook.m_bImguiHooked);
                 }
-
                 ImGui::TreePop();
             }
         }
-
         ImGui::TreePop();
     }
 }
