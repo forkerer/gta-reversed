@@ -139,6 +139,7 @@ void InjectHooksMain(void)
     CWorld::InjectHooks();
     cTransmission::InjectHooks();
     CVehicle::InjectHooks();
+    CAutomobile::InjectHooks();
     CPlayerPed::InjectHooks();
     CStats::InjectHooks();
     CCarCtrl::InjectHooks();

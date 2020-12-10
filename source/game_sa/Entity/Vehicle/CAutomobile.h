@@ -69,7 +69,15 @@ public:
     bool m_wheelSkidmarkSomeBool[4];
     float m_wheelRotation[4];
     float m_wheelPosition[4];
-    float m_wheelSpeed[4];
+    union {
+        float m_wheelSpeed[4];
+        struct {
+            float m_fHeliWheelSpeed1;
+            float m_fHeliRotorSpeed;
+            float m_fHeliWheelSpeed3;
+            float m_fHeliWheelSpeed4;
+        };
+    };
     int field_858[4];
     char taxiAvaliable;
     char field_869;
