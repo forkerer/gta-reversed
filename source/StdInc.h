@@ -81,7 +81,7 @@
 #include "game_sa\CPedType.h"
 #include "game_sa\IKChainManager_c.h"
 #include "game_sa\CCrime.h"
-#include "game_sa\CSurfaceTable.h"
+#include "game_sa\SurfaceInfo_c.h"
 #include "game_sa\SurfaceInfos_c.h"
 #include "game_sa\CReplay.h"
 #include "game_sa\CVehicleRecording.h"

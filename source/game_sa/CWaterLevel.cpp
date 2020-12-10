@@ -26,10 +26,6 @@ void CWaterLevel::AddWaveToResult(float x, float y, float* pfWaterLevel, float f
 
 void CWaterLevel::CalculateWavesOnlyForCoordinate(int x, int y, float fUnkn1, float fUnkn2, float* fOutWave)
 {
-    if (!ReversibleHooks::Hooked("CWaterLevel", __func__)) {
-        return plugin::Call<0x6E7210, int, int, float, float, float*>(x, y, fUnkn1, fUnkn2, fOutWave);
-    }
-
     if (x < 0)
         x = -x;
 
@@ -71,10 +67,6 @@ void CWaterLevel::CalculateWavesOnlyForCoordinate(int x, int y, float fUnkn1, fl
 
 bool CWaterLevel::GetWaterLevel(float x, float y, float z, float* pOutWaterLevel, unsigned char bTouchingWater, CVector* pVecNormals)
 {
-    if (!ReversibleHooks::Hooked("CWaterLevel", __func__)) {
-        return plugin::CallAndReturn<bool, 0x6EB690, float, float, float, float*, unsigned char, CVector*>(x, y, z, pOutWaterLevel, bTouchingWater, pVecNormals);
-    }
-
     float fUnkn1, fUnkn2;
     if (!CWaterLevel::GetWaterLevelNoWaves(x, y, z, pOutWaterLevel, &fUnkn1, &fUnkn2))
         return false;
@@ -94,9 +86,5 @@ bool CWaterLevel::GetWaterLevelNoWaves(float x, float y, float z, float* pOutWat
 
 void CWaterLevel::SyncWater()
 {
-    if (!ReversibleHooks::Hooked("CWaterLevel", __func__)) {
-        plugin::Call<0x6E81E0>();
-        return;
-    }
     CWaterLevel::m_nWaterTimeOffset = CTimer::m_snTimeInMilliseconds;
 }

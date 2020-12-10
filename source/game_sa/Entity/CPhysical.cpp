@@ -4648,7 +4648,7 @@ bool CPhysical::ProcessCollisionSectorList(int sectorX, int sectorY)
                                     if (ApplySoftCollision(pEntity, pColPoint, &fThisDamageIntensity)
                                         && (pColPoint->m_nSurfaceTypeA != SURFACE_WHEELBASE || pColPoint->m_nSurfaceTypeB != SURFACE_WHEELBASE))
                                     {
-                                        float fSurfaceFriction = g_surfaceInfos->GetFriction(pColPoint);
+                                        float fSurfaceFriction = g_surfaceInfos->GetAdhesiveLimit(pColPoint);
                                         if (ApplyFriction(fSurfaceFriction, pColPoint))
                                         {
                                             m_bHasContacted = true;
@@ -4664,7 +4664,7 @@ bool CPhysical::ProcessCollisionSectorList(int sectorX, int sectorY)
                                         fThisMaxDamageIntensity = fThisDamageIntensity;
                                     }
 
-                                    float fSurfaceFirction = g_surfaceInfos->GetFriction(pColPoint);
+                                    float fSurfaceFirction = g_surfaceInfos->GetAdhesiveLimit(pColPoint);
                                     float fFriction = fSurfaceFirction / totalColPointsToProcess;
                                     if (m_nType != ENTITY_TYPE_VEHICLE)
                                     {
@@ -4876,7 +4876,7 @@ bool CPhysical::ProcessCollisionSectorList(int sectorX, int sectorY)
                                         SetDamagedPieceRecord(fThisDamageIntensity, pPhysicalEntity, pColPoint, 1.0f);
                                         pPhysicalEntity->SetDamagedPieceRecord(fEntityDamageIntensity, this, pColPoint, -1.0f);
 
-                                        float fSurfaceFriction = g_surfaceInfos->GetFriction(pColPoint);
+                                        float fSurfaceFriction = g_surfaceInfos->GetAdhesiveLimit(pColPoint);
                                         float fFriction = fSurfaceFriction / totalColPointsToProcess;
                                         if (m_nType == ENTITY_TYPE_VEHICLE && pEntity->m_nType == ENTITY_TYPE_VEHICLE
                                             && (m_vecMoveSpeed.SquaredMagnitude() > 0.02f || m_vecTurnSpeed.SquaredMagnitude() > 0.01f))
@@ -4949,7 +4949,7 @@ bool CPhysical::ProcessCollisionSectorList(int sectorX, int sectorY)
                                             SetDamagedPieceRecord(fThisDamageIntensity, pPhysicalEntity, pColPoint, 1.0f);
                                             pPhysicalEntity->SetDamagedPieceRecord(fEntityDamageIntensity, this, pColPoint, -1.0f);
 
-                                            float fSurfaceFirction = g_surfaceInfos->GetFriction(pColPoint);
+                                            float fSurfaceFirction = g_surfaceInfos->GetAdhesiveLimit(pColPoint);
 
                                             float fFriction = fSurfaceFirction / totalColPointsToProcess;
                                             if (m_nType == ENTITY_TYPE_VEHICLE && pEntity->m_nType == ENTITY_TYPE_VEHICLE
@@ -5013,7 +5013,7 @@ bool CPhysical::ProcessCollisionSectorList(int sectorX, int sectorY)
                                         SetDamagedPieceRecord(fThisDamageIntensity, pPhysicalEntity, pColPoint, 1.0f);
                                         pPhysicalEntity->SetDamagedPieceRecord(fEntityDamageIntensity, this, pColPoint, -1.0f);
 
-                                        float fSurfaceFirction = g_surfaceInfos->GetFriction(pColPoint);
+                                        float fSurfaceFirction = g_surfaceInfos->GetAdhesiveLimit(pColPoint);
                                         float fFriction = fSurfaceFirction / totalColPointsToProcess;
                                         if (m_nType == ENTITY_TYPE_VEHICLE && pEntity->m_nType == ENTITY_TYPE_VEHICLE
                                             && (m_vecMoveSpeed.SquaredMagnitude() > 0.02f || m_vecTurnSpeed.SquaredMagnitude() > 0.01f))
@@ -5295,7 +5295,7 @@ bool CPhysical::ProcessCollisionSectorList_SimpleCar(CRepeatSector* pRepeatSecto
                 {
                     SetDamagedPieceRecord(fThisDamageIntensity, pEntity, pColPoint, 1.0);
                     pPhysicalEntity->SetDamagedPieceRecord(fEntityDamageIntensity, this, pColPoint, -1.0);
-                    float fSurfaceFriction = g_surfaceInfos->GetFriction(pColPoint);
+                    float fSurfaceFriction = g_surfaceInfos->GetAdhesiveLimit(pColPoint);
                     float fFriction = fSurfaceFriction / totalColPointsToProcess;
                     if (ApplyFriction(pPhysicalEntity, fFriction, pColPoint))
                     {
@@ -5332,7 +5332,7 @@ bool CPhysical::ProcessCollisionSectorList_SimpleCar(CRepeatSector* pRepeatSecto
                     {
                         SetDamagedPieceRecord(fThisDamageIntensity, pEntity, pColPoint, 1.0);
                         pPhysicalEntity->SetDamagedPieceRecord(fEntityDamageIntensity, this, pColPoint, -1.0);
-                        float fSurfaceFriction = g_surfaceInfos->GetFriction(pColPoint);
+                        float fSurfaceFriction = g_surfaceInfos->GetAdhesiveLimit(pColPoint);
                         float fFriction = fSurfaceFriction / totalColPointsToProcess;
                         if (ApplyFriction(pPhysicalEntity, fFriction, pColPoint))
                         {
@@ -5358,7 +5358,7 @@ bool CPhysical::ProcessCollisionSectorList_SimpleCar(CRepeatSector* pRepeatSecto
                 {
                     SetDamagedPieceRecord(fThisDamageIntensity, pEntity, pColPoint, 1.0);
                     pPhysicalEntity->SetDamagedPieceRecord(fEntityDamageIntensity, this, pColPoint, -1.0);
-                    float fSurfaceFriction = g_surfaceInfos->GetFriction(pColPoint);
+                    float fSurfaceFriction = g_surfaceInfos->GetAdhesiveLimit(pColPoint);
                     float fFriction = fSurfaceFriction / totalColPointsToProcess;
                     if (ApplyFriction(pPhysicalEntity, fFriction, pColPoint))
                     {

@@ -17,13 +17,17 @@ struct SReversibleHook {
     SHookContent m_HookContent;
     unsigned char m_OriginalFunctionContent[sizeof(m_HookContent)];
     unsigned int m_iHookedBytes;
+    unsigned int m_iRealHookedAddress;
+
+    SHookContent m_LibHookContent;
+    unsigned char m_LibOriginalFunctionContent[sizeof(m_LibHookContent)];
+    unsigned int m_iLibHookedBytes;
+    unsigned int m_iLibFunctionAddress;
 
     bool m_bIsHooked = false;
     bool m_bImguiHooked = false;
     std::string m_sIdentifier;
     std::string m_sFunctionName;
-    unsigned int m_iLibFunctionAddress;
-    unsigned int m_iRealHookedAddress;
 };
 
 class ReversibleHooks {
@@ -41,9 +45,6 @@ public:
     static void Switch(SReversibleHook& sHook) {
         ReversibleHooks::GetInstance().HookSwitch(sHook);
     }
-    static bool Hooked(const std::string& sIdentifier, const std::string& sFuncName) {
-        return ReversibleHooks::GetInstance().IsFunctionHooked(sIdentifier, sFuncName);
-    }
     static std::unordered_map<std::string, std::vector<SReversibleHook>>& GetAllHooks() {
         return ReversibleHooks::GetInstance().m_HooksMap;
     }
@@ -53,6 +54,9 @@ private:
     void HookSwitch(SReversibleHook& sHook);
     bool IsFunctionHooked(const std::string& sIdentifier, const std::string& sFuncName);
     SReversibleHook* GetHook(const std::string& sIdentifier, const std::string& sFuncName);
+
+    static constexpr unsigned int x86JMPSize = 5U;
+    static unsigned int GetJMPLocation(unsigned int dwFrom, unsigned int dwTo);
 
 private:
     std::unordered_map<std::string, std::vector<SReversibleHook>> m_HooksMap;

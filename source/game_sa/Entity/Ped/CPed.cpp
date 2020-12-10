@@ -503,11 +503,6 @@ void CPed::UpdatePosition()
 // Converted from thiscall void CPed::ProcessBuoyancy(void) 0x5E1FA0
 void CPed::ProcessBuoyancy()
 {
-    if (!ReversibleHooks::Hooked("CPed", "ProcessBuoyancy")) {
-        plugin::CallMethod<0x5E1FA0, CPed*>(this);
-        return;
-    }
-
     if (bInVehicle)
         return;
 
