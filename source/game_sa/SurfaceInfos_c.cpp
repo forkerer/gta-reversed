@@ -5,7 +5,7 @@ char* SurfaceInfos_c::cDefaultName = reinterpret_cast<char*>(0x85C658); // "DEFA
 
 void SurfaceInfos_c::InjectHooks()
 {
-    HookInstall(0x55E710, &SurfaceInfos_c::IsWater);
+    ReversibleHooks::Install("SurfaceInfos_c", "IsWater", 0x55E710, &SurfaceInfos_c::IsWater);
     ReversibleHooks::Install("SurfaceInfos_c", "GetSurfaceIdFromName", 0x55D220, &SurfaceInfos_c::GetSurfaceIdFromName);
     ReversibleHooks::Install("SurfaceInfos_c", "Init", 0x55F420, &SurfaceInfos_c::Init);
 }
@@ -17,10 +17,6 @@ void SurfaceInfos_c::LoadAdhesiveLimits()
 
 unsigned int SurfaceInfos_c::GetSurfaceIdFromName(char* cName)
 {
-    if (!ReversibleHooks::Hooked("SurfaceInfos_c", __func__)) {
-        return plugin::CallMethodAndReturn<unsigned int, 0x55D220, SurfaceInfos_c*, char*>(this, cName);
-    }
-
     if (!strcmp(cName, SurfaceInfos_c::cDefaultName))
         return SURFACE_DEFAULT;
     if (!strcmp(cName, "TARMAC"))
@@ -395,10 +391,6 @@ void SurfaceInfos_c::LoadSurfaceAudioInfos()
 
 void SurfaceInfos_c::Init()
 {
-    if (!ReversibleHooks::Hooked("SurfaceInfos_c", __func__)) {
-        return plugin::CallMethod<0x55F420, SurfaceInfos_c*>(this);
-    }
-
     LoadAdhesiveLimits();
     LoadSurfaceInfos();
     LoadSurfaceAudioInfos();

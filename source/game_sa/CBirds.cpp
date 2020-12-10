@@ -25,11 +25,6 @@ void CBirds::InjectHooks()
 
 void CBirds::Init()
 {
-    if (!ReversibleHooks::Hooked("CBirds", "Init")) {
-        plugin::Call<0x711EC0>();
-        return;
-    }
-
     for (int32_t i = 0; i < MAX_BIRDS; ++i) {
         auto& pBird = aBirds[i];
         pBird.m_bCreated = false;
@@ -40,12 +35,6 @@ void CBirds::Init()
 
 void CBirds::CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int iBirdCount, eBirdsBiome eBiome, bool bCheckObstacles)
 {
-
-    if (!ReversibleHooks::Hooked("CBirds", "CreateNumberOfBirds")) {
-        plugin::Call<0x711EF0, CVector, CVector, int, eBirdsBiome, bool>(vecStartPos, vecTargetPos, iBirdCount, eBiome, bCheckObstacles);
-        return;
-    }
-
     float fMaxDistance;
 
     switch (eBiome) {
@@ -139,11 +128,6 @@ void CBirds::CreateNumberOfBirds(CVector vecStartPos, CVector vecTargetPos, int 
 
 void CBirds::Shutdown()
 {
-    if (!ReversibleHooks::Hooked("CBirds", "Shutdown")) {
-        plugin::Call<0x712300>();
-        return;
-    }
-
     for (int32_t i = 0; i < MAX_BIRDS; ++i) {
         auto& pBird = aBirds[i];
         if (pBird.m_bCreated)
@@ -154,11 +138,6 @@ void CBirds::Shutdown()
 
 void CBirds::Update()
 {
-    if (!ReversibleHooks::Hooked("CBirds", "Update")) {
-        plugin::Call<0x712330>();
-        return;
-    }
-
     auto const& vecCamPos = TheCamera.GetPosition();
 
     if (!CGame::currArea
@@ -276,11 +255,6 @@ void CBirds::Update()
 
 void CBirds::Render()
 {
-    if (!ReversibleHooks::Hooked("CBirds", "Render")) {
-        plugin::Call<0x712810>();
-        return;
-    }
-
     if (!CBirds::uiNumberOfBirds)
         return;
 
@@ -423,11 +397,6 @@ void CBirds::Render()
 
 void CBirds::HandleGunShot(CVector const* pointA, CVector const* pointB)
 {
-    if (!ReversibleHooks::Hooked("CBirds", "HandleGunShot")) {
-        plugin::Call<0x712E40, CVector const*, CVector const*>(pointA, pointB);
-        return;
-    }
-
     CColLine colLine(*pointA, *pointB);
 
     for (int32_t i = 0; i < MAX_BIRDS; ++i) {
