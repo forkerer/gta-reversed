@@ -592,7 +592,7 @@ int CRenderer::SetupEntityVisibility(CEntity* pEntity, float* outDistance) {
                         std::uint32_t dwDirectionWasLooking = TheCamera.m_aCams[TheCamera.m_nActiveCam].m_nDirectionWasLooking;
                         CAutomobile* pVehicle = FindPlayerVehicle(-1, 0);
                         CBike* pBike = reinterpret_cast<CBike*>(pVehicle);
-                        if (!pVehicle->IsBike() || !(pBike->m_nDamageFlags & 0x80))
+                        if (!pVehicle->IsBike() || !(pBike->damageFlags.bDamageFlag8))
                         {
                             if (dwDirectionWasLooking == 3)
                                 return RENDERER_CULLED;

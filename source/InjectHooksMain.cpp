@@ -140,6 +140,7 @@ void InjectHooksMain(void)
     cTransmission::InjectHooks();
     CVehicle::InjectHooks();
     CAutomobile::InjectHooks();
+    CBike::InjectHooks();
     CPlayerPed::InjectHooks();
     CStats::InjectHooks();
     CCarCtrl::InjectHooks();
