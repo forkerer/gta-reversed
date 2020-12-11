@@ -26,9 +26,9 @@ public:
     __int16 pad;
     union {
         struct {
-            eAdhesionGroup ucAdhesionGroup : 3;
+            unsigned int ucAdhesionGroup : 3;
             unsigned int ucSkidmarkType : 2;
-            eFrictionEffect ucFrictionEffect : 3;
+            unsigned int ucFrictionEffect : 3;
 
             unsigned int ucBulletFX : 3;
             unsigned int bIsSoftLand : 1;

@@ -392,7 +392,7 @@ void CAutomobile::ProcessBuoyancy()
         m_fBuoyancyConstant = m_pHandlingData->m_fBuoyancyConstant;
         for (int32_t i = 0; i < 4; ++i) {
             auto& pColPoint = m_wheelColPoint[i];
-            if (m_wheelsDistancesToGround1[i] < 1.0F && g_surfaceInfos->IsWater(pColPoint.m_nSurfaceTypeB)) {
+            if (m_fWheelsSuspensionCompression[i] < 1.0F && g_surfaceInfos->IsWater(pColPoint.m_nSurfaceTypeB)) {
                 auto vecWaterImpactVelocity = (pColPoint.m_vecPoint + GetUp() * 0.3F) - GetPosition();
                 CVector vecSpeed;
                 GetSpeed(&vecSpeed, vecWaterImpactVelocity);
@@ -471,13 +471,8 @@ void CAutomobile::ProcessBuoyancy()
         }
     }
 
-    if (bHeliRotorKilled
-        || fBuoyancyForceZ >= 1.0F
-        || (fBuoyancyForceZ > 0.6F
-            && (m_wheelsDistancesToGround1[0] == 1.0F
-                || m_wheelsDistancesToGround1[1] == 1.0F
-                || m_wheelsDistancesToGround1[2] == 1.0F
-                || m_wheelsDistancesToGround1[3] == 1.0F))) {
+    if (bHeliRotorKilled || fBuoyancyForceZ >= 1.0F
+        || (fBuoyancyForceZ > 0.6F && IsAnyWheelNotMakingContactWithGround())) {
 
         vehicleFlags.bIsDrowning = true;
         physicalFlags.bSubmergedInWater = true;
@@ -490,62 +485,58 @@ void CAutomobile::ProcessBuoyancy()
         if (m_fBuoyancyConstant < m_fMass / 125.0F)
             vehicleFlags.bEngineOn = false;
 
-        auto const funcProcessPedBuoyancy = [this](CPed* pPed, bool bIsCheckingDriver) {
-            if (!pPed)
-                return;
-
-            pPed->physicalFlags.bTouchingWater = true;
-            if (!pPed->IsPlayer() && (taxiAvaliable & 4))
-                return;
-
-            if (m_nVehicleSubClass != eVehicleType::VEHICLE_QUAD
-                || m_wheelsDistancesToGround1[0] != 1.0F
-                || m_wheelsDistancesToGround1[1] != 1.0F
-                || m_wheelsDistancesToGround1[2] != 1.0F
-                || m_wheelsDistancesToGround1[3] != 1.0F) {
-
-                if (pPed->IsPlayer())
-                    static_cast<CPlayerPed*>(pPed)->HandlePlayerBreath(true, 1.0F);
-                else {
-                    auto pedDamageResponseCalc = CPedDamageResponseCalculator(this, CTimer::ms_fTimeStep, eWeaponType::WEAPON_DROWNING, ePedPieceTypes::PED_PIECE_TORSO, false);
-                    auto damageEvent = CEventDamage(this, CTimer::m_snTimeInMilliseconds, eWeaponType::WEAPON_DROWNING, ePedPieceTypes::PED_PIECE_TORSO, 0, false, true);
-                    if (damageEvent.AffectsPed(pPed))
-                        pedDamageResponseCalc.ComputeDamageResponse(pPed, &damageEvent.m_damageResponse, true);
-                    else
-                        damageEvent.m_damageResponse.m_bDamageCalculated = true;
-
-                    pPed->GetEventGroup().Add(&damageEvent, false);
-                }
-            }
-            else {
-                auto vecCollisionImpact = m_vecMoveSpeed * -1.0F;
-                vecCollisionImpact.Normalise();
-                auto fDamageIntensity = m_vecMoveSpeed.Magnitude() * m_fMass;
-
-                auto knockOffBikeEvent = CEventKnockOffBike(this, &m_vecMoveSpeed, &vecCollisionImpact, fDamageIntensity,
-                    0.0F, eKnockOffType::KNOCK_OFF_TYPE_FALL, 0, 0, nullptr, false, false);
-
-                pPed->GetEventGroup().Add(&knockOffBikeEvent, false);
-
-                if (pPed->IsPlayer())
-                    static_cast<CPlayerPed*>(pPed)->HandlePlayerBreath(true, 1.0F);
-
-                if (bIsCheckingDriver)
-                    vehicleFlags.bEngineOn = false;
-            }
-        };
-
         auto pDriver = static_cast<CPed*>(m_pDriver);
-        funcProcessPedBuoyancy(pDriver, true);
+        ProcessPedInVehicleBuoyancy(pDriver, true);
 
         for (int iPassengerInd = 0; iPassengerInd < m_nMaxPassengers; ++iPassengerInd) {
             auto pCurPassenger = m_apPassengers[iPassengerInd];
-            funcProcessPedBuoyancy(pCurPassenger, false);
+            ProcessPedInVehicleBuoyancy(pCurPassenger, false);
         }
     }
     else {
         vehicleFlags.bIsDrowning = false;
         physicalFlags.bSubmergedInWater = false;
+    }
+}
+
+inline void CAutomobile::ProcessPedInVehicleBuoyancy(CPed* pPed, bool bIsDriver)
+{
+    if (!pPed)
+        return;
+
+    pPed->physicalFlags.bTouchingWater = true;
+    if (!pPed->IsPlayer() && npcFlags.bIgnoreWater)
+        return;
+
+    if (!IsSubclassQuad() || IsAnyWheelMakingContactWithGround()) {
+        if (pPed->IsPlayer())
+            static_cast<CPlayerPed*>(pPed)->HandlePlayerBreath(true, 1.0F);
+        else {
+            auto pedDamageResponseCalc = CPedDamageResponseCalculator(this, CTimer::ms_fTimeStep, eWeaponType::WEAPON_DROWNING, ePedPieceTypes::PED_PIECE_TORSO, false);
+            auto damageEvent = CEventDamage(this, CTimer::m_snTimeInMilliseconds, eWeaponType::WEAPON_DROWNING, ePedPieceTypes::PED_PIECE_TORSO, 0, false, true);
+            if (damageEvent.AffectsPed(pPed))
+                pedDamageResponseCalc.ComputeDamageResponse(pPed, &damageEvent.m_damageResponse, true);
+            else
+                damageEvent.m_damageResponse.m_bDamageCalculated = true;
+
+            pPed->GetEventGroup().Add(&damageEvent, false);
+        }
+    }
+    else {
+        auto vecCollisionImpact = m_vecMoveSpeed * -1.0F;
+        vecCollisionImpact.Normalise();
+        auto fDamageIntensity = m_vecMoveSpeed.Magnitude() * m_fMass;
+
+        auto knockOffBikeEvent = CEventKnockOffBike(this, &m_vecMoveSpeed, &vecCollisionImpact, fDamageIntensity,
+            0.0F, eKnockOffType::KNOCK_OFF_TYPE_FALL, 0, 0, nullptr, false, false);
+
+        pPed->GetEventGroup().Add(&knockOffBikeEvent, false);
+
+        if (pPed->IsPlayer())
+            static_cast<CPlayerPed*>(pPed)->HandlePlayerBreath(true, 1.0F);
+
+        if (bIsDriver)
+            vehicleFlags.bEngineOn = false;
     }
 }
 

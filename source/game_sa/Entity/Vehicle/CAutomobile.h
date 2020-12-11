@@ -58,7 +58,7 @@ public:
     CBouncingPanel m_panels[3];
     CDoor m_swingingChassis;
     CColPoint m_wheelColPoint[4];
-    float m_wheelsDistancesToGround1[4];
+    float m_fWheelsSuspensionCompression[4]; // [0-1] with 0 being suspension fully compressed, and 1 being completely relaxed
     float m_wheelsDistancesToGround2[4];
     float field_7F4[4];
     float field_800;
@@ -79,7 +79,19 @@ public:
         };
     };
     int field_858[4];
-    char taxiAvaliable;
+    union {
+        struct {
+            unsigned char bTaxiLightOn : 1;
+            unsigned char ucNPCFlagPad2 : 1;
+            unsigned char bIgnoreWater : 1;
+            unsigned char bDontDamageOnRoof : 1;
+            unsigned char bTakePanelDamage : 1;
+            unsigned char ucTaxiUnkn6 : 1;
+            unsigned char bLostTraction : 1;
+            unsigned char bSoftSuspension : 1;
+        } npcFlags;
+        unsigned char ucNPCVehicleFlags;
+    };
     char field_869;
     short field_86A;
     unsigned short m_wMiscComponentAngle;
@@ -165,6 +177,20 @@ public:
     //funcs
     CAutomobile(int modelIndex, unsigned char createdBy, bool setupSuspensionLines);
 
+    inline bool IsAnyWheelMakingContactWithGround() {
+        return m_fWheelsSuspensionCompression[0] != 1.0F
+            || m_fWheelsSuspensionCompression[1] != 1.0F
+            || m_fWheelsSuspensionCompression[2] != 1.0F
+            || m_fWheelsSuspensionCompression[3] != 1.0F;
+    };
+
+    inline bool IsAnyWheelNotMakingContactWithGround() {
+        return m_fWheelsSuspensionCompression[0] == 1.0F
+            || m_fWheelsSuspensionCompression[1] == 1.0F
+            || m_fWheelsSuspensionCompression[2] == 1.0F
+            || m_fWheelsSuspensionCompression[3] == 1.0F;
+    };
+
     // Find and save components ptrs (RwFrame) to m_modelNodes array
     void SetupModelNodes();
     // Process vehicle hydraulics
@@ -236,6 +262,7 @@ public:
     void ProcessCarOnFireAndExplode(unsigned char arg0);
     CObject* SpawnFlyingComponent(int nodeIndex, unsigned int collisionType);
     void ProcessBuoyancy();
+    void inline ProcessPedInVehicleBuoyancy(CPed* pPed, bool bIsDriver);
     // Process combine
     void ProcessHarvester();
     void ProcessSwingingDoor(int nodeIndex, eDoors door);

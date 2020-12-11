@@ -41,7 +41,7 @@ public:
     char field_65E;
     char field_65F;
     CColPoint      m_anWheelColPoint[4];
-    float m_wheelsDistancesToGround1[4];
+    float m_fWheelsSuspensionCompression[4];
     float field_720[4];
     float m_wheelCollisionState[4];
     float field_740;

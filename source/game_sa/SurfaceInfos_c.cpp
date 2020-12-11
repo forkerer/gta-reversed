@@ -443,7 +443,7 @@ void SurfaceInfos_c::Init()
 
 eAdhesionGroup SurfaceInfos_c::GetAdhesionGroup(unsigned int surfaceId)
 {
-    return m_surfaces[surfaceId].ucAdhesionGroup;
+    return static_cast<eAdhesionGroup>(m_surfaces[surfaceId].ucAdhesionGroup);
 }
 
 float SurfaceInfos_c::GetTyreGrip(unsigned int surfaceId)
@@ -463,7 +463,7 @@ unsigned int SurfaceInfos_c::GetSkidmarkType(unsigned int surfaceId)
 
 eFrictionEffect SurfaceInfos_c::GetFrictionEffect(unsigned int surfaceId)
 {
-    return m_surfaces[surfaceId].ucFrictionEffect;
+    return static_cast<eFrictionEffect>(m_surfaces[surfaceId].ucFrictionEffect);
 }
 
 unsigned int SurfaceInfos_c::GetBulletFx(unsigned int surfaceId)
