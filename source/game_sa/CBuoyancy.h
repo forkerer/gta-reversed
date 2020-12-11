@@ -67,7 +67,7 @@ public:
 
     static void InjectHooks();
     bool ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pBuoyancy);
-    bool ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pVecUnknown, bool bUnderwater);
+    bool ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, vecBuoyancyTurnPoint, CVector* vecBuoyancyForce, bool bUnderwater);
     bool CalcBuoyancyForce(CPhysical* pEntity, CVector* pVecTurnSpeed, CVector* pBuoyancy);
     void PreCalcSetup(CPhysical* pEntity, float fBuoyancy);
     void AddSplashParticles(CPhysical* pEntity, CVector vecFrom, CVector vecTo, CVector vecSplashDir, unsigned char bReduceParticleSize);

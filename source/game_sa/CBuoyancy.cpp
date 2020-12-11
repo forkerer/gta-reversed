@@ -72,7 +72,7 @@ bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* ve
     return false;
 }
 
-bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pVecUnknown, bool bUnderwater)
+bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector* vecBuoyancyTurnPoint, CVector* vecBuoyancyForce, bool bUnderwater)
 {
     const CVector& entityPosition = pVehicle->GetPosition();
     if (!CWaterLevel::GetWaterLevel(entityPosition.x, entityPosition.y, entityPosition.z,
@@ -136,7 +136,7 @@ bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector
             auto fWavePower = 1.0F - DotProduct(vecSpeedAtPoint, vecWaveNormal) * pHandling->m_fSuspensionDampingLevel;
             fWavePower = std::max(fWavePower, 0.0F);
             fWavePower *= fPointContribution;
-            pVecUnknown->z += fWavePower;
+            vecBuoyancyForce->z += fWavePower;
 
             if (!bUnderwater) {
                 auto vecTurnForceAtPoint = vecWaveNormal * fWavePower;
@@ -148,7 +148,7 @@ bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector
     }
 
     m_fEntityWaterImmersion *= fBoatHeightRatio;
-    Multiply3x3(pVecTurnSpeed, &m_EntityMatrix, &m_vecTurnPoint);
+    Multiply3x3(vecBuoyancyTurnPoint, &m_EntityMatrix, &m_vecTurnPoint);
 
     if (m_bProcessingBoat)
         return true;
