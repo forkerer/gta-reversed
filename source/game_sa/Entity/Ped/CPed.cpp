@@ -511,9 +511,9 @@ void CPed::ProcessBuoyancy()
         fBuoyancyMult = 1.8F;
 
     float fBuoyancy = fBuoyancyMult * m_fMass / 125.0F;
-    CVector vecTurnSpeed;
-    CVector vecBuoyancy;
-    if (!mod_Buoyancy.ProcessBuoyancy(this, fBuoyancy, &vecTurnSpeed, &vecBuoyancy)) {
+    CVector vecBuoyancyTurnPoint;
+    CVector vecBuoyancyForce;
+    if (!mod_Buoyancy.ProcessBuoyancy(this, fBuoyancy, &vecBuoyancyTurnPoint, &vecBuoyancyForce)) {
         physicalFlags.bTouchingWater = false;
         auto pSwimTask = m_pIntelligence->GetTaskSwim();
         if (pSwimTask)
@@ -580,10 +580,9 @@ void CPed::ProcessBuoyancy()
 
     physicalFlags.bTouchingWater = true;
     physicalFlags.bSubmergedInWater = true;
-    ApplyMoveForce(vecBuoyancy);
+    ApplyMoveForce(vecBuoyancyForce);
 
-    const auto& vecPedPos = GetPosition();
-    if (CTimer::ms_fTimeStep / 125.0F < vecBuoyancy.z / m_fMass
+    if (CTimer::ms_fTimeStep / 125.0F < vecBuoyancyForce.z / m_fMass
         || GetPosition().z + 0.6F < mod_Buoyancy.m_fWaterLevel) {
 
         bIsStanding = false;
@@ -604,7 +603,7 @@ void CPed::ProcessBuoyancy()
                 bPlayerSwimmingOrClimbing = true;
             }
             else {
-                auto fAcceleration = vecBuoyancy.z / (CTimer::ms_fTimeStep * m_fMass / 125.0F);
+                auto fAcceleration = vecBuoyancyForce.z / (CTimer::ms_fTimeStep * m_fMass / 125.0F);
                 CEventInWater cEvent(fAcceleration);
                 GetEventGroup().Add(&cEvent, false);
             }

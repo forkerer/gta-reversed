@@ -22,7 +22,7 @@ void cBuoyancy::InjectHooks()
     ReversibleHooks::Install("cBuoyancy", "FindWaterLevelNorm", 0x6C28C0, &cBuoyancy::FindWaterLevelNorm);
 }
 
-bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pVecTurnSpeed, CVector* pBuoyancy)
+bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* vecBuoyancyTurnPoint, CVector* vecBuoyancyForce)
 {
     CVector& entityPosition = pEntity->GetPosition();
     if (!CWaterLevel::GetWaterLevel(entityPosition.x, entityPosition.y, entityPosition.z,
@@ -47,7 +47,7 @@ bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pV
             m_bInWater = 0;
         }
 
-        m_vecMoveForce = CVector(0.0F, 0.0F, 0.0F);
+        m_vecTurnPoint = CVector(0.0F, 0.0F, 0.0F);
         if (m_fEntityWaterImmersion > 0.0F && m_fEntityWaterImmersion < 1.0F)
         {
             float fDistanceZ = m_fWaterLevel - entityPosition.z;
@@ -63,7 +63,7 @@ bool cBuoyancy::ProcessBuoyancy(CPhysical* pEntity, float fBuoyancy, CVector* pV
         SimpleCalcBuoyancy(pEntity);
     }
 
-    bool bCalcBuoyancyForce = CalcBuoyancyForce(pEntity, pVecTurnSpeed, pBuoyancy);
+    bool bCalcBuoyancyForce = CalcBuoyancyForce(pEntity, vecBuoyancyTurnPoint, vecBuoyancyForce);
     if (m_bProcessingBoat || bCalcBuoyancyForce)
     {
         return true;
@@ -148,7 +148,7 @@ bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector
     }
 
     m_fEntityWaterImmersion *= fBoatHeightRatio;
-    Multiply3x3(pVecTurnSpeed, &m_EntityMatrix, &m_vecMoveForce);
+    Multiply3x3(pVecTurnSpeed, &m_EntityMatrix, &m_vecTurnPoint);
 
     if (m_bProcessingBoat)
         return true;
@@ -156,23 +156,23 @@ bool cBuoyancy::ProcessBuoyancyBoat(CVehicle* pVehicle, float fBuoyancy, CVector
     return m_bInWater;
 }
 
-bool cBuoyancy::CalcBuoyancyForce(CPhysical* pEntity, CVector* pVecTurnSpeed, CVector* pBuoyancy)
+bool cBuoyancy::CalcBuoyancyForce(CPhysical* pEntity, CVector* vecBuoyancyTurnPoint, CVector* vecBuoyancyForce)
 {
     if (!m_bInWater)
     {
         return false;
     }
 
-    Multiply3x3(pVecTurnSpeed, &m_EntityMatrix, &m_vecMoveForce);
+    Multiply3x3(vecBuoyancyTurnPoint, &m_EntityMatrix, &m_vecTurnPoint);
     auto fCurrentBuoyancy = m_fEntityWaterImmersion * m_fBuoyancy * CTimer::ms_fTimeStep;
-    pBuoyancy->Set(0.0F, 0.0F, fCurrentBuoyancy);
+    vecBuoyancyForce->Set(0.0F, 0.0F, fCurrentBuoyancy);
 
     float fMoveForceZ = pEntity->m_fMass * pEntity->m_vecMoveSpeed.z;
     if (fMoveForceZ <= fCurrentBuoyancy * 4.0F)
         return true;
 
     float fBuoyancy = std::max(0.0F, fCurrentBuoyancy - fMoveForceZ);
-    pBuoyancy->z = fBuoyancy;
+    vecBuoyancyForce->z = fBuoyancy;
     return true;
 }
 
@@ -265,7 +265,7 @@ void cBuoyancy::PreCalcSetup(CPhysical* pEntity, float fBuoyancy)
 
     m_vecNormalizedCenterOffset = m_vecCenterOffset * fScale;
     m_fNumCheckedPoints = 1.0F;
-    m_vecMoveForce.Set(0.0F, 0.0F, 0.0F);
+    m_vecTurnPoint.Set(0.0F, 0.0F, 0.0F);
     m_bInWater = false;
     m_fEntityWaterImmersion = 0.0F;
     m_vecPos = pEntity->GetPosition();
@@ -434,19 +434,19 @@ float cBuoyancy::SimpleSumBuoyancyData(CVector* vecWaterOffset, eBuoyancyPointSt
 
     m_fEntityWaterImmersion += cBuoyancy::calcStruct.fAddedDistToWaterSurface;
 
-    cBuoyancy::calcStruct.vecAverageMoveForce.x = vecWaterOffset->x * m_vecNormalizedCenterOffset.x;
-    cBuoyancy::calcStruct.vecAverageMoveForce.y = vecWaterOffset->y * m_vecNormalizedCenterOffset.y;
-    cBuoyancy::calcStruct.vecAverageMoveForce.z = (vecWaterOffset->z + m_vecBoundingMin.z) * m_vecNormalizedCenterOffset.z * 0.5F;
+    cBuoyancy::calcStruct.vecCurOffsetTurnPoint.x = vecWaterOffset->x * m_vecNormalizedCenterOffset.x;
+    cBuoyancy::calcStruct.vecCurOffsetTurnPoint.y = vecWaterOffset->y * m_vecNormalizedCenterOffset.y;
+    cBuoyancy::calcStruct.vecCurOffsetTurnPoint.z = (vecWaterOffset->z + m_vecBoundingMin.z) * m_vecNormalizedCenterOffset.z * 0.5F;
 
     if (m_bFlipUnknVector)
-        cBuoyancy::calcStruct.vecAverageMoveForce *= -1.0F;
+        cBuoyancy::calcStruct.vecCurOffsetTurnPoint *= -1.0F;
 
     // Rolling average calculation, averages the move force from all checked points
     cBuoyancy::calcStruct.fNewPointContribution = 1.0F / m_fNumCheckedPoints;
     cBuoyancy::calcStruct.fCurrentAverageContribution = 1.0F - cBuoyancy::calcStruct.fNewPointContribution;
-    auto vecNewPointContribution = cBuoyancy::calcStruct.vecAverageMoveForce * cBuoyancy::calcStruct.fNewPointContribution * cBuoyancy::calcStruct.fAddedDistToWaterSurface;
-    auto vecCurrentAverageContibution = m_vecMoveForce * cBuoyancy::calcStruct.fCurrentAverageContribution;
-    m_vecMoveForce = vecNewPointContribution + vecCurrentAverageContibution;
+    auto vecNewPointContribution = cBuoyancy::calcStruct.vecCurOffsetTurnPoint * cBuoyancy::calcStruct.fNewPointContribution * cBuoyancy::calcStruct.fAddedDistToWaterSurface;
+    auto vecCurrentAverageContibution = m_vecTurnPoint * cBuoyancy::calcStruct.fCurrentAverageContribution;
+    m_vecTurnPoint = vecNewPointContribution + vecCurrentAverageContibution;
 
     m_fNumCheckedPoints += 1.0F;
     m_bInWater = true;

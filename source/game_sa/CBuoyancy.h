@@ -18,7 +18,7 @@ struct CBuoyancyCalcStruct
 {
     float fCurrentAverageContribution;
     float fNewPointContribution;
-    CVector vecAverageMoveForce;
+    CVector vecCurOffsetTurnPoint;
     float fAddedDistToWaterSurface;
     bool bBuoyancyDataSummed;
     unsigned __int8 pad[3];
@@ -54,7 +54,7 @@ public:
     bool                m_bProcessingBoat;          // Are we currently checking buoyancy of a boat?
     unsigned char       field_BB;                   // 187
     float               m_fEntityWaterImmersion;    // How much of the entity is immersed in water, [0:1] where 0 means entity is out of water, and 1 means that entity is completely submerged in water
-    CVector             m_vecMoveForce;             // Calculated buoyancy move force
+    CVector             m_vecTurnPoint;             // Calculated buoyancy move force
     unsigned int        field_CC;                   // 204
 
     static float& fPointVolMultiplier;
