@@ -79,6 +79,11 @@ CVector* Multiply3x3(CVector* out, CMatrix* m, CVector* in)
     return plugin::CallAndReturn<CVector*, 0x59C790, CVector*, CMatrix*, CVector*>(out, m, in);
 }
 
+CVector* Multiply3x3(CVector* out, CVector* in, CMatrix* m)
+{
+    return plugin::CallAndReturn<CVector*, 0x59C810, CVector*, CVector* , CMatrix*>(out, in, m);
+}
+
 CWanted * FindPlayerWanted(int playerId)
 {
     return ((CWanted*(__cdecl *)(int))0x56E230)(playerId);

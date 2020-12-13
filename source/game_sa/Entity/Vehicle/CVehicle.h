@@ -467,7 +467,7 @@ public:
     bool CarHasRoof();
     float HeightAboveCeiling(float arg0, eFlightModel arg1);
     void SetComponentVisibility(RwFrame* component, unsigned int visibilityState);
-    void ApplyBoatWaterResistance(tBoatHandlingData* boatHandling, float arg1);
+    void ApplyBoatWaterResistance(tBoatHandlingData* boatHandling, float fImmersionDepth);
     static void SetComponentAtomicAlpha(RpAtomic* atomic, int alpha);
     void UpdateClumpAlpha();
     void UpdatePassengerList();
