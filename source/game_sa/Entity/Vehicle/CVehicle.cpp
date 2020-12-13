@@ -624,8 +624,7 @@ void CVehicle::ApplyBoatWaterResistance(tBoatHandlingData* boatHandling, float f
     float fUsedTimeStep = CTimer::ms_fTimeStep * 0.5F;
     auto vecSpeedMult = Pow(boatHandling->m_vecMoveRes * fSpeedMult, fUsedTimeStep);
 
-    CVector vecMoveSpeedMatrixDotProduct;
-    Multiply3x3(&vecMoveSpeedMatrixDotProduct, &m_vecMoveSpeed, m_matrix);
+    CVector vecMoveSpeedMatrixDotProduct = Multiply3x3(m_vecMoveSpeed, *m_matrix);
     m_vecMoveSpeed = vecMoveSpeedMatrixDotProduct * vecSpeedMult;
 
     auto fMassMult = (vecSpeedMult.y - 1.0F) * m_vecMoveSpeed.y * m_fMass;
