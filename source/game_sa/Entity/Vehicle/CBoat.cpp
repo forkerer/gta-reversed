@@ -11,7 +11,7 @@ float& CBoat::fRangeMult = *(float*)0x8D394C; // 0.6
 void CBoat::InjectHooks()
 {
     ReversibleHooks::Install("CBoat", "PruneWakeTrail", 0x6F0E20, &CBoat::PruneWakeTrail);
-    ReversibleHooks::Install("CBoat", "ProcessControl", 0x6F1770, &CBoat::ProcessControl);
+    ReversibleHooks::InstallVirtual("CBoat", "ProcessControl", &CBoat::ProcessControl_Reversed, {0x8721C8});
 }
 
 void CBoat::PruneWakeTrail()
@@ -36,7 +36,7 @@ void CBoat::PruneWakeTrail()
     m_nNumWaterTrailPoints = iInd;
 }
 
-void CBoat::ProcessControl() {
+void CBoat::ProcessControl_Reversed() {
     m_vehicleAudio.Service();
     CBoat::PruneWakeTrail();
     CVehicle::ProcessDelayedExplosion();

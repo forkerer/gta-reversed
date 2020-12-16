@@ -79,7 +79,9 @@ public:
     //funcs
     CBoat(int modelIndex, unsigned char createdBy);
 
-    void ProcessControl();
+    // Virtual methods
+    void ProcessControl_Reversed();
+
     void SetupModelNodes(); // fill m_aBoatNodes array
     void DebugCode();
     void PrintThrustAndRudderInfo(); // uses debug printing
