@@ -1079,9 +1079,9 @@ void CVehicle::SetTransmissionRotation(RwFrame* component, float arg1, float arg
 }
 
 // Converted from thiscall void CVehicle::ProcessBoatControl(tBoatHandlingData *boatHandling,float &,bool,bool) 0x6DBCE0
-void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float& arg1, bool arg2, bool arg3)
+void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float* fWaterImmersion, bool bCollidedWithWorld, bool bPostCollision)
 {
-    ((void(__thiscall*)(CVehicle*, tBoatHandlingData*, float&, bool, bool))0x6DBCE0)(this, boatHandling, arg1, arg2, arg3);
+    ((void(__thiscall*)(CVehicle*, tBoatHandlingData*, float*, bool, bool))0x6DBCE0)(this, boatHandling, fWaterImmersion, bCollidedWithWorld, bPostCollision);
 }
 
 // Converted from thiscall void CVehicle::DoBoatSplashes(float) 0x6DD130
@@ -1363,4 +1363,19 @@ bool IsVehiclePointerValid(CVehicle* vehicle)
 void CVehicle::ProcessWeapons()
 {
     ((void(__thiscall*)(CVehicle*))0x6E3950)(this);
+}
+
+void CVehicle::DoFixedMachineGuns()
+{
+    plugin::CallMethod<0x73F400, CVehicle*>(this);
+}
+
+void CVehicle::FireFixedMachineGuns()
+{
+    plugin::CallMethod<0x73DF00, CVehicle*>(this);
+}
+
+void CVehicle::DoDriveByShooting()
+{
+    plugin::CallMethod<0x741FD0, CVehicle*>(this);
 }

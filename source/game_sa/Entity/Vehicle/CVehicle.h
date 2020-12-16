@@ -536,7 +536,7 @@ public:
     void BladeColSectorList(CPtrList& ptrList, CColModel& colModel, CMatrix& matrix, short arg3, float arg4);
     void SetComponentRotation(RwFrame* component, int axis, float angle, bool bResetPosition);
     void SetTransmissionRotation(RwFrame* component, float arg1, float arg2, CVector posn, bool isFront);
-    void ProcessBoatControl(tBoatHandlingData* boatHandling, float& arg1, bool arg2, bool arg3);
+    void ProcessBoatControl(tBoatHandlingData* boatHandling, float* fWaterImmersion, bool bCollidedWithWorld, bool bPostCollision);
     void DoBoatSplashes(float arg0);
     void DoSunGlare();
     void AddWaterSplashParticles();
@@ -566,6 +566,9 @@ public:
     void SetupUpgradesAfterLoad();
     void GetPlaneWeaponFiringStatus(bool& status, eOrdnanceType& ordnanceType);
     void ProcessWeapons();
+    void DoFixedMachineGuns();
+    void FireFixedMachineGuns();
+    void DoDriveByShooting();
 
     bool IsFakeAircraft() { return m_nVehicleSubClass == VEHICLE_FHELI || m_nVehicleSubClass == VEHICLE_FPLANE; }
     bool IsPlane() { return m_nVehicleSubClass == VEHICLE_PLANE; }

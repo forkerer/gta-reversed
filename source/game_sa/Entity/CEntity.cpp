@@ -321,6 +321,11 @@ void CEntity::ModifyMatrixForBannerInWind()
     ((void(__thiscall *)(CEntity*))0x535040)(this);
 }
 
+RwMatrix* CEntity::GetModellingMatrix()
+{
+    return plugin::CallMethodAndReturn<RwMatrix*, 0x46A2D0, CEntity*>(this);
+}
+
 // Converted from thiscall CColModel* CEntity::GetColModel(void) 0x535300
 CColModel* CEntity::GetColModel()
 {

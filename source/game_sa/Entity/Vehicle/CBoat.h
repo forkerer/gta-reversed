@@ -79,6 +79,7 @@ public:
     //funcs
     CBoat(int modelIndex, unsigned char createdBy);
 
+    void ProcessControl();
     void SetupModelNodes(); // fill m_aBoatNodes array
     void DebugCode();
     void PrintThrustAndRudderInfo(); // uses debug printing
@@ -93,9 +94,5 @@ public:
 };
 
 VALIDATE_SIZE(CBoat, 0x7E8);
-
-extern float &fShapeLength; // 0.4
-extern float &fShapeTime; // 0.05
-extern float &fRangeMult; // 0.6
 
 RwObject* GetBoatAtomicObjectCB(RwObject* object, void* data);
