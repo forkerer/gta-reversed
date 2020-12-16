@@ -80,7 +80,7 @@ public:
     CBoat(int modelIndex, unsigned char createdBy);
 
     // Virtual methods
-    void ProcessControl_Reversed();
+    void ProcessControl() override;
 
     void SetupModelNodes(); // fill m_aBoatNodes array
     void DebugCode();
@@ -89,6 +89,11 @@ public:
     void PruneWakeTrail();
     void AddWakePoint(CVector posn);
 
+    // Reversed virtual methods
+private:
+    void ProcessControl_Reversed();
+
+public:
     static bool IsSectorAffectedByWake(CVector2D arg0, float arg1, CBoat** arg2);
     static float IsVertexAffectedByWake(CVector arg0, CBoat* arg1, short arg2, bool arg3);
     static void CheckForSkippingCalculations();

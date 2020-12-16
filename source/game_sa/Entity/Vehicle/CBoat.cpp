@@ -14,6 +14,11 @@ void CBoat::InjectHooks()
     ReversibleHooks::InstallVirtual("CBoat", "ProcessControl", &CBoat::ProcessControl_Reversed, {0x8721C8});
 }
 
+void CBoat::ProcessControl()
+{
+    return CBoat::ProcessControl_Reversed();
+}
+
 void CBoat::PruneWakeTrail()
 {
     int16_t iInd;
