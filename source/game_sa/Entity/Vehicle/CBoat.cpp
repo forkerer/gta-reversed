@@ -10,13 +10,49 @@ float& CBoat::fRangeMult = *(float*)0x8D394C; // 0.6
 
 void CBoat::InjectHooks()
 {
+    //Virtual
+    ReversibleHooks::Install("CBoat", "SetModelIndex", 0x6F1140, &CBoat::SetModelIndex_Reversed);
+    ReversibleHooks::Install("CBoat", "ProcessControl", 0x6F1770, &CBoat::ProcessControl_Reversed);
+    ReversibleHooks::Install("CBoat", "Teleport", 0x6F20E0, &CBoat::Teleport_Reversed);
+    ReversibleHooks::Install("CBoat", "GetComponentWorldPosition", 0x6F01D0, &CBoat::GetComponentWorldPosition_Reversed);
+    ReversibleHooks::Install("CBoat", "ProcessOpenDoor", 0x6F0190, &CBoat::ProcessOpenDoor_Reversed);
+    ReversibleHooks::Install("CBoat", "BlowUpCar", 0x6F21B0, &CBoat::BlowUpCar_Reversed);
+
+    //Class methods
     ReversibleHooks::Install("CBoat", "PruneWakeTrail", 0x6F0E20, &CBoat::PruneWakeTrail);
-    ReversibleHooks::InstallVirtual("CBoat", "ProcessControl", &CBoat::ProcessControl_Reversed, {0x8721C8});
+
+    //Other
+    ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
+}
+
+void CBoat::SetModelIndex(unsigned int index)
+{
+    return CBoat::SetModelIndex_Reversed(index);
 }
 
 void CBoat::ProcessControl()
 {
     return CBoat::ProcessControl_Reversed();
+}
+
+void CBoat::Teleport(CVector destination, bool resetRotation)
+{
+    return CBoat::Teleport_Reversed(destination, resetRotation);
+}
+
+void CBoat::GetComponentWorldPosition(int componentId, CVector& posnOut)
+{
+    return CBoat::GetComponentWorldPosition_Reversed(componentId, posnOut);
+}
+
+void CBoat::ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int arg3, float arg4)
+{
+    return CBoat::ProcessOpenDoor_Reversed(ped, doorComponentId, arg2, arg3, arg4);
+}
+
+void CBoat::BlowUpCar(CEntity* damager, unsigned char bHideExplosion)
+{
+    return CBoat::BlowUpCar_Reversed(damager, bHideExplosion);
 }
 
 void CBoat::PruneWakeTrail()
@@ -39,6 +75,13 @@ void CBoat::PruneWakeTrail()
         return;
 
     m_nNumWaterTrailPoints = iInd;
+}
+
+void CBoat::SetModelIndex_Reversed(unsigned int index)
+{
+    CVehicle::SetModelIndex(index);
+    memset(m_aBoatNodes, 0, sizeof(m_aBoatNodes));
+    CClumpModelInfo::FillFrameArray(m_pRwClump, m_aBoatNodes);
 }
 
 void CBoat::ProcessControl_Reversed() {
@@ -228,4 +271,115 @@ void CBoat::ProcessControl_Reversed() {
             GetMatrix()->SetTranslateOnly(vecPos);
         }
     }
+}
+
+void CBoat::Teleport_Reversed(CVector destination, bool resetRotation)
+{
+    CWorld::Remove(this);
+    SetPosn(destination);
+    if (resetRotation)
+        SetOrientation(0.0F, 0.0F, 0.0F);
+
+    m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
+    m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
+    CWorld::Add(this);
+}
+
+void CBoat::GetComponentWorldPosition_Reversed(int componentId, CVector& posnOut)
+{
+    posnOut = RwFrameGetLTM(m_aBoatNodes[componentId])->pos;
+}
+
+void CBoat::ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int arg3, float arg4)
+{
+    return;
+}
+
+void CBoat::BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion)
+{
+    if (!vehicleFlags.bCanBeDamaged)
+        return;
+
+    physicalFlags.bDestroyed = true;
+    m_nStatus = eEntityStatus::STATUS_WRECKED;
+    CVisibilityPlugins::SetClumpForAllAtomicsFlag(m_pRwClump, eAtomicComponentFlag::ATOMIC_IS_BLOWN_UP);
+    m_vecMoveSpeed.z += 0.13F;
+    m_fHealth = 0.0F;
+    m_wBombTimer = 0;
+
+    const auto& vecPos = GetPosition();
+    TheCamera.CamShake(0.4F, vecPos.x, vecPos.y, vecPos.z);
+    CVehicle::KillPedsInVehicle();
+    m_nOverrideLights = eVehicleOverrideLightsState::NO_CAR_LIGHT_OVERRIDE;
+    vehicleFlags.bEngineOn = false;
+    vehicleFlags.bLightsOn = false;
+    CVehicle::ChangeLawEnforcerState(false);
+    CExplosion::AddExplosion(this, damager, eExplosionType::EXPLOSION_BOAT, vecPos, 0, 1, -1.0F, bHideExplosion);
+    CDarkel::RegisterCarBlownUpByPlayer(this, 0);
+
+    auto pMovingComponent = m_aBoatNodes[eBoatNodes::BOAT_MOVING];
+    if (!pMovingComponent)
+        return;
+
+    RpAtomic* pMovingCompAtomic;
+    RwFrameForAllObjects(pMovingComponent, GetBoatAtomicObjectCB, &pMovingCompAtomic);
+    if (!pMovingCompAtomic)
+        return;
+
+    auto pObject = reinterpret_cast<CObject*>(CObject::operator new(sizeof(CObject)));
+    if (!pObject)
+        return;
+
+    pObject->Constructor();
+    pObject->SetModelIndexNoCreate(379);
+    pObject->RefModelInfo(m_nModelIndex);
+
+    auto pMovingCompMatrix = RwFrameGetLTM(pMovingComponent);
+    auto pNewRwFrame = RwFrameCreate();
+    auto pMovingCompAtomicClone = RpAtomicClone(pMovingCompAtomic);
+    memcpy(RwFrameGetMatrix(pNewRwFrame), pMovingCompMatrix, sizeof(RwMatrix));
+    RpAtomicSetFrame(pMovingCompAtomicClone, pNewRwFrame);
+    CVisibilityPlugins::SetAtomicRenderCallback(pMovingCompAtomicClone, nullptr);
+    pObject->AttachToRwObject(&pMovingCompAtomicClone->object.object, true);
+
+    ++CObject::nNoTempObjects;
+    pObject->m_bDontStream = true;
+    pObject->m_fMass = 10.0F;
+    pObject->m_fTurnMass = 25.0F;
+    pObject->m_fAirResistance = 0.99F;
+    pObject->m_fElasticity = 0.1F;
+    pObject->m_fBuoyancyConstant = 8.0F / 75.0F;
+    pObject->m_nObjectType = eObjectCreatedBy::OBJECT_TEMPORARY;
+    pObject->SetIsStatic(false);
+    pObject->objectFlags.bIsPickup = false;
+    pObject->m_dwRemovalTime = CTimer::m_snTimeInMilliseconds + 20000;
+
+    pObject->m_vecMoveSpeed = m_vecMoveSpeed;
+    if (GetUp().z <= 0.0F)
+        pObject->m_vecMoveSpeed.z = 0.0F;
+    else
+        pObject->m_vecMoveSpeed.z = 0.3F;
+
+    pObject->m_vecTurnSpeed.Set(0.5F, m_vecTurnSpeed.y * 2.0F, m_vecTurnSpeed.z * 2.0F);
+
+    auto vecOffset = pObject->GetPosition() - vecPos;
+    vecOffset.Normalise();
+    if (GetUp().z > 0.0F)
+        vecOffset += GetUp();
+
+    auto vecObjPos = pObject->GetPosition() + vecOffset;
+    pObject->SetPosn(vecObjPos);
+
+    CWorld::Add(pObject);
+    RwFrameForAllObjects(pMovingComponent, GetBoatAtomicObjectCB, &pMovingCompAtomic);
+    if (pMovingCompAtomic)
+        RpAtomicSetFlags(pMovingCompAtomic, 0x0);
+}
+
+RwObject* GetBoatAtomicObjectCB(RwObject* object, void* data)
+{
+    if (RpAtomicGetFlags(object) & rpATOMICRENDER)
+        *reinterpret_cast<RpAtomic**>(data) = reinterpret_cast<RpAtomic*>(object);
+
+    return object;
 }

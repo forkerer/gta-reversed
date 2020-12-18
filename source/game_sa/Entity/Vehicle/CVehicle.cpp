@@ -64,6 +64,7 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "IsDriver_Int", 0x6D1C60, (bool(CVehicle::*)(int))(&CVehicle::IsDriver));
     ReversibleHooks::Install("CVehicle", "AddExhaustParticles", 0x6DE240, &CVehicle::AddExhaustParticles);
     ReversibleHooks::Install("CVehicle", "ApplyBoatWaterResistance", 0x6D2740, &CVehicle::ApplyBoatWaterResistance);
+    ReversibleHooks::Install("CVehicle", "ChangeLawEnforcerState", 0x6D2330, &CVehicle::ChangeLawEnforcerState);
 }
 
 void* CVehicle::operator new(unsigned int size) {
@@ -542,10 +543,18 @@ bool CVehicle::IsVehicleNormal()
     return ((bool(__thiscall*)(CVehicle*))0x6D22F0)(this);
 }
 
-// Converted from thiscall void CVehicle::ChangeLawEnforcerState(uchar state) 0x6D2330
-void CVehicle::ChangeLawEnforcerState(unsigned char state)
+void CVehicle::ChangeLawEnforcerState(bool bIsEnforcer)
 {
-    ((void(__thiscall*)(CVehicle*, unsigned char))0x6D2330)(this, state);
+    if (bIsEnforcer) {
+        if (!vehicleFlags.bIsLawEnforcer) {
+            vehicleFlags.bIsLawEnforcer = true;
+            ++CCarCtrl::NumLawEnforcerCars;
+        }
+    }
+    else if (vehicleFlags.bIsLawEnforcer){
+        vehicleFlags.bIsLawEnforcer = false;
+        --CCarCtrl::NumLawEnforcerCars;
+    }
 }
 
 // Converted from thiscall bool CVehicle::IsLawEnforcementVehicle(void) 0x6D2370

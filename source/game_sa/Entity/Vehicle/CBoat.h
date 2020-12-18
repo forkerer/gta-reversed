@@ -80,7 +80,15 @@ public:
     CBoat(int modelIndex, unsigned char createdBy);
 
     // Virtual methods
+    void SetModelIndex(unsigned int index) override;
     void ProcessControl() override;
+    void Teleport(CVector destination, bool resetRotation) override;
+    //void PreRender() override;
+    //void Render() override;
+    //void ProcessControlInputs(unsigned char playerNum) override;
+    void GetComponentWorldPosition(int componentId, CVector& posnOut) override;
+    void ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int arg3, float arg4) override;
+    void BlowUpCar(CEntity* damager, unsigned char bHideExplosion) override;
 
     void SetupModelNodes(); // fill m_aBoatNodes array
     void DebugCode();
@@ -91,7 +99,12 @@ public:
 
     // Reversed virtual methods
 private:
+    void SetModelIndex_Reversed(unsigned int index);
     void ProcessControl_Reversed();
+    void Teleport_Reversed(CVector destination, bool resetRotation);
+    void GetComponentWorldPosition_Reversed(int componentId, CVector& posnOut);
+    void ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int arg3, float arg4);
+    void BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion);
 
 public:
     static bool IsSectorAffectedByWake(CVector2D arg0, float arg1, CBoat** arg2);

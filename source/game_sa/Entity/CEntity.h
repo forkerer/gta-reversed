@@ -115,8 +115,11 @@ public:
     virtual void RemoveLighting(bool bRemove);
     virtual void FlagToDestroyWhenNextProcessed();
 
+private:
     CRect* GetBoundRect_Reversed(CRect* pRect);
+    void SetModelIndexNoCreate_Reversed(unsigned int index);
 
+public:
     // funcs
     void UpdateRwFrame();
     void UpdateRpHAnim();

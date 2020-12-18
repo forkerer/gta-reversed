@@ -88,6 +88,12 @@ enum eBombState {
     BOMB_IGNITION_ACTIVATED = 5
 };
 
+enum eVehicleOverrideLightsState {
+    NO_CAR_LIGHT_OVERRIDE = 0,
+    FORCE_CAR_LIGHTS_OFF = 1,
+    FORCE_CAR_LIGHTS_ON = 2
+};
+
 enum eCarPiece
 {
     CAR_PIECE_DEFAULT = 0,
@@ -458,7 +464,7 @@ public:
     bool CanPedEnterCar();
     void ProcessCarAlarm();
     bool IsVehicleNormal();
-    void ChangeLawEnforcerState(unsigned char state);
+    void ChangeLawEnforcerState(bool bIsEnforcer);
     bool IsLawEnforcementVehicle();
     bool ShufflePassengersToMakeSpace();
     void ExtinguishCarFire();
