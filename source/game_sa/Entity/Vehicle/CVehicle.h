@@ -341,7 +341,7 @@ public:
         } m_renderLights;
     };
     RwTexture *m_pCustomCarPlate;
-    CVehicle *field_58C;
+    float field_58C;
     unsigned int     m_nVehicleClass; // see enum eVehicleType
     unsigned int     m_nVehicleSubClass;
     short      m_nPreviousRemapTxd;
