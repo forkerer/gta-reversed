@@ -542,7 +542,7 @@ public:
     void BladeColSectorList(CPtrList& ptrList, CColModel& colModel, CMatrix& matrix, short arg3, float arg4);
     void SetComponentRotation(RwFrame* component, int axis, float angle, bool bResetPosition);
     void SetTransmissionRotation(RwFrame* component, float arg1, float arg2, CVector posn, bool isFront);
-    void ProcessBoatControl(tBoatHandlingData* boatHandling, float* fWaterImmersion, bool bCollidedWithWorld, bool bPostCollision);
+    void ProcessBoatControl(tBoatHandlingData* boatHandling, float* fWaterResistance, bool bCollidedWithWorld, bool bPostCollision);
     void DoBoatSplashes(float arg0);
     void DoSunGlare();
     void AddWaterSplashParticles();

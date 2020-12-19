@@ -20,6 +20,7 @@ void CBoat::InjectHooks()
 
     //Class methods
     ReversibleHooks::Install("CBoat", "PruneWakeTrail", 0x6F0E20, &CBoat::PruneWakeTrail);
+    ReversibleHooks::Install("CBoat", "AddWakePoint", 0x6F2550, &CBoat::AddWakePoint);
 
     //Other
     ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
@@ -75,6 +76,48 @@ void CBoat::PruneWakeTrail()
         return;
 
     m_nNumWaterTrailPoints = iInd;
+}
+
+void CBoat::AddWakePoint(CVector posn)
+{
+    auto fIntensity = m_vecMoveSpeed.Magnitude() * 100.0F;
+
+    // No wake points exisiting, early out
+    if (m_afWakePointLifeTime[0] < 0.0F) {
+        m_anWakePointIntensity[0] = fIntensity;
+        m_avecWakePoints[0].Set(posn.x, posn.y);
+        m_afWakePointLifeTime[0] = CBoat::WAKE_LIFETIME;
+
+        m_nNumWaterTrailPoints = 1;
+        return;
+    }
+
+    if (DistanceBetweenPoints(posn, m_avecWakePoints[0]) <= CBoat::MIN_WAKE_INTERVAL)
+        return;
+
+    short uiMaxWakePoints = 31;
+    if (!m_nStatus == eEntityStatus::STATUS_PLAYER) {
+        if (m_nCreatedBy == eVehicleCreatedBy::MISSION_VEHICLE)
+            uiMaxWakePoints = 20;
+        else
+            uiMaxWakePoints = 15;
+    }
+    short uiCurWaterPoints = std::min(m_nNumWaterTrailPoints, uiMaxWakePoints);
+
+    // Shift wake points
+    if (m_nNumWaterTrailPoints >= uiMaxWakePoints || uiCurWaterPoints > 0) {
+        for (unsigned int iInd = uiCurWaterPoints; iInd > 0; --iInd) {
+            m_avecWakePoints[iInd] = m_avecWakePoints[iInd - 1];
+            m_anWakePointIntensity[iInd] = m_anWakePointIntensity[iInd - 1];
+            m_afWakePointLifeTime[iInd] = m_afWakePointLifeTime[iInd - 1];
+        }
+    }
+
+    m_anWakePointIntensity[0] = fIntensity;
+    m_avecWakePoints[0].Set(posn.x, posn.y);
+    m_afWakePointLifeTime[0] = CBoat::WAKE_LIFETIME;
+    if (m_nNumWaterTrailPoints < 32)
+        ++m_nNumWaterTrailPoints;
 }
 
 void CBoat::SetModelIndex_Reversed(unsigned int index)
@@ -249,7 +292,7 @@ void CBoat::ProcessControl_Reversed() {
 
     auto bPostCollision = m_fDamageIntensity > 0.0F && m_vecLastCollisionImpactVelocity.z > 0.1F;
     CPhysical::ProcessControl();
-    CVehicle::ProcessBoatControl(m_pBoatHandling, &m_fWaterResistance, m_bHasHitWall, bPostCollision);
+    CVehicle::ProcessBoatControl(m_pBoatHandling, &m_fLastWaterImmersionDepth, m_bHasHitWall, bPostCollision);
 
     if (m_nModelIndex == eModelID::MODEL_SKIMMER
         && (m_fPropSpeed > CPlane::PLANE_MIN_PROP_SPEED || m_vecMoveSpeed.SquaredMagnitude() > CPlane::PLANE_MIN_PROP_SPEED)) {

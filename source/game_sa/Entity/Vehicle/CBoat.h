@@ -58,7 +58,7 @@ public:
 private:
     char _pad63E[2];
 public:
-    float              m_fWaterResistance; // initialised with 7.0f, 0.0f - not in water
+    float              m_fLastWaterImmersionDepth; // initialised with 7.0f, 0.0f - not in water
     short              m_nNumWaterTrailPoints;
 private:
     char _pad646[2];
