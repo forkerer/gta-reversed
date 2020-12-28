@@ -86,6 +86,7 @@ CVector Multiply3x3(CMatrix* matrix, CVector* vector)
     return result;
 }
 
+// vector by matrix mult, resulting in a vector where each component is the dot product of the in vector and a matrix direction
 CVector Multiply3x3(CVector* vector, CMatrix* matrix)
 {
     CVector result;

@@ -1102,7 +1102,7 @@ void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float* fLastW
 
     bool bOnWater = false;
     vehicleFlags.bIsDrowning = false;
-    if (CTimer::ms_fTimeStep * m_fMass / 1250.0F >= vecBuoyancyForce.z) {
+    if (CTimer::ms_fTimeStep * m_fMass * 0.0008F >= vecBuoyancyForce.z) {
         physicalFlags.bSubmergedInWater = false;
     }
     else {
@@ -1150,11 +1150,11 @@ void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float* fLastW
     if (m_nModelIndex == eModelID::MODEL_SKIMMER) {
         auto fCheckedMass = CTimer::ms_fTimeStep * m_fMass;
         if (m_f2ndSteerAngle != 0.0F
-            || GetForward().z < -0.5F
+            || (GetForward().z < -0.5F
             && GetUp().z > -0.5F
             && m_vecMoveSpeed.z < -0.15F
             && fCheckedMass * 0.01F / 125.0F < vecBuoyancyForce.z
-            && vecBuoyancyForce.z < fCheckedMass * 0.4F / 125.0F) {
+            && vecBuoyancyForce.z < fCheckedMass * 0.4F / 125.0F)) {
 
             bOnWater = false;
 
@@ -1215,8 +1215,7 @@ void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float* fLastW
 
             auto fTraction = 1.0F;
             if (m_nStatus == eEntityStatus::STATUS_PLAYER) {
-                fTraction = DotProduct(m_vecMoveSpeed, GetForward()) * m_pHandlingData->m_fTractionBias;
-                auto fTractionLoss = fTraction;
+                auto fTractionLoss = DotProduct(m_vecMoveSpeed, GetForward()) * m_pHandlingData->m_fTractionBias;
                 if (pPad->GetHandBrake())
                     fTractionLoss *= 0.5F;
 
@@ -1232,13 +1231,15 @@ void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float* fLastW
             CVector vecThrustPoint(0.0F, vecBoundingMin.y * boatHandling->m_fThrustY, vecBoundingMin.z * boatHandling->m_fThrustZ);
             auto vecTransformedThrustPoint = Multiply3x3(GetMatrix(), &vecThrustPoint);
 
-            auto vecWaterPos = GetPosition() + vecTransformedThrustPoint;
+            auto vecWorldThrustPos = GetPosition() + vecTransformedThrustPoint;
             float fWaterLevel;
-            CWaterLevel::GetWaterLevel(vecWaterPos.x, vecWaterPos.y, vecWaterPos.z, &fWaterLevel, 1, nullptr);
-            if (vecWaterPos.z - 0.5F >= fWaterLevel && IsBoat())
-                static_cast<CBoat*>(this)->m_nBoatFlags.bMovingOnWater = false;
+            CWaterLevel::GetWaterLevel(vecWorldThrustPos.x, vecWorldThrustPos.y, vecWorldThrustPos.z, &fWaterLevel, 1, nullptr);
+            if (vecWorldThrustPos.z - 0.5F >= fWaterLevel) {
+                if (IsBoat())
+                    static_cast<CBoat*>(this)->m_nBoatFlags.bMovingOnWater = false;
+            }
             else {
-                auto fThrustDepth = fWaterLevel - vecWaterPos.z + 0.5F;
+                auto fThrustDepth = fWaterLevel - vecWorldThrustPos.z + 0.5F;
                 fThrustDepth = std::min(fThrustDepth * fThrustDepth, 1.0F);
 
                 if (IsBoat())
@@ -1256,7 +1257,7 @@ void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float* fLastW
                     auto fSteerAngle = fabs(m_fSteerAngle);
                     CVector vecSteer(-fSteerAngleSin, fSteerAngleCos, -fSteerAngle);
                     CVector vecSteerMoveForce = Multiply3x3(GetMatrix(), &vecSteer);
-                    vecSteerMoveForce *= fTraction * m_fGasPedal * 40.0F * m_pHandlingData->m_transmissionData.m_fEngineAcceleration * m_fMass;
+                    vecSteerMoveForce *= fThrustDepth * m_fGasPedal * 40.0F * m_pHandlingData->m_transmissionData.m_fEngineAcceleration * m_fMass;
 
                     if (vecSteerMoveForce.z > 0.2F)
                         vecSteerMoveForce.z = pow(1.2F - vecSteerMoveForce.z, 2) + 0.2F;
@@ -1310,13 +1311,13 @@ void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float* fLastW
                     CVector vecTractionLoss(-fSteerAngleSin, 0.0F, 0.0F);
                     vecTractionLoss *= fTractionLoss;
                     CVector vecTractionLossTransformed = Multiply3x3(GetMatrix(), &vecTractionLoss);
-                    vecTractionLossTransformed *= fWaterLevel * CTimer::ms_fTimeStep;
+                    vecTractionLossTransformed *= fThrustDepth * CTimer::ms_fTimeStep;
 
                     CPhysical::ApplyMoveForce(vecTractionLossTransformed);
                     CPhysical::ApplyTurnForce(vecTractionLossTransformed, vecTransformedThrustPoint);
 
                     auto fUsedTimestep = std::max(CTimer::ms_fTimeStep, 0.01F);
-                    auto vecTurn = GetRight() * fUsedTimestep / fTraction * fTractionLoss * fSteerAngleSin * -0.75F * fWaterLevel;
+                    auto vecTurn = GetRight() * fUsedTimestep / fTraction * fTractionLoss * fSteerAngleSin * -0.75F;
                     CPhysical::ApplyTurnForce(vecTurn, GetUp());
                 }
             }
@@ -1349,10 +1350,9 @@ void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float* fLastW
         CVehicle::ApplyBoatWaterResistance(boatHandling, fImmersionDepth);
     }
 
-    if ((m_nModelIndex != eModelID::MODEL_SKIMMER || m_f2ndSteerAngle) && !bCollidedWithWorld) {
+    if ((m_nModelIndex != eModelID::MODEL_SKIMMER || m_f2ndSteerAngle == 0.0F) && !bCollidedWithWorld) {
         auto vecTurnRes = Pow(boatHandling->m_vecTurnRes, CTimer::ms_fTimeStep);
-        auto vecTurnDotProd = Multiply3x3(&m_vecTurnSpeed, GetMatrix());
-        m_vecTurnSpeed = vecTurnDotProd;
+        m_vecTurnSpeed = Multiply3x3(&m_vecTurnSpeed, GetMatrix());
         m_vecTurnSpeed.y *= vecTurnRes.y;
         m_vecTurnSpeed.z *= vecTurnRes.z;
 
