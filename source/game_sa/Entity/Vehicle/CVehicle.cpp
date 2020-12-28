@@ -1186,7 +1186,7 @@ void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float* fLastW
         else
             fMoveForce *= m_fGasPedal;
 
-        auto fMaxMoveForce = CTimer::ms_fTimeStep * boatHandling->m_fAqPlaneForce * m_fMass / 125.0F;
+        auto fMaxMoveForce = CTimer::ms_fTimeStep * boatHandling->m_fAqPlaneLimit * m_fMass / 125.0F;
         fMoveForce = std::min(fMoveForce, fMaxMoveForce);
 
         auto vecUsedMoveForce = GetUp() * fMoveForce;
