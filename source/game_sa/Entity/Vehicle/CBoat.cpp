@@ -30,6 +30,7 @@ void CBoat::InjectHooks()
     ReversibleHooks::Install("CBoat", "SetupModelNodes", 0x6F01A0, &CBoat::SetupModelNodes);
     ReversibleHooks::Install("CBoat", "DebugCode", 0x6F0D00, &CBoat::DebugCode);
     ReversibleHooks::Install("CBoat", "ModifyHandlingValue", 0x6F0DE0, &CBoat::ModifyHandlingValue);
+    ReversibleHooks::Install("CBoat", "PrintThrustAndRudderInfo", 0x6F0D90, &CBoat::PrintThrustAndRudderInfo);
 
     //Other
     ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
@@ -101,6 +102,13 @@ void CBoat::DebugCode()
     auto uiHandlingId = reinterpret_cast<CVehicleModelInfo*>(CModelInfo::ms_modelInfoPtrs[m_nModelIndex])->m_nHandlingId;
     m_pHandlingData = &gHandlingDataMgr.m_aVehicleHandling[uiHandlingId];
     CBoat::SetupModelNodes();
+}
+
+void CBoat::PrintThrustAndRudderInfo()
+{
+    char cBuffer[64];
+    sprintf(cBuffer, "Thrust %3.2f", static_cast<float>(m_pHandlingData->m_transmissionData.m_fEngineAcceleration * m_pHandlingData->m_fMass));
+    sprintf(cBuffer, "Rudder Angle  %3.2f", m_pHandlingData->m_fSteeringLock);
 }
 
 void CBoat::ModifyHandlingValue(bool const& bIncrement)
