@@ -99,7 +99,7 @@ public:
     void SetupModelNodes(); // fill m_aBoatNodes array
     void DebugCode();
     void PrintThrustAndRudderInfo(); // uses debug printing
-    void ModifyHandlingValue(bool const& arg0);
+    void ModifyHandlingValue(bool const& bIncrement);
     void PruneWakeTrail();
     void AddWakePoint(CVector posn);
 

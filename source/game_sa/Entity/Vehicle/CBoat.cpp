@@ -29,6 +29,7 @@ void CBoat::InjectHooks()
     ReversibleHooks::Install("CBoat", "AddWakePoint", 0x6F2550, &CBoat::AddWakePoint);
     ReversibleHooks::Install("CBoat", "SetupModelNodes", 0x6F01A0, &CBoat::SetupModelNodes);
     ReversibleHooks::Install("CBoat", "DebugCode", 0x6F0D00, &CBoat::DebugCode);
+    ReversibleHooks::Install("CBoat", "ModifyHandlingValue", 0x6F0DE0, &CBoat::ModifyHandlingValue);
 
     //Other
     ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
@@ -100,6 +101,16 @@ void CBoat::DebugCode()
     auto uiHandlingId = reinterpret_cast<CVehicleModelInfo*>(CModelInfo::ms_modelInfoPtrs[m_nModelIndex])->m_nHandlingId;
     m_pHandlingData = &gHandlingDataMgr.m_aVehicleHandling[uiHandlingId];
     CBoat::SetupModelNodes();
+}
+
+void CBoat::ModifyHandlingValue(bool const& bIncrement)
+{
+    auto fChange = -1.0;
+    if (bIncrement)
+        fChange = 1.0;
+
+    if (field_63C == 4)
+        m_pHandlingData->m_fSteeringLock += fChange;
 }
 
 void CBoat::PruneWakeTrail()
