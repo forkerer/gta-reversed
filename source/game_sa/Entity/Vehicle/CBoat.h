@@ -75,6 +75,12 @@ public:
     static float& fShapeTime; // 0.05
     static float& fRangeMult; // 0.6
 
+    static const constexpr uint32_t uiNumVertices = 4;
+    static RxObjSpace3DVertex* aRenderVertices;
+
+    static const constexpr uint32_t uiNumIndices = 6;
+    static RxVertexIndex* auRenderIndices;
+
     static void InjectHooks();
     //funcs
     CBoat(int modelIndex, unsigned char createdBy);
@@ -84,7 +90,7 @@ public:
     void ProcessControl() override;
     void Teleport(CVector destination, bool resetRotation) override;
     //void PreRender() override;
-    //void Render() override;
+    void Render() override;
     //void ProcessControlInputs(unsigned char playerNum) override;
     void GetComponentWorldPosition(int componentId, CVector& posnOut) override;
     void ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int arg3, float arg4) override;
@@ -102,6 +108,7 @@ private:
     void SetModelIndex_Reversed(unsigned int index);
     void ProcessControl_Reversed();
     void Teleport_Reversed(CVector destination, bool resetRotation);
+    void Render_Reversed();
     void GetComponentWorldPosition_Reversed(int componentId, CVector& posnOut);
     void ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int arg3, float arg4);
     void BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion);

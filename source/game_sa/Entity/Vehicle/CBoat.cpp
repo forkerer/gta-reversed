@@ -8,12 +8,16 @@ float& CBoat::fShapeLength = *(float*)0x8D3944; // 0.4
 float& CBoat::fShapeTime = *(float*)0x8D3948; // 0.05
 float& CBoat::fRangeMult = *(float*)0x8D394C; // 0.6
 
+RxObjSpace3DVertex* CBoat::aRenderVertices = (RxObjSpace3DVertex*)0xC278F8;
+RxVertexIndex* CBoat::auRenderIndices = (RxVertexIndex*)0xC27988;
+
 void CBoat::InjectHooks()
 {
     //Virtual
     ReversibleHooks::Install("CBoat", "SetModelIndex", 0x6F1140, &CBoat::SetModelIndex_Reversed);
     ReversibleHooks::Install("CBoat", "ProcessControl", 0x6F1770, &CBoat::ProcessControl_Reversed);
     ReversibleHooks::Install("CBoat", "Teleport", 0x6F20E0, &CBoat::Teleport_Reversed);
+    ReversibleHooks::Install("CBoat", "Render", 0x6F0210, &CBoat::Render_Reversed);
     ReversibleHooks::Install("CBoat", "GetComponentWorldPosition", 0x6F01D0, &CBoat::GetComponentWorldPosition_Reversed);
     ReversibleHooks::Install("CBoat", "ProcessOpenDoor", 0x6F0190, &CBoat::ProcessOpenDoor_Reversed);
     ReversibleHooks::Install("CBoat", "BlowUpCar", 0x6F21B0, &CBoat::BlowUpCar_Reversed);
@@ -39,6 +43,11 @@ void CBoat::ProcessControl()
 void CBoat::Teleport(CVector destination, bool resetRotation)
 {
     return CBoat::Teleport_Reversed(destination, resetRotation);
+}
+
+void CBoat::Render()
+{
+    return CBoat::Render_Reversed();
 }
 
 void CBoat::GetComponentWorldPosition(int componentId, CVector& posnOut)
@@ -326,6 +335,129 @@ void CBoat::Teleport_Reversed(CVector destination, bool resetRotation)
     m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
     m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
     CWorld::Add(this);
+}
+
+void CBoat::Render_Reversed()
+{
+    m_nTimeTillWeNeedThisCar = CTimer::m_snTimeInMilliseconds + 3000;
+    if (CCheat::m_aCheatsActive[eCheats::CHEAT_INVISIBLE_CAR])
+        return;
+
+    CVehicle::Render();
+
+    if (m_nModelIndex == eModelID::MODEL_SKIMMER)
+        return;
+
+    CBoat::aRenderVertices[0].color = RWRGBALONG(0xFF, 0xFF, 0xFF, 0xFF);
+    CBoat::aRenderVertices[1].color = RWRGBALONG(0xFF, 0xFF, 0xFF, 0xFF);
+    CBoat::aRenderVertices[2].color = RWRGBALONG(0xFF, 0xFF, 0xFF, 0xFF);
+    CBoat::aRenderVertices[3].color = RWRGBALONG(0xFF, 0xFF, 0xFF, 0xFF);
+
+    CBoat::auRenderIndices[0] = 0;
+    CBoat::auRenderIndices[1] = 2;
+    CBoat::auRenderIndices[2] = 1;
+    CBoat::auRenderIndices[3] = 1;
+    CBoat::auRenderIndices[4] = 2;
+    CBoat::auRenderIndices[5] = 3;
+
+    CBoat::aRenderVertices[0].u = 0.0;
+    CBoat::aRenderVertices[0].v = 0.0;
+    CBoat::aRenderVertices[1].u = 1.0;
+    CBoat::aRenderVertices[1].v = 0.0;
+    CBoat::aRenderVertices[2].u = 0.0;
+    CBoat::aRenderVertices[2].v = 1.0;
+    CBoat::aRenderVertices[3].u = 1.0;
+    CBoat::aRenderVertices[3].v = 1.0;
+
+    switch (m_nModelIndex) {
+    case eModelID::MODEL_PREDATOR:
+        CBoat::aRenderVertices[0].objVertex = CVector(-1.45F,  1.90F, 0.96F);
+        CBoat::aRenderVertices[1].objVertex = CVector( 1.45F,  1.90F, 0.96F);
+        CBoat::aRenderVertices[2].objVertex = CVector(-1.45F, -3.75F, 0.96F);
+        CBoat::aRenderVertices[2].objVertex = CVector( 1.45F, -3.75F, 0.96F);
+        break;
+    case eModelID::MODEL_SQUALO:
+        CBoat::aRenderVertices[0].objVertex = CVector(-1.222F,  2.004F, 1.409F);
+        CBoat::aRenderVertices[1].objVertex = CVector( 1.222F,  2.004F, 1.409F);
+        CBoat::aRenderVertices[2].objVertex = CVector(-1.240F, -1.367F, 0.846F);
+        CBoat::aRenderVertices[2].objVertex = CVector( 1.240F, -1.367F, 0.846F);
+        break;
+    case eModelID::MODEL_SPEEDER:
+        CBoat::aRenderVertices[0].objVertex = CVector(-1.15F,  3.61F, 1.03F);
+        CBoat::aRenderVertices[1].objVertex = CVector( 1.15F,  3.61F, 1.03F);
+        CBoat::aRenderVertices[2].objVertex = CVector(-1.15F, -0.06F, 1.03F);
+        CBoat::aRenderVertices[2].objVertex = CVector( 1.15F, -0.06F, 1.03F);
+        break;
+    case eModelID::MODEL_REEFER:
+        CBoat::aRenderVertices[0].objVertex = CVector(-1.90F,  2.83F, 1.00F);
+        CBoat::aRenderVertices[1].objVertex = CVector( 1.90F,  2.83F, 1.00F);
+        CBoat::aRenderVertices[2].objVertex = CVector(-1.66F, -4.48F, 0.83F);
+        CBoat::aRenderVertices[2].objVertex = CVector( 1.66F, -4.48F, 0.83F);
+        break;
+    case eModelID::MODEL_TROPIC:
+        CBoat::aRenderVertices[0].objVertex = CVector(-1.886F, -2.347F, 0.787F);
+        CBoat::aRenderVertices[1].objVertex = CVector( 1.886F, -2.347F, 0.787F);
+        CBoat::aRenderVertices[2].objVertex = CVector(-1.886F, -4.670F, 0.842F);
+        CBoat::aRenderVertices[2].objVertex = CVector( 1.886F, -4.670F, 0.842F);
+        break;
+    case eModelID::MODEL_COASTG:
+        CBoat::aRenderVertices[0].objVertex = CVector(-0.663F, 3.565F, 0.382F);
+        CBoat::aRenderVertices[1].objVertex = CVector( 0.663F, 3.565F, 0.382F);
+        CBoat::aRenderVertices[2].objVertex = CVector(-1.087F, 0.831F, 0.381F);
+        CBoat::aRenderVertices[2].objVertex = CVector( 1.087F, 0.831F, 0.381F);
+        break;
+    case eModelID::MODEL_DINGHY:
+        CBoat::aRenderVertices[0].objVertex = CVector(-0.797F,  1.641F, 0.573F);
+        CBoat::aRenderVertices[1].objVertex = CVector( 0.797F,  1.641F, 0.573F);
+        CBoat::aRenderVertices[2].objVertex = CVector(-0.865F, -1.444F, 0.509F);
+        CBoat::aRenderVertices[2].objVertex = CVector( 0.865F, -1.444F, 0.509F);
+        break;
+    case eModelID::MODEL_MARQUIS:
+        CBoat::aRenderVertices[0].objVertex = CVector(-1.246F, -1.373F, 0.787F);
+        CBoat::aRenderVertices[1].objVertex = CVector( 1.246F, -1.373F, 0.787F);
+        CBoat::aRenderVertices[2].objVertex = CVector(-1.023F, -5.322F, 0.787F);
+        CBoat::aRenderVertices[2].objVertex = CVector( 1.023F, -5.322F, 0.787F);
+        break;
+    case eModelID::MODEL_LAUNCH:
+        CBoat::aRenderVertices[0].objVertex = CVector(-1.0F,  2.5F, 0.3F);
+        CBoat::aRenderVertices[1].objVertex = CVector( 1.0F,  2.5F, 0.3F);
+        CBoat::aRenderVertices[2].objVertex = CVector(-1.0F, -5.4F, 0.3F);
+        CBoat::aRenderVertices[2].objVertex = CVector( 1.0F, -5.4F, 0.3F);
+        break;
+    default:
+        return;
+    }
+
+    RwRenderStateSet(rwRENDERSTATETEXTURERASTER, CWaterLevel::waterclear256Raster);
+    RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)TRUE);
+    RwRenderStateSet(rwRENDERSTATEFOGENABLE, (void*)FALSE);
+    RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDZERO);
+    RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDONE);
+
+    RwMatrix tempMat;
+    GetMatrix()->UpdateRwMatrix(&tempMat);
+    if (RwIm3DTransform(CBoat::aRenderVertices, CBoat::uiNumVertices, &tempMat, rwMATRIXTYPENORMAL)) {
+        RwIm3DRenderIndexedPrimitive(RwPrimitiveType::rwPRIMTYPETRILIST, CBoat::auRenderIndices, CBoat::uiNumIndices);
+        RwIm3DEnd();
+    }
+
+    // Second tri list for Coastguard
+    if (m_nModelIndex == eModelID::MODEL_COASTG) {
+        CBoat::aRenderVertices[0].objVertex = CVector(-1.087F,  0.831F, 0.381F);
+        CBoat::aRenderVertices[1].objVertex = CVector( 1.087F,  0.831F, 0.381F);
+        CBoat::aRenderVertices[2].objVertex = CVector(-1.097F, -2.977F, 0.381F);
+        CBoat::aRenderVertices[2].objVertex = CVector( 1.097F, -2.977F, 0.381F);
+
+        GetMatrix()->UpdateRwMatrix(&tempMat);
+        if (RwIm3DTransform(CBoat::aRenderVertices, CBoat::uiNumVertices, &tempMat, rwMATRIXTYPENORMAL)) {
+            RwIm3DRenderIndexedPrimitive(RwPrimitiveType::rwPRIMTYPETRILIST, CBoat::auRenderIndices, CBoat::uiNumIndices);
+            RwIm3DEnd();
+        }
+    }
+
+    RwRenderStateSet(rwRENDERSTATEFOGENABLE, (void*)TRUE);
+    RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDSRCALPHA);
+    RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDINVSRCALPHA);
 }
 
 void CBoat::GetComponentWorldPosition_Reversed(int componentId, CVector& posnOut)

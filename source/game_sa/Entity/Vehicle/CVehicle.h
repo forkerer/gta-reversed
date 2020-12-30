@@ -367,6 +367,7 @@ public:
 
     static void InjectHooks();
 
+    void Render() override;
     // originally vtable functions
 
     virtual void ProcessControlCollisionCheck();
@@ -576,6 +577,10 @@ public:
     void FireFixedMachineGuns();
     void DoDriveByShooting();
 
+private:
+    void Render_Reversed();
+
+public:
     bool IsFakeAircraft() { return m_nVehicleSubClass == VEHICLE_FHELI || m_nVehicleSubClass == VEHICLE_FPLANE; }
     bool IsPlane() { return m_nVehicleSubClass == VEHICLE_PLANE; }
     bool IsHeli() { return m_nVehicleSubClass == VEHICLE_HELI; }

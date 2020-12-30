@@ -68,6 +68,11 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "ChangeLawEnforcerState", 0x6D2330, &CVehicle::ChangeLawEnforcerState);
 }
 
+void CVehicle::Render()
+{
+    return Render_Reversed();
+}
+
 void* CVehicle::operator new(unsigned int size) {
     return ((void* (__cdecl*)(unsigned int))0x6E2D50)(size);
 }
@@ -1696,4 +1701,9 @@ void CVehicle::FireFixedMachineGuns()
 void CVehicle::DoDriveByShooting()
 {
     plugin::CallMethod<0x741FD0, CVehicle*>(this);
+}
+
+void CVehicle::Render_Reversed()
+{
+    plugin::CallMethod<0x6D0E60, CVehicle*>(this);
 }
