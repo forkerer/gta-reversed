@@ -717,5 +717,5 @@ int WindowsCharset = static_cast<int>(GetACP());
 
 unsigned short& uiTempBufferIndicesStored = *(unsigned short*)0xC4B954;
 unsigned short& uiTempBufferVerticesStored = *(unsigned short*)0xC4B950;
-unsigned short* aTempBufferIndices = (unsigned short*)0xC4B958; // size 4096
+RxVertexIndex* aTempBufferIndices = (RxVertexIndex*)0xC4B958; // size 4096
 RxObjSpace3DVertex* aTempBufferVertices = (RxObjSpace3DVertex*)0xC4D958; // size 1024 - after this there are 2 more arrays like this, both sized 512
