@@ -18,6 +18,7 @@ void CBoat::InjectHooks()
     ReversibleHooks::Install("CBoat", "ProcessControl", 0x6F1770, &CBoat::ProcessControl_Reversed);
     ReversibleHooks::Install("CBoat", "Teleport", 0x6F20E0, &CBoat::Teleport_Reversed);
     ReversibleHooks::Install("CBoat", "Render", 0x6F0210, &CBoat::Render_Reversed);
+    ReversibleHooks::Install("CBoat", "ProcessControlInputs", 0x6F0A10, &CBoat::ProcessControlInputs_Reversed);
     ReversibleHooks::Install("CBoat", "GetComponentWorldPosition", 0x6F01D0, &CBoat::GetComponentWorldPosition_Reversed);
     ReversibleHooks::Install("CBoat", "ProcessOpenDoor", 0x6F0190, &CBoat::ProcessOpenDoor_Reversed);
     ReversibleHooks::Install("CBoat", "BlowUpCar", 0x6F21B0, &CBoat::BlowUpCar_Reversed);
@@ -48,6 +49,11 @@ void CBoat::Teleport(CVector destination, bool resetRotation)
 void CBoat::Render()
 {
     return CBoat::Render_Reversed();
+}
+
+void CBoat::ProcessControlInputs(unsigned char playerNum)
+{
+    return CBoat::ProcessControlInputs_Reversed(playerNum);
 }
 
 void CBoat::GetComponentWorldPosition(int componentId, CVector& posnOut)
@@ -461,6 +467,50 @@ void CBoat::Render_Reversed()
     RwRenderStateSet(rwRENDERSTATEFOGENABLE, (void*)TRUE);
     RwRenderStateSet(rwRENDERSTATESRCBLEND, (void*)rwBLENDSRCALPHA);
     RwRenderStateSet(rwRENDERSTATEDESTBLEND, (void*)rwBLENDINVSRCALPHA);
+}
+
+void CBoat::ProcessControlInputs_Reversed(unsigned char ucPadNum)
+{
+    m_nPadNumber = ucPadNum;
+    if (ucPadNum > 3)
+        m_nPadNumber = 3;
+
+    auto pPad = CPad::GetPad(ucPadNum);
+    float fBrakePower = (static_cast<float>(pPad->GetBrake()) * (1.0F / 255.0F) - m_fBreakPedal) * 0.1 + m_fBreakPedal;
+    fBrakePower = clamp(fBrakePower, 0.0F, 1.0F);
+    m_fBreakPedal = fBrakePower;
+
+    auto fGasPower = fBrakePower * -0.3F;
+    if (fBrakePower < 0.05F) {
+        m_fBreakPedal = 0.0F;
+        fGasPower = static_cast<float>(pPad->GetAccelerate()) * (1.0F / 255.0F);
+    }
+    m_fGasPedal = fGasPower;
+
+    // Mouse steering
+    if (CCamera::m_bUseMouse3rdPerson && CVehicle::m_bEnableMouseSteering) {
+        auto bChangedInput = CVehicle::m_nLastControlInput != eControllerType::CONTROLLER_MOUSE || pPad->GetSteeringLeftRight();
+        if (CPad::NewMouseControllerState.X == 0.0F && bChangedInput) { // No longer using mouse controls
+            m_fRawSteerAngle += (static_cast<float>(-pPad->GetSteeringLeftRight()) * (1.0F / 128.0F) - m_fRawSteerAngle) * 0.2F * CTimer::ms_fTimeStep;
+            CVehicle::m_nLastControlInput = eControllerType::CONTROLLER_KEYBOARD1;
+        }
+        else if (m_fRawSteerAngle != 0.0F || m_fRawSteerAngle != 0.0F) {
+            CVehicle::m_nLastControlInput = eControllerType::CONTROLLER_MOUSE;
+            if (!pPad->NewState.m_bVehicleMouseLook)
+                m_fRawSteerAngle += CPad::NewMouseControllerState.X * -0.0035F;
+
+            if (fabs(m_fRawSteerAngle) < 0.5 || pPad->NewState.m_bVehicleMouseLook)
+                m_fRawSteerAngle *= pow(0.985F, CTimer::ms_fTimeStep);
+        }
+    }
+    else {
+        m_fRawSteerAngle += (static_cast<float>(-pPad->GetSteeringLeftRight()) * (1.0F / 128.0F) - m_fRawSteerAngle) * 0.2F * CTimer::ms_fTimeStep;
+        CVehicle::m_nLastControlInput = eControllerType::CONTROLLER_KEYBOARD1;
+    }
+
+    m_fRawSteerAngle = clamp(m_fRawSteerAngle, -1.0F, 1.0F);
+    auto fSignedPow = m_fRawSteerAngle * fabs(m_fRawSteerAngle);
+    m_fSteerAngle = DegreesToRadians(m_pHandlingData->m_fSteeringLock * fSignedPow);
 }
 
 void CBoat::GetComponentWorldPosition_Reversed(int componentId, CVector& posnOut)

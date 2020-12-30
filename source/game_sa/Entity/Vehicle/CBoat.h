@@ -91,7 +91,7 @@ public:
     void Teleport(CVector destination, bool resetRotation) override;
     //void PreRender() override;
     void Render() override;
-    //void ProcessControlInputs(unsigned char playerNum) override;
+    void ProcessControlInputs(unsigned char playerNum) override;
     void GetComponentWorldPosition(int componentId, CVector& posnOut) override;
     void ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int arg3, float arg4) override;
     void BlowUpCar(CEntity* damager, unsigned char bHideExplosion) override;
@@ -109,6 +109,7 @@ private:
     void ProcessControl_Reversed();
     void Teleport_Reversed(CVector destination, bool resetRotation);
     void Render_Reversed();
+    void ProcessControlInputs_Reversed(unsigned char ucPadNum);
     void GetComponentWorldPosition_Reversed(int componentId, CVector& posnOut);
     void ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int arg3, float arg4);
     void BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion);
