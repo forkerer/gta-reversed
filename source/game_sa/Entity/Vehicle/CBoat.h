@@ -89,7 +89,7 @@ public:
     void SetModelIndex(unsigned int index) override;
     void ProcessControl() override;
     void Teleport(CVector destination, bool resetRotation) override;
-    //void PreRender() override;
+    void PreRender() override;
     void Render() override;
     void ProcessControlInputs(unsigned char playerNum) override;
     void GetComponentWorldPosition(int componentId, CVector& posnOut) override;
@@ -108,6 +108,8 @@ private:
     void SetModelIndex_Reversed(unsigned int index);
     void ProcessControl_Reversed();
     void Teleport_Reversed(CVector destination, bool resetRotation);
+    void PreRender_Reversed();
+    void inline ProcessBoatNodeRendering(eBoatNodes eNode, float fRotation, RwUInt8 ucAlpha);
     void Render_Reversed();
     void ProcessControlInputs_Reversed(unsigned char ucPadNum);
     void GetComponentWorldPosition_Reversed(int componentId, CVector& posnOut);

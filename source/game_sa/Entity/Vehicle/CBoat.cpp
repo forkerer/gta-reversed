@@ -17,6 +17,7 @@ void CBoat::InjectHooks()
     ReversibleHooks::Install("CBoat", "SetModelIndex", 0x6F1140, &CBoat::SetModelIndex_Reversed);
     ReversibleHooks::Install("CBoat", "ProcessControl", 0x6F1770, &CBoat::ProcessControl_Reversed);
     ReversibleHooks::Install("CBoat", "Teleport", 0x6F20E0, &CBoat::Teleport_Reversed);
+    ReversibleHooks::Install("CBoat", "PreRender", 0x6F1180, &CBoat::PreRender_Reversed);
     ReversibleHooks::Install("CBoat", "Render", 0x6F0210, &CBoat::Render_Reversed);
     ReversibleHooks::Install("CBoat", "ProcessControlInputs", 0x6F0A10, &CBoat::ProcessControlInputs_Reversed);
     ReversibleHooks::Install("CBoat", "GetComponentWorldPosition", 0x6F01D0, &CBoat::GetComponentWorldPosition_Reversed);
@@ -44,6 +45,11 @@ void CBoat::ProcessControl()
 void CBoat::Teleport(CVector destination, bool resetRotation)
 {
     return CBoat::Teleport_Reversed(destination, resetRotation);
+}
+
+void CBoat::PreRender()
+{
+    return CBoat::PreRender_Reversed();
 }
 
 void CBoat::Render()
@@ -341,6 +347,131 @@ void CBoat::Teleport_Reversed(CVector destination, bool resetRotation)
     m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
     m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
     CWorld::Add(this);
+}
+
+void CBoat::PreRender_Reversed()
+{
+    CVehicle::PreRender();
+
+    m_fContactSurfaceBrightness = 0.5F;
+    auto fUsedAngle = -m_fSteerAngle;
+    CVehicle::SetComponentRotation(m_aBoatNodes[eBoatNodes::BOAT_RUDDER],         eRotationAxis::AXIS_Z, fUsedAngle, true);
+    CVehicle::SetComponentRotation(m_aBoatNodes[eBoatNodes::BOAT_REARFLAP_LEFT],  eRotationAxis::AXIS_Z, fUsedAngle, true);
+    CVehicle::SetComponentRotation(m_aBoatNodes[eBoatNodes::BOAT_REARFLAP_RIGHT], eRotationAxis::AXIS_Z, fUsedAngle, true);
+
+    auto fPropSpeed = std::min(1.0F, m_fPropSpeed * (32.0F / TWO_PI));
+    auto ucTransparency = static_cast<RwUInt8>((1.0F - fPropSpeed) * 255.0F);
+
+    m_fPropRotation += m_fPropSpeed * CTimer::ms_fTimeStep;
+    while (m_fPropRotation > TWO_PI)
+        m_fPropRotation -= TWO_PI;
+
+    ProcessBoatNodeRendering(eBoatNodes::BOAT_STATIC_PROP,   m_fPropRotation * 2,  ucTransparency);
+    ProcessBoatNodeRendering(eBoatNodes::BOAT_STATIC_PROP_2, m_fPropRotation * -2, ucTransparency);
+
+    ucTransparency = (ucTransparency >= 150 ? 0 : 150 - ucTransparency);
+    ProcessBoatNodeRendering(eBoatNodes::BOAT_MOVING_PROP,  -m_fPropRotation, ucTransparency);
+    ProcessBoatNodeRendering(eBoatNodes::BOAT_MOVING_PROP_2, m_fPropRotation, ucTransparency);
+
+    if (m_nModelIndex == eModelID::MODEL_MARQUIS) {
+        auto pFlap = m_aBoatNodes[eBoatNodes::BOAT_FLAP_LEFT];
+        if (pFlap) {
+            auto tempMat = CMatrix();
+            tempMat.Attach(RwFrameGetMatrix(pFlap), false);
+            CVector posCopy = tempMat.GetPosition();
+            auto vecTransformed = Multiply3x3(GetMatrix(), &posCopy);
+
+            m_boatFlap.Process(this, m_vecBoatMoveForce, m_vecBoatTurnForce, vecTransformed);
+            CVector vecAxis;
+            if (m_boatFlap.m_nAxis == eRotationAxis::AXIS_X)
+                vecAxis.Set(m_boatFlap.m_fAngle, 0.0F, 0.0F);
+            else if (m_boatFlap.m_nAxis == eRotationAxis::AXIS_Y)
+                vecAxis.Set(0.0F, m_boatFlap.m_fAngle, 0.0F);
+            else if (m_boatFlap.m_nAxis == eRotationAxis::AXIS_Z)
+                vecAxis.Set(0.0F, 0.0F, m_boatFlap.m_fAngle);
+
+            tempMat.SetRotate(vecAxis.x, vecAxis.y, vecAxis.z);
+            tempMat.GetPosition() += posCopy;
+            tempMat.UpdateRW();
+        }
+    }
+
+    if (m_nModelIndex == eModelID::MODEL_PREDATOR
+        || m_nModelIndex == eModelID::MODEL_REEFER
+        || m_nModelIndex == eModelID::MODEL_TROPIC) {
+
+        auto pMoving = m_aBoatNodes[eBoatNodes::BOAT_MOVING];
+        if (pMoving) {
+            CVehicle::SetComponentRotation(pMoving, eRotationAxis::AXIS_Z, this->m_fMovingHiRotation, 1);
+            if (CCheat::m_aCheatsActive[CHEAT_INVISIBLE_CAR])
+            {
+                auto pFirstObj = reinterpret_cast<RpAtomic*>(GetFirstObject(pMoving));
+                RpAtomicRenderMacro(pFirstObj);
+            }
+        }
+        m_fMovingHiRotation += CTimer::ms_fTimeStep / 50.0F;
+    }
+
+    m_vecBoatMoveForce = m_vecMoveSpeed + m_vecFrictionMoveSpeed;
+    m_vecBoatTurnForce = m_vecTurnSpeed + m_vecFrictionTurnSpeed;
+    auto fSpeed = m_vecMoveSpeed.Magnitude();
+
+    int32_t iCounter = 0;
+    constexpr eBoatNodes aCheckedNodes[2] = { eBoatNodes::BOAT_STATIC_PROP, eBoatNodes::BOAT_STATIC_PROP_2 };
+    for (const auto eNode : aCheckedNodes) {
+        auto pProp = m_aBoatNodes[eNode];
+        RwMatrix* pSplashMat = nullptr;
+        if (m_pRwClump) 
+            pSplashMat = RwFrameGetMatrix(RpClumpGetFrame(m_pRwClump));
+
+        auto pSplashFx = m_apPropSplashFx[iCounter];
+        if (!pSplashFx && pSplashMat && pProp) {
+            RwV3dAssign(RwMatrixGetPos(pSplashMat), RwMatrixGetPos(RwFrameGetLTM(pProp)));
+            RwMatrixUpdate(pSplashMat);
+            auto vecPoint = CVector(0.0F, 0.0F, 0.0F);
+            pSplashFx = g_fxMan.CreateFxSystem("boat_prop", &vecPoint, pSplashMat, false);
+            if (pSplashFx) {
+                m_apPropSplashFx[iCounter] = pSplashFx;
+                pSplashFx->Play();
+                pSplashFx->SetLocalParticles(true);
+                pSplashFx->CopyParentMatrix();
+            }
+        }
+
+        if (pSplashFx && pSplashMat) {
+            if (physicalFlags.bSubmergedInWater) {
+                if (pSplashFx->GetPlayStatus() == eFxSystemPlayStatus::FX_STOPPED)
+                    pSplashFx->Play();
+
+                RwV3dAssign(RwMatrixGetPos(pSplashMat), RwMatrixGetPos(RwFrameGetLTM(pProp)));
+                RwMatrixUpdate(pSplashMat);
+                pSplashFx->SetMatrix(pSplashMat);
+                auto fTime = std::min(1.0F, fSpeed * 2.0F);
+                pSplashFx->SetConstTime(true, fTime);
+            }
+            else if (pSplashFx->GetPlayStatus() == eFxSystemPlayStatus::FX_PLAYING) {
+                pSplashFx->Stop();
+            }
+        }
+
+        ++iCounter;
+    }
+
+    auto fWaterDamping = m_vecWaterDamping.Magnitude();
+    CVehicle::DoBoatSplashes(fWaterDamping);
+}
+
+inline void CBoat::ProcessBoatNodeRendering(eBoatNodes eNode, float fRotation, RwUInt8 ucAlpha)
+{
+    auto pFrame = m_aBoatNodes[eNode];
+    if (!pFrame)
+        return;
+
+    CVehicle::SetComponentRotation(pFrame, eRotationAxis::AXIS_Y, fRotation, true);
+    RpAtomic* pAtomic;
+    RwFrameForAllObjects(pFrame, GetCurrentAtomicObjectCB, &pAtomic);
+    if (pAtomic)
+        CVehicle::SetComponentAtomicAlpha(pAtomic, ucAlpha);
 }
 
 void CBoat::Render_Reversed()

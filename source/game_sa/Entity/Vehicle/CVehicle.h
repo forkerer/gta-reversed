@@ -116,6 +116,12 @@ enum eCarPiece
     CAR_PIECE_WINDSCREEN = 19,
 };
 
+enum eRotationAxis {
+    AXIS_X = 0,
+    AXIS_Y = 1,
+    AXIS_Z = 2
+};
+
 #if 0
 enum eOrdnanceType;
 enum eFlightModel;
@@ -367,6 +373,7 @@ public:
 
     static void InjectHooks();
 
+    void PreRender() override;
     void Render() override;
     // originally vtable functions
 
@@ -541,10 +548,10 @@ public:
     void FlyingControl(eFlightModel flightModel, float arg1, float arg2, float arg3, float arg4);
     // always return false?
     void BladeColSectorList(CPtrList& ptrList, CColModel& colModel, CMatrix& matrix, short arg3, float arg4);
-    void SetComponentRotation(RwFrame* component, int axis, float angle, bool bResetPosition);
+    void SetComponentRotation(RwFrame* component, int axis, float angle, bool bResetPosition); // rotation axis: eRotationAxis
     void SetTransmissionRotation(RwFrame* component, float arg1, float arg2, CVector posn, bool isFront);
     void ProcessBoatControl(tBoatHandlingData* boatHandling, float* fWaterResistance, bool bCollidedWithWorld, bool bPostCollision);
-    void DoBoatSplashes(float arg0);
+    void DoBoatSplashes(float fWaterDamping);
     void DoSunGlare();
     void AddWaterSplashParticles();
     void AddExhaustParticles();
@@ -578,6 +585,7 @@ public:
     void DoDriveByShooting();
 
 private:
+    void PreRender_Reversed();
     void Render_Reversed();
 
 public:

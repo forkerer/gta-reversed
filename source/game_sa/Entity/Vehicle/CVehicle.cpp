@@ -68,9 +68,14 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "ChangeLawEnforcerState", 0x6D2330, &CVehicle::ChangeLawEnforcerState);
 }
 
+void CVehicle::PreRender()
+{
+    return CVehicle::PreRender_Reversed();
+}
+
 void CVehicle::Render()
 {
-    return Render_Reversed();
+    return CVehicle::Render_Reversed();
 }
 
 void* CVehicle::operator new(unsigned int size) {
@@ -1083,7 +1088,7 @@ void CVehicle::BladeColSectorList(CPtrList& ptrList, CColModel& colModel, CMatri
 // Converted from thiscall void CVehicle::SetComponentRotation(RwFrame *component,int axis,float angle,bool bResetPosition) 0x6DBA30
 void CVehicle::SetComponentRotation(RwFrame* component, int axis, float angle, bool bResetPosition)
 {
-    ((void(__thiscall*)(CVehicle*, RwFrame*, int, float, bool))0x6DBA30)(this, component, axis, angle, bResetPosition);
+    plugin::CallMethod<0x6DBA30, CVehicle*, RwFrame*, int, float, bool>(this, component, axis, angle, bResetPosition);
 }
 
 // Converted from thiscall void CVehicle::SetTransmissionRotation(RwFrame *component,float,float,CVector posn,bool isFront) 0x6DBBB0
@@ -1408,9 +1413,9 @@ void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float* fLastW
 }
 
 // Converted from thiscall void CVehicle::DoBoatSplashes(float) 0x6DD130
-void CVehicle::DoBoatSplashes(float arg0)
+void CVehicle::DoBoatSplashes(float fWaterDamping)
 {
-    ((void(__thiscall*)(CVehicle*, float))0x6DD130)(this, arg0);
+    plugin::CallMethod<0x6DD130, CVehicle*, float>(this, fWaterDamping);
 }
 
 // Converted from thiscall void CVehicle::DoSunGlare(void) 0x6DD6F0
@@ -1701,6 +1706,11 @@ void CVehicle::FireFixedMachineGuns()
 void CVehicle::DoDriveByShooting()
 {
     plugin::CallMethod<0x741FD0, CVehicle*>(this);
+}
+
+void CVehicle::PreRender_Reversed()
+{
+    plugin::CallMethod<0x6D6480, CVehicle*>(this);
 }
 
 void CVehicle::Render_Reversed()
