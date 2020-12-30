@@ -348,6 +348,8 @@ void CBoat::Render_Reversed()
     if (m_nModelIndex == eModelID::MODEL_SKIMMER)
         return;
 
+    // Code below is used to draw the "no water" zones, so the inside of the boat that is under water surface, doesn't have water visible in it
+
     RwRGBA rwColor = CRGBA(0xFF, 0xFF, 0xFF, 0xFF).ToRwRGBA();
     RxObjSpace3DVertexSetPreLitColor(&CBoat::aRenderVertices[0], &rwColor);
     RxObjSpace3DVertexSetPreLitColor(&CBoat::aRenderVertices[1], &rwColor);
