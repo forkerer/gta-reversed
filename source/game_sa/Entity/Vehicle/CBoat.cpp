@@ -27,6 +27,7 @@ void CBoat::InjectHooks()
     //Class methods
     ReversibleHooks::Install("CBoat", "PruneWakeTrail", 0x6F0E20, &CBoat::PruneWakeTrail);
     ReversibleHooks::Install("CBoat", "AddWakePoint", 0x6F2550, &CBoat::AddWakePoint);
+    ReversibleHooks::Install("CBoat", "SetupModelNodes", 0x6F01A0, &CBoat::SetupModelNodes);
 
     //Other
     ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
@@ -75,6 +76,12 @@ void CBoat::ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned in
 void CBoat::BlowUpCar(CEntity* damager, unsigned char bHideExplosion)
 {
     return CBoat::BlowUpCar_Reversed(damager, bHideExplosion);
+}
+
+void CBoat::SetupModelNodes()
+{
+    memset(m_aBoatNodes, 0, sizeof(m_aBoatNodes));
+    CClumpModelInfo::FillFrameArray(m_pRwClump, m_aBoatNodes);
 }
 
 void CBoat::PruneWakeTrail()
