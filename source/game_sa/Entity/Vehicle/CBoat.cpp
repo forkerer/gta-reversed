@@ -28,6 +28,7 @@ void CBoat::InjectHooks()
     ReversibleHooks::Install("CBoat", "PruneWakeTrail", 0x6F0E20, &CBoat::PruneWakeTrail);
     ReversibleHooks::Install("CBoat", "AddWakePoint", 0x6F2550, &CBoat::AddWakePoint);
     ReversibleHooks::Install("CBoat", "SetupModelNodes", 0x6F01A0, &CBoat::SetupModelNodes);
+    ReversibleHooks::Install("CBoat", "DebugCode", 0x6F0D00, &CBoat::DebugCode);
 
     //Other
     ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
@@ -82,6 +83,23 @@ void CBoat::SetupModelNodes()
 {
     memset(m_aBoatNodes, 0, sizeof(m_aBoatNodes));
     CClumpModelInfo::FillFrameArray(m_pRwClump, m_aBoatNodes);
+}
+
+void CBoat::DebugCode()
+{
+    if (FindPlayerVehicle(-1, false) != static_cast<CVehicle*>(this))
+        return;
+
+    if (CPad::GetPad(m_nPadNumber)->NewState.Start)
+        return;
+
+    auto pPad = CPad::GetPad(0);
+    if (!pPad->NewState.DPadLeft || pPad->OldState.DPadLeft)
+        return;
+
+    auto uiHandlingId = reinterpret_cast<CVehicleModelInfo*>(CModelInfo::ms_modelInfoPtrs[m_nModelIndex])->m_nHandlingId;
+    m_pHandlingData = &gHandlingDataMgr.m_aVehicleHandling[uiHandlingId];
+    CBoat::SetupModelNodes();
 }
 
 void CBoat::PruneWakeTrail()
