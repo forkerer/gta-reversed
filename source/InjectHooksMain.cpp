@@ -14,6 +14,7 @@ void InjectHooksMain(void)
     InjectCommonHooks();
     CGame::InjectHooks();
     CPad::InjectHooks();
+    CVector2D::InjectHooks();
     CRunningScript::InjectHooks();
     CStreaming::InjectHooks();
     InjectCdStreamHooks();

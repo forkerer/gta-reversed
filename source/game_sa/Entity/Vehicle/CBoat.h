@@ -96,13 +96,6 @@ public:
     void ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int arg3, float arg4) override;
     void BlowUpCar(CEntity* damager, unsigned char bHideExplosion) override;
 
-    void SetupModelNodes(); // fill m_aBoatNodes array
-    void DebugCode();
-    void PrintThrustAndRudderInfo(); // uses debug printing
-    void ModifyHandlingValue(bool const& bIncrement);
-    void PruneWakeTrail();
-    void AddWakePoint(CVector posn);
-
     // Reversed virtual methods
 private:
     void SetModelIndex_Reversed(unsigned int index);
@@ -117,6 +110,13 @@ private:
     void BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion);
 
 public:
+    void SetupModelNodes(); // fill m_aBoatNodes array
+    void DebugCode();
+    void PrintThrustAndRudderInfo(); // uses debug printing
+    void ModifyHandlingValue(bool const& bIncrement);
+    void PruneWakeTrail();
+    void AddWakePoint(CVector posn);
+
     static bool IsSectorAffectedByWake(CVector2D arg0, float arg1, CBoat** arg2);
     static float IsVertexAffectedByWake(CVector arg0, CBoat* arg1, short arg2, bool arg3);
     static void CheckForSkippingCalculations();

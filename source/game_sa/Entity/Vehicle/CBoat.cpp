@@ -1,6 +1,6 @@
 #include "StdInc.h"
 
-CBoat** CBoat::apFrameWakeGeneratingBoats; // static CBoat *apFrameWakeGeneratingBoats[4]
+CBoat** CBoat::apFrameWakeGeneratingBoats = (CBoat**)0xC27994; // static CBoat *apFrameWakeGeneratingBoats[4]
 float& CBoat::MAX_WAKE_LENGTH = *(float*)0x8D3938; // 50.0
 float& CBoat::MIN_WAKE_INTERVAL = *(float*)0x8D393C; // 2.0
 float& CBoat::WAKE_LIFETIME = *(float*)0x8D3940; // 150.0
@@ -33,6 +33,7 @@ void CBoat::InjectHooks()
     ReversibleHooks::Install("CBoat", "PrintThrustAndRudderInfo", 0x6F0D90, &CBoat::PrintThrustAndRudderInfo);
 
     //Other
+    ReversibleHooks::Install("CBoat", "FillBoatList", 0x6F2710, &CBoat::FillBoatList);
     ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
 }
 
@@ -107,7 +108,7 @@ void CBoat::DebugCode()
 void CBoat::PrintThrustAndRudderInfo()
 {
     char cBuffer[64];
-    sprintf(cBuffer, "Thrust %3.2f", static_cast<float>(m_pHandlingData->m_transmissionData.m_fEngineAcceleration * m_pHandlingData->m_fMass));
+    sprintf(cBuffer, "Thrust %3.2f", m_pHandlingData->m_transmissionData.m_fEngineAcceleration * m_pHandlingData->m_fMass);
     sprintf(cBuffer, "Rudder Angle  %3.2f", m_pHandlingData->m_fSteeringLock);
 }
 
@@ -183,6 +184,65 @@ void CBoat::AddWakePoint(CVector posn)
     m_afWakePointLifeTime[0] = CBoat::WAKE_LIFETIME;
     if (m_nNumWaterTrailPoints < 32)
         ++m_nNumWaterTrailPoints;
+}
+
+void CBoat::FillBoatList()
+{
+    for (int32_t i = 0; i <= 3; i++)
+        CBoat::apFrameWakeGeneratingBoats[i] = nullptr;
+
+    auto vecCamPos = CVector2D(TheCamera.GetPosition());
+    auto vecCamDir = CVector2D(TheCamera.m_mCameraMatrix.GetForward());
+    vecCamDir.Normalise();
+
+    auto iVehNum = CPools::ms_pVehiclePool->GetSize();
+    if (!iVehNum)
+        return;
+
+    int32_t iCurBoat = 0;
+
+    for (int32_t iInd = 0; iInd < iVehNum; ++iInd) {
+        auto pVeh = CPools::ms_pVehiclePool->GetAt(iInd);
+        if (!pVeh || !pVeh->IsBoat())
+            continue;
+
+        auto pBoat = static_cast<CBoat*>(pVeh);
+        if (!pBoat->m_nNumWaterTrailPoints)
+            continue;
+
+        auto vecBoatPos = CVector2D(pBoat->GetPosition());
+        auto vecBoatCamOffset = vecBoatPos - vecCamPos;
+        auto fCamDot = DotProduct2D(vecBoatCamOffset, vecCamDir);
+        if (fCamDot > 100.0F || fCamDot < -15.0F)
+            continue;
+
+        auto fDistFromCam = DistanceBetweenPoints(vecBoatPos, vecCamPos);
+        if (fDistFromCam > 80.0F) // Originally squared dist, compared to 6400.0F
+            continue;
+
+        // Early out, the list isn't full yet
+        if (iCurBoat < 4) {
+            CBoat::apFrameWakeGeneratingBoats[iCurBoat] = pBoat;
+            ++iCurBoat;
+            continue;
+        }
+
+        // Insert the new boat into list, based on dist from camera
+        auto iNewInd = -1;
+        auto fMinDist = 999999.99F;
+        for (int32_t iCheckedInd = 0; iCheckedInd <= 3; ++iCheckedInd) {
+            auto pCheckedBoat = CBoat::apFrameWakeGeneratingBoats[iCheckedInd];
+            auto vecCheckedPos = CVector2D(pCheckedBoat->GetPosition());
+            auto fCheckedDistFromCam = DistanceBetweenPoints(vecCheckedPos, vecCamPos); // Originally squared dist
+            if (fCheckedDistFromCam < fMinDist) {
+                fMinDist = fCheckedDistFromCam;
+                iNewInd = iCheckedInd;
+            }
+        }
+
+        if (iNewInd != -1 && (fDistFromCam < fMinDist || pBoat->m_nStatus == eEntityStatus::STATUS_PLAYER))
+            CBoat::apFrameWakeGeneratingBoats[iNewInd] = pBoat;
+    }
 }
 
 void CBoat::SetModelIndex_Reversed(unsigned int index)
