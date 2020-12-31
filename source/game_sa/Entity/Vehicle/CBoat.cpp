@@ -37,6 +37,81 @@ void CBoat::InjectHooks()
     ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
 }
 
+CBoat::CBoat(int modelIndex, unsigned char createdBy) : CVehicle(createdBy)
+{
+    memset(&m_boatFlap, 0, sizeof(m_boatFlap));
+    auto pModelInfo = reinterpret_cast<CVehicleModelInfo*>(CModelInfo::GetModelInfo(modelIndex));
+    auto iHandlingId = pModelInfo->m_nHandlingId;
+    m_nVehicleSubClass = eVehicleType::VEHICLE_BOAT;
+    m_nVehicleClass = eVehicleType::VEHICLE_BOAT;
+    m_vecBoatMoveForce.Set(0.0F, 0.0F, 0.0F);
+    m_vecBoatTurnForce.Set(0.0F, 0.0F, 0.0F);
+    m_nPadNumber = 0;
+    m_fMovingHiRotation = 0.0;
+    m_fPropSpeed = 0.0;
+    m_fPropRotation = 0.0;
+    m_nAttackPlayerTime = CTimer::m_snTimeInMilliseconds;
+    CVehicle::SetModelIndex(modelIndex);
+    CBoat::SetupModelNodes();
+
+    m_pHandlingData = &gHandlingDataMgr.m_aVehicleHandling[iHandlingId];
+    m_nHandlingFlagsIntValue = m_pHandlingData->m_nHandlingFlags;
+    m_pFlyingHandlingData = gHandlingDataMgr.GetFlyingPointer(iHandlingId);
+    m_pBoatHandling = gHandlingDataMgr.GetBoatPointer(iHandlingId);
+
+    pModelInfo->ChooseVehicleColour(m_nPrimaryColor, m_nSecondaryColor, m_nTertiaryColor, m_nQuaternaryColor, 1);
+
+    m_fMass = m_pHandlingData->m_fMass;
+    m_fTurnMass = m_pHandlingData->m_fTurnMass * 0.5;
+    m_vecCentreOfMass = m_pHandlingData->m_vecCentreOfMass;
+    m_fElasticity = 0.1;
+    m_fBuoyancyConstant = m_pHandlingData->m_fBuoyancyConstant;
+
+    if (m_pHandlingData->m_fDragMult <= 0.01F)
+        m_fAirResistance = m_pHandlingData->m_fDragMult;
+    else
+        m_fAirResistance = m_pHandlingData->m_fDragMult / 1000.0 * 0.5;
+
+    physicalFlags.bTouchingWater = true;
+    physicalFlags.bSubmergedInWater = true;
+    m_nBoatFlags.bAnchored = true;
+    m_nBoatFlags.bMovingOnWater = true;
+    m_nBoatFlags.bOnWater = true;
+
+    m_fSteerAngle = 0.0;
+    m_fGasPedal = 0.0;
+    m_fBreakPedal = 0.0;
+    m_fRawSteerAngle = 0.0;
+    field_63C = 0;
+    m_fLastWaterImmersionDepth = 7.0;
+    field_604 = 0;
+
+    m_fAnchoredAngle = -9999.99F;
+    m_fBurningTimer = 0.0;
+    m_pWhoDestroyedMe = 0;
+    m_nNumWaterTrailPoints = 0;
+    memset(m_afWakePointLifeTime, 0, sizeof(m_afWakePointLifeTime));
+
+    m_nAmmoInClip = 20;
+    m_boatFlap.m_nAxis = eRotationAxis::AXIS_Y;
+    if (m_nModelIndex == MODEL_MARQUIS)
+    {
+        m_boatFlap.m_fOpenAngle = PI / 10.0F;
+        m_boatFlap.m_fClosedAngle = -PI / 10.0F;
+        m_boatFlap.m_nDirn = 4;
+    }
+    else
+    {
+        m_boatFlap.m_fOpenAngle = TWO_PI / 10.0F;
+        m_boatFlap.m_fClosedAngle = -TWO_PI / 10.0F;
+        m_boatFlap.m_nDirn = 3;
+    }
+
+    m_vehicleAudio.Initialise(this);
+    for (size_t i = 0; i <= 1; ++i)
+        m_apPropSplashFx[i] = nullptr;
+}
+
 void CBoat::SetModelIndex(unsigned int index)
 {
     return CBoat::SetModelIndex_Reversed(index);
@@ -82,7 +157,7 @@ void CBoat::BlowUpCar(CEntity* damager, unsigned char bHideExplosion)
     return CBoat::BlowUpCar_Reversed(damager, bHideExplosion);
 }
 
-void CBoat::SetupModelNodes()
+inline void CBoat::SetupModelNodes()
 {
     memset(m_aBoatNodes, 0, sizeof(m_aBoatNodes));
     CClumpModelInfo::FillFrameArray(m_pRwClump, m_aBoatNodes);

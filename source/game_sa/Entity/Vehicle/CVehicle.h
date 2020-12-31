@@ -373,8 +373,11 @@ public:
 
     static void InjectHooks();
 
+    CVehicle(unsigned char createdBy);
+
     void PreRender() override;
     void Render() override;
+    void SetModelIndex(unsigned int index) override;
     // originally vtable functions
 
     virtual void ProcessControlCollisionCheck();
@@ -587,6 +590,7 @@ public:
 private:
     void PreRender_Reversed();
     void Render_Reversed();
+    void SetModelIndex_Reversed(unsigned int index);
 
 public:
     bool IsFakeAircraft() { return m_nVehicleSubClass == VEHICLE_FHELI || m_nVehicleSubClass == VEHICLE_FPLANE; }

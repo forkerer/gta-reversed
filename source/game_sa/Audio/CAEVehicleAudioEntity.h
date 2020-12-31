@@ -109,6 +109,7 @@ public:
 
     void AddAudioEvent(int audioEvent, float fVolume);
     void Service();
+    void Initialise(CVehicle* vehicle);
 
     short field_7C;
     char field_7E[2];

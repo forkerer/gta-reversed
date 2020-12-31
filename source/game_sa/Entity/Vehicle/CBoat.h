@@ -110,7 +110,7 @@ private:
     void BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion);
 
 public:
-    void SetupModelNodes(); // fill m_aBoatNodes array
+    inline void SetupModelNodes(); // fill m_aBoatNodes array
     void DebugCode();
     void PrintThrustAndRudderInfo(); // uses debug printing
     void ModifyHandlingValue(bool const& bIncrement);

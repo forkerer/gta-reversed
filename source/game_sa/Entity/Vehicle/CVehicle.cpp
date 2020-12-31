@@ -66,6 +66,13 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "ApplyBoatWaterResistance", 0x6D2740, &CVehicle::ApplyBoatWaterResistance);
     ReversibleHooks::Install("CVehicle", "ProcessBoatControl", 0x6DBCE0, &CVehicle::ProcessBoatControl);
     ReversibleHooks::Install("CVehicle", "ChangeLawEnforcerState", 0x6D2330, &CVehicle::ChangeLawEnforcerState);
+
+    ReversibleHooks::Install("CVehicle", "SetModelIndex", 0x6D6A49, &CVehicle::SetModelIndex_Reversed);
+}
+
+CVehicle::CVehicle(unsigned char createdBy) : CPhysical(plugin::dummy)
+{
+    plugin::CallMethod<0x6D5F10, CVehicle*, unsigned char>(this, createdBy);
 }
 
 void CVehicle::PreRender()
@@ -76,6 +83,11 @@ void CVehicle::PreRender()
 void CVehicle::Render()
 {
     return CVehicle::Render_Reversed();
+}
+
+void CVehicle::SetModelIndex(unsigned int index)
+{
+    return CVehicle::SetModelIndex(index);
 }
 
 void* CVehicle::operator new(unsigned int size) {
@@ -401,7 +413,7 @@ int CVehicle::GetVehicleAppearance()
 // Converted from thiscall bool CVehicle::CustomCarPlate_TextureCreate(CVehicleModelInfo *model) 0x6D10E0
 bool CVehicle::CustomCarPlate_TextureCreate(CVehicleModelInfo* model)
 {
-    return ((bool(__thiscall*)(CVehicle*, CVehicleModelInfo*))0x6D10E0)(this, model);
+    return plugin::CallMethodAndReturn<bool, 0x6D10E0, CVehicle*, CVehicleModelInfo*>(this, model);
 }
 
 // Converted from thiscall void CVehicle::CustomCarPlate_TextureDestroy(void) 0x6D1150
@@ -1716,4 +1728,45 @@ void CVehicle::PreRender_Reversed()
 void CVehicle::Render_Reversed()
 {
     plugin::CallMethod<0x6D0E60, CVehicle*>(this);
+}
+
+void CVehicle::SetModelIndex_Reversed(unsigned int index)
+{
+    CEntity::SetModelIndex(index);
+    auto pVehModelInfo = reinterpret_cast<CVehicleModelInfo*>(CModelInfo::GetModelInfo(index));
+    CVehicle::CustomCarPlate_TextureCreate(pVehModelInfo);
+
+    for (size_t i = 0; i <= 1; ++i)
+        m_anExtras[i] = CVehicleModelInfo::ms_compsUsed[i];
+
+    m_nMaxPassengers = CVehicleModelInfo::GetMaximumNumberOfPassengersFromNumberOfDoors(index);
+    switch (m_nModelIndex)
+    {
+    case eModelID::MODEL_RCBANDIT:
+    case eModelID::MODEL_RCBARON:
+    case eModelID::MODEL_RCRAIDER:
+    case eModelID::MODEL_RCGOBLIN:
+    case eModelID::MODEL_RCTIGER:
+        vehicleFlags.bIsRCVehicle = true;
+        break;
+    default:
+        vehicleFlags.bIsRCVehicle = false;
+        break;
+    }
+
+    //Set up weapons
+    switch (m_nModelIndex)
+    {
+    case eModelID::MODEL_RUSTLER:
+    case eModelID::MODEL_STUNT:
+        m_nVehicleWeaponInUse = eCarWeapon::CAR_WEAPON_HEAVY_GUN;
+        break;
+    case eModelID::MODEL_BEAGLE:
+        m_nVehicleWeaponInUse = eCarWeapon::CAR_WEAPON_FREEFALL_BOMB;
+        break;
+    case eModelID::MODEL_HYDRA:
+    case eModelID::MODEL_TORNADO:
+        m_nVehicleWeaponInUse = eCarWeapon::CAR_WEAPON_LOCK_ON_ROCKET;
+        break;
+    }
 }
