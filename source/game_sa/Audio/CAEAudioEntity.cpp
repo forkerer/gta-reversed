@@ -12,6 +12,10 @@ CAEAudioEntity::CAEAudioEntity()
     m_tempSound.m_pPhysicalEntity = nullptr;
 }
 
+CAEAudioEntity::~CAEAudioEntity()
+{
+}
+
 void CAEAudioEntity::UpdateParameters(CAESound *sound, short arg2)
 {
     return CAEAudioEntity::UpdateParameters_Reversed(sound, arg2);

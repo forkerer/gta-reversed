@@ -39,7 +39,6 @@ CAETwinLoopSoundEntity::~CAETwinLoopSoundEntity()
     if (!m_bIsInitialised)
         return;
 
-
     for (size_t i = 0; i <= 1; ++i) {
         if (m_apSounds[i]) {
             m_apSounds[i]->StopSoundAndForget();

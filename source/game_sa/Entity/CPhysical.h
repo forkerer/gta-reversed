@@ -66,6 +66,7 @@ enum eEntityAltCollision : unsigned short
 class CPhysical : public CEntity {
 protected:
     CPhysical(plugin::dummy_func_t) : CEntity(plugin::dummy) {}
+    CPhysical();
 public:
     int field_38;
     unsigned int m_nLastCollisionTime;

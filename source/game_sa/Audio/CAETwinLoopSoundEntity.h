@@ -32,7 +32,7 @@ private:
     char _pad1[2];
 public:
     CAEAudioEntity *m_pBaseAudio;
-    short field_88;
+    short m_bIsInitialised;
     short field_8A;
     short field_8C;
     short           m_nPlayTimeMin;

@@ -70,9 +70,117 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "SetModelIndex", 0x6D6A49, &CVehicle::SetModelIndex_Reversed);
 }
 
-CVehicle::CVehicle(unsigned char createdBy) : CPhysical(plugin::dummy)
+CVehicle::CVehicle(unsigned char createdBy) : CPhysical(), m_vehicleAudio(), m_autoPilot()
 {
-    plugin::CallMethod<0x6D5F10, CVehicle*, unsigned char>(this, createdBy);
+    //plugin::CallMethod<0x6D5F10, CVehicle*, unsigned char>(this, createdBy);
+    m_bHasPreRenderEffects = true;
+    m_nType = eEntityType::ENTITY_TYPE_VEHICLE;
+
+    m_fRawSteerAngle = 0.0;
+    m_fSteerAngle = 0.0;
+    m_f2ndSteerAngle = 0.0;
+    m_nCurrentGear = 1;
+    m_fGearChangeCount = 0.0;
+    m_fWheelSpinForAudio = 0.0;
+    m_nCreatedBy = createdBy;
+    m_nForcedRandomRouteSeed = 0;
+
+    m_nVehicleUpperFlags = 0;
+    m_nVehicleLowerFlags = 0;
+    vehicleFlags.bFreebies = true;
+    vehicleFlags.bIsHandbrakeOn = true;
+    vehicleFlags.bEngineOn = true;
+    vehicleFlags.bCanBeDamaged = true;
+    vehicleFlags.bParking = false;
+    vehicleFlags.bVehicleCanBeTargettedByHS = true;
+    vehicleFlags.bWinchCanPickMeUp = true;
+    vehicleFlags.bPetrolTankIsWeakPoint = true;
+    vehicleFlags.bConsideredByPlayer = true;
+    vehicleFlags.bDoesProvideCover = true;
+    vehicleFlags.bNeverUseSmallerRemovalRange = false;
+    vehicleFlags.bDriverLastFrame = false;
+
+    auto fRand = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    vehicleFlags.bCanPark = fRand < 0.0F; //Seemingly never true
+
+    CCarCtrl::UpdateCarCount(this, false);
+    m_nExtendedRemovalRange = 0;
+    m_fHealth = 1000.0;
+    m_pDriver = nullptr;
+    m_nNumPassengers = 0;
+    m_nMaxPassengers = 8;
+    m_nNumGettingIn = 0;
+    m_nGettingInFlags = 0;
+    m_nGettingOutFlags = 0;
+
+    for (size_t i = 0; i < m_nMaxPassengers; ++i)
+        m_apPassengers[i] = nullptr;
+
+    m_nBombOnBoard = 0;
+    m_nOverrideLights = eVehicleOverrideLightsState::NO_CAR_LIGHT_OVERRIDE;
+    m_nWinchType = 0;
+    m_nGunsCycleIndex = 0;
+    physicalFlags.bCanBeCollidedWith = true;
+
+    m_nLastWeaponDamageType = -1;
+    m_nSpecialColModel = -1;
+
+    m_pWhoInstalledBombOnMe = nullptr;
+    m_wBombTimer = 0;
+    m_pWhoDetonatedMe = 0;
+    m_nTimeWhenBlowedUp = 0;
+
+    m_nPacMansCollected = 0;
+    m_pFire = 0;
+    m_nGunFiringTime = 0;
+    m_nCopsInCarTimer = 0;
+    m_nUsedForCover = 0;
+    m_nHornCounter = 0;
+    field_518 = 0;
+    field_519 = 0;
+    field_4EC = 0;
+    m_pTractor = 0;
+    m_pTrailer = 0;
+    m_nTimeTillWeNeedThisCar = 0;
+    m_nAlarmState = 0;
+    m_nDoorLock = 1;
+    m_nProjectileWeaponFiringTime = 0;
+    m_nAdditionalProjectileWeaponFiringTime = 0;
+    m_nTimeForMinigunFiring = 0;
+    m_pLastDamageEntity = nullptr;
+    m_pEntityWeAreOn = nullptr;
+    m_fVehicleRearGroundZ = 0.0;
+    m_fVehicleFrontGroundZ = 0.0;
+    field_511 = 0;
+    field_512 = 0;
+    field_51A = 0;
+    m_FrontCollPoly.m_bIsActual = 0;
+    m_RearCollPoly.m_bIsActual = 0;
+    m_pHandlingData = 0;
+    m_nHandlingFlagsIntValue = static_cast<eVehicleHandlingFlags>(0);
+    m_autoPilot.m_nCarMission = MISSION_NONE;
+    m_autoPilot.m_nTempAction = 0;
+    m_autoPilot.m_nTimeToStartMission = CTimer::m_snTimeInMilliseconds;
+    m_autoPilot.m_nCarCtrlFlags &= 0xFBu;
+    m_nRemapTxd = -1;
+    m_nPreviousRemapTxd = -1;
+    m_pRemapTexture = nullptr;
+    m_pOverheatParticle = nullptr;
+    m_pFireParticle = nullptr;
+    m_pDustParticle = nullptr;
+    m_pCustomCarPlate = nullptr;
+   
+    memset(m_anUpgrades, 0xFFu, sizeof(m_anUpgrades));
+    m_fWheelScale = 1.0;
+    m_nWindowsOpenFlags = 0;
+    m_nNitroBoosts = 0;
+    m_nHasslePosId = 0;
+    m_nVehicleWeaponInUse = 0;
+    m_fDirtLevel = (rand() % 15);
+    m_nCreationTime = CTimer::m_snTimeInMilliseconds;
+
+    for (size_t i = 0; i <= 3; ++i)
+        m_anCollisionLighting[i] = 0x48;
 }
 
 void CVehicle::PreRender()
