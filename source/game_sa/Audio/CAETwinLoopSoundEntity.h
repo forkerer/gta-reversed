@@ -21,6 +21,11 @@
 
 class  CAETwinLoopSoundEntity : public CAEAudioEntity {
 public:
+    CAETwinLoopSoundEntity();
+    CAETwinLoopSoundEntity(short wBankSlotId, short wSoundType1, short wSoundType2, CAEAudioEntity* pAudioEntity, short wPlayTimeMin, short wPlayTimeMax, short wStartingPlayPercent1, short wStartingPlayPercent2);
+
+    ~CAETwinLoopSoundEntity();
+public:
     short           m_nBankSlotId;
     short           m_nSoundType[2];
 private:

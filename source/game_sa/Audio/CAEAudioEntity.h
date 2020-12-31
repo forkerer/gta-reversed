@@ -13,13 +13,16 @@ class CEntity;
 
 class  CAEAudioEntity {
 protected:
-    void **vtable;          // TODO take care of this vtable
+    CAEAudioEntity();
 public:
     CEntity *m_pEntity;
     CAESound m_tempSound;
 
     // vtable
-    void UpdateParameters(CAESound *sound, short arg2);
+    virtual void UpdateParameters(CAESound *sound, short arg2);
+
+private:
+    void UpdateParameters_Reversed(CAESound* sound, short arg2);
 };
 
 VALIDATE_SIZE(CAEAudioEntity, 0x7C);

@@ -303,6 +303,7 @@ void CBoat::FillBoatList()
         }
 
         // Insert the new boat into list, based on dist from camera
+        // It replaces the boat closes to the camera with new one, and common sense would suggest that it should replace furthest one, maybe bug?
         auto iNewInd = -1;
         auto fMinDist = 999999.99F;
         for (int32_t iCheckedInd = 0; iCheckedInd <= 3; ++iCheckedInd) {
