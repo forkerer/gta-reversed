@@ -79,6 +79,10 @@ public:
 					unsigned char nCarmodId : 5;
 					unsigned char : 1; // bUseCommonVehicleDictionary
 				};
+                struct {
+                    unsigned char : 7;
+                    unsigned char bTagSomething : 1;
+                };
 			};
 			
 		};
@@ -138,7 +142,15 @@ public:
 
     CVehicleModelInfo* AsVehicleModelInfoPtr() { return reinterpret_cast<CVehicleModelInfo*>(this); }
     inline CColModel* GetColModel() { return m_pColModel; }
-    inline bool IsCrane() { return nSpecialType == 9; }
+    inline bool IsSwayInWind1() { return nSpecialType == 1; }      //0x0800
+    inline bool IsSwayInWind2() { return nSpecialType == 2; }      //0x1000
+    //inline bool SwaysInWind() { return IsSwayInWind1() || IsSwayInWind2(); }
+    inline bool IsGlassType1() { return nSpecialType == 4; }       //0x1800
+    inline bool IsGlassType2() { return nSpecialType == 5; }       //0x2800
+    inline bool IsGlass() { return IsGlassType1() || IsGlassType2(); }
+    //inline bool IsTagModel() { return nSpecialType == 6; }         //0x3000
+    inline bool IsCrane() { return nSpecialType == 9; }            //0x4800
+    inline bool IsBreakableStatue() { return nSpecialType == 11; } //0x5800
 };
 
 VALIDATE_SIZE(CBaseModelInfo, 0x20);

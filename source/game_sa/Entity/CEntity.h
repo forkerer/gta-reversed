@@ -116,6 +116,7 @@ public:
     virtual void FlagToDestroyWhenNextProcessed();
 
 private:
+    void SetModelIndex_Reversed(unsigned int index);
     CRect* GetBoundRect_Reversed(CRect* pRect);
     void SetModelIndexNoCreate_Reversed(unsigned int index);
 

@@ -35,12 +35,36 @@ void CEntity::SetIsStatic(bool isStatic)
 
 void CEntity::SetModelIndex(unsigned int index)
 {
-    ((void(__thiscall *)(CEntity *, unsigned int))(*(void ***)this)[5])(this, index);
+    return CEntity::SetModelIndex_Reversed(index);
+}
+
+void CEntity::SetModelIndex_Reversed(unsigned int index)
+{
+    CEntity::SetModelIndexNoCreate(index);
+    CEntity::CreateRwObject();
 }
 
 void CEntity::SetModelIndexNoCreate(unsigned int index)
 {
     return CEntity::SetModelIndexNoCreate_Reversed(index);
+}
+
+void CEntity::SetModelIndexNoCreate_Reversed(unsigned int index)
+{
+    //plugin::CallMethod<0x533700, CEntity*, unsigned int>(this, index);
+    auto pModelInfo = CModelInfo::GetModelInfo(index);
+    m_nModelIndex = index;
+    m_bHasPreRenderEffects = CEntity::HasPreRenderEffects();
+
+    if (pModelInfo->bDrawLast)
+        m_bDrawLast = true;
+
+    if (!pModelInfo->bIsBackfaceCulled)
+        m_bBackfaceCulled = false;
+
+    auto pAtomicInfo = pModelInfo->AsAtomicModelInfoPtr();
+    if (pAtomicInfo && !pAtomicInfo->bTagSomething && pAtomicInfo->IsTagModel())
+        CTagManager::AddTag(this);
 }
 
 void CEntity::CreateRwObject()
@@ -82,11 +106,6 @@ CRect* CEntity::GetBoundRect_Reversed(CRect* pRect)
     rect.StretchToPoint(point.x, point.y);
     *pRect = rect;
     return pRect;
-}
-
-void CEntity::SetModelIndexNoCreate_Reversed(unsigned int index)
-{
-    plugin::CallMethod<0x533700, CEntity*, unsigned int>(this, index);
 }
 
 void CEntity::ProcessControl()

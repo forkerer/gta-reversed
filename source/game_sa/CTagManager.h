@@ -1,0 +1,43 @@
+#pragma once
+#include "PluginBase.h"
+
+struct tTagDesc {
+    CEntity* m_pEntity;
+    unsigned char m_nAlpha;
+    unsigned char _pad[3];
+};
+
+class CTagManager {
+public:
+    static constexpr unsigned char ucAlphaTagged = 228;
+    static constexpr unsigned int uiTagsNum = 150;
+    static tTagDesc* ms_tagDesc; //ms_tagDesc[150]
+    static int& ms_numTags;
+    static int& ms_numTagged;
+    static RxPipeline* ms_pPipeline;
+
+public:
+    static void InjectHooks();
+
+public:
+    static void Init();
+    static void ShutdownForRestart();
+    static CVector& GetTagPos(int iTag);
+    static void AddTag(CEntity* pEntity);
+    static tTagDesc* FindTagDesc(CEntity* pEntity);
+    static bool IsTag(CEntity const* pEntity);
+    static void SetAlpha(RpAtomic* pAtomic, unsigned char ucAlpha);
+    static unsigned char GetAlpha(RpAtomic* pAtomic);
+    static unsigned char GetAlpha(CEntity* pEntity);
+    static void ResetAlpha(CEntity* pEntity);
+    static float GetPercentageTaggedInArea(CRect* pArea);
+    static float GetPercentageTagged();
+    static void UpdateNumTagged();
+    static void SetAlphaInArea(CRect* pArea, unsigned char ucAlpha);
+    static void SetAlpha(CEntity* pEntity, unsigned char ucAlpha);
+    static CEntity* GetNearestTag(CVector* vecPos);
+    static void SetupAtomic(RpAtomic* pAtomic);
+    static void RenderTagForPC(RpAtomic* pAtomic);
+    static void Save();
+    static void Load();
+};
