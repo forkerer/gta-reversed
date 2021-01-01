@@ -29,6 +29,8 @@ enum eBoatNodes {
 class CBoat : public CVehicle {
 protected:
     CBoat(plugin::dummy_func_t) : CVehicle(plugin::dummy) {}
+    CBoat(int modelIndex, unsigned char createdBy);
+    ~CBoat();
 public:
     float              m_fMovingHiRotation; // works as counter also
     float              m_fPropSpeed; // propeller speed
@@ -83,7 +85,6 @@ public:
 
     static void InjectHooks();
     //funcs
-    CBoat(int modelIndex, unsigned char createdBy);
 
     // Virtual methods
     void SetModelIndex(unsigned int index) override;

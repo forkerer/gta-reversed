@@ -112,6 +112,24 @@ CBoat::CBoat(int modelIndex, unsigned char createdBy) : CVehicle(createdBy)
         m_apPropSplashFx[i] = nullptr;
 }
 
+CBoat::~CBoat()
+{
+    if (m_pFireParticle) {
+        m_pFireParticle->Kill();
+        m_pFireParticle = nullptr;
+    }
+
+    for (auto& pSplashPart : m_apPropSplashFx) {
+        if (!pSplashPart)
+            continue;
+
+        pSplashPart->Kill();
+        pSplashPart = nullptr;
+    }
+
+    m_vehicleAudio.Terminate();
+}
+
 void CBoat::SetModelIndex(unsigned int index)
 {
     return CBoat::SetModelIndex_Reversed(index);
