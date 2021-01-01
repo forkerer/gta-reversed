@@ -118,7 +118,7 @@ public:
     void PruneWakeTrail();
     void AddWakePoint(CVector posn);
 
-    static bool IsSectorAffectedByWake(CVector2D arg0, float arg1, CBoat** arg2);
+    static bool IsSectorAffectedByWake(CVector2D vecPos, float fOffset, CBoat** ppBoats);
     static float IsVertexAffectedByWake(CVector arg0, CBoat* arg1, short arg2, bool arg3);
     static void CheckForSkippingCalculations();
     static void FillBoatList();

@@ -34,6 +34,7 @@ void CBoat::InjectHooks()
 
     //Other
     ReversibleHooks::Install("CBoat", "FillBoatList", 0x6F2710, &CBoat::FillBoatList);
+    ReversibleHooks::Install("CBoat", "IsSectorAffectedByWake", 0x6F0E80, &CBoat::IsSectorAffectedByWake);
     ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
 }
 
@@ -277,6 +278,35 @@ void CBoat::AddWakePoint(CVector posn)
     m_afWakePointLifeTime[0] = CBoat::WAKE_LIFETIME;
     if (m_nNumWaterTrailPoints < 32)
         ++m_nNumWaterTrailPoints;
+}
+
+bool CBoat::IsSectorAffectedByWake(CVector2D vecPos, float fOffset, CBoat** ppBoats)
+{
+    if (!CBoat::apFrameWakeGeneratingBoats[0])
+        return false;
+
+    bool bWakeFound = false;
+    for (size_t i = 0; i <= 3; ++i) {
+        auto pBoat = CBoat::apFrameWakeGeneratingBoats[i];
+        if (!pBoat)
+            continue;
+
+        if (!pBoat->m_nNumWaterTrailPoints)
+            continue;
+
+        for (size_t iTrail = 0; iTrail < pBoat->m_nNumWaterTrailPoints; ++iTrail) {
+            auto fDist = (CBoat::WAKE_LIFETIME - pBoat->m_afWakePointLifeTime[iTrail]) * CBoat::fShapeTime + static_cast<float>(iTrail) * CBoat::fShapeLength + fOffset;
+            if (fabs(pBoat->m_avecWakePoints[iTrail].x - vecPos.x) >= fDist
+                || fabs(pBoat->m_avecWakePoints[iTrail].y - vecPos.y) >= fDist)
+                continue;
+
+            ppBoats[bWakeFound] = pBoat;
+            bWakeFound = true;
+            break;
+        }
+    }
+
+    return bWakeFound;
 }
 
 void CBoat::FillBoatList()
