@@ -24,6 +24,8 @@ void CTagManager::InjectHooks()
     ReversibleHooks::Install("CTagManager", "GetNearestTag", 0x49D160, &CTagManager::GetNearestTag);
     ReversibleHooks::Install("CTagManager", "SetupAtomic", 0x49CE10, &CTagManager::SetupAtomic);
     ReversibleHooks::Install("CTagManager", "RenderTagForPC", 0x49CE40, &CTagManager::RenderTagForPC);
+    ReversibleHooks::Install("CTagManager", "Save", 0x5D3D60, &CTagManager::Save);
+    ReversibleHooks::Install("CTagManager", "Load", 0x5D3DA0, &CTagManager::Load);
 }
 
 void CTagManager::Init()
@@ -220,8 +222,24 @@ void CTagManager::RenderTagForPC(RpAtomic* pAtomic)
 
 void CTagManager::Save()
 {
+    CGenericGameStorage::SaveDataToWorkBuffer(&CTagManager::ms_numTags, 4);
+    if (!CTagManager::ms_numTags)
+        return;
+
+    for (size_t i = 0; i < CTagManager::ms_numTags; +i) {
+        auto& pTagDesc = CTagManager::ms_tagDesc[i];
+        CGenericGameStorage::SaveDataToWorkBuffer(&pTagDesc.m_nAlpha, 1);
+    }
 }
 
 void CTagManager::Load()
 {
+    CGenericGameStorage::SaveDataToWorkBuffer(&CTagManager::ms_numTags, 4); // Yeah, original also saves into buffer instead of loading
+    if (!CTagManager::ms_numTags)
+        return;
+
+    for (size_t i = 0; i < CTagManager::ms_numTags; +i) {
+        auto& pTagDesc = CTagManager::ms_tagDesc[i];
+        CGenericGameStorage::LoadDataFromWorkBuffer(&pTagDesc.m_nAlpha, 1);
+    }
 }
