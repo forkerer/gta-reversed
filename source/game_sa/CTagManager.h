@@ -24,14 +24,11 @@ public:
     static void ShutdownForRestart();
     static CVector& GetTagPos(int iTag);
     static void AddTag(CEntity* pEntity);
-    static tTagDesc* FindTagDesc(CEntity* pEntity);
     static bool IsTag(CEntity const* pEntity);
-    static void SetAlpha(RpAtomic* pAtomic, unsigned char ucAlpha);
-    static unsigned char GetAlpha(RpAtomic* pAtomic);
     static unsigned char GetAlpha(CEntity* pEntity);
     static void ResetAlpha(CEntity* pEntity);
-    static float GetPercentageTaggedInArea(CRect* pArea);
-    static float GetPercentageTagged();
+    static int64_t GetPercentageTaggedInArea(CRect* pArea);
+    static int64_t GetPercentageTagged();
     static void UpdateNumTagged();
     static void SetAlphaInArea(CRect* pArea, unsigned char ucAlpha);
     static void SetAlpha(CEntity* pEntity, unsigned char ucAlpha);
@@ -40,4 +37,10 @@ public:
     static void RenderTagForPC(RpAtomic* pAtomic);
     static void Save();
     static void Load();
+
+private:
+    static void SetAlpha(RpAtomic* pAtomic, unsigned char ucAlpha);
+    static unsigned char GetAlpha(RpAtomic* pAtomic);
+    static tTagDesc* FindTagDesc(CEntity* pEntity);
+
 };

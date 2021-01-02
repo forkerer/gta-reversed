@@ -76,7 +76,7 @@ bool CTagManager::IsTag(CEntity const* pEntity)
     if (pModelInfo->GetRwModelType() != 1)
         return false;
 
-    return pModelInfo->IsTagModel() && !pModelInfo->AsAtomicModelInfoPtr()->bTagSomething;
+    return pModelInfo->IsTagModel() && !pModelInfo->AsAtomicModelInfoPtr()->bTagDisabled;
 }
 
 void CTagManager::SetAlpha(RpAtomic* pAtomic, unsigned char ucAlpha)
@@ -109,15 +109,15 @@ void CTagManager::ResetAlpha(CEntity* pEntity)
     CTagManager::SetAlpha(pEntity->m_pRwAtomic, pTagDesc->m_nAlpha);
 }
 
-float CTagManager::GetPercentageTagged()
+int64_t CTagManager::GetPercentageTagged()
 {
     if (!CTagManager::ms_numTags)
         return 0.0f;
 
-    return floor(static_cast<float>(CTagManager::ms_numTagged) / static_cast<float>(CTagManager::ms_numTags) * 100.0F);
+    return static_cast<int64_t>(static_cast<double>(CTagManager::ms_numTagged) / static_cast<double>(CTagManager::ms_numTags) * 100.0F);
 }
 
-float CTagManager::GetPercentageTaggedInArea(CRect* pArea)
+int64_t CTagManager::GetPercentageTaggedInArea(CRect* pArea)
 {
     if (!CTagManager::ms_numTags)
         return 0.0f;
@@ -130,7 +130,7 @@ float CTagManager::GetPercentageTaggedInArea(CRect* pArea)
             ++iTags;
     }
 
-    return floor(static_cast<float>(iTags) / static_cast<float>(CTagManager::ms_numTags) * 100.0F);
+    return static_cast<int64_t>(static_cast<double>(iTags) / static_cast<double>(CTagManager::ms_numTags) * 100.0F);
 }
 
 void CTagManager::UpdateNumTagged()

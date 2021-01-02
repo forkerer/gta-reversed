@@ -81,7 +81,7 @@ public:
 				};
                 struct {
                     unsigned char : 7;
-                    unsigned char bTagSomething : 1;
+                    unsigned char bTagDisabled : 1;
                 };
 			};
 			
