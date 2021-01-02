@@ -56,14 +56,14 @@ void CEntity::SetModelIndexNoCreate_Reversed(unsigned int index)
     m_nModelIndex = index;
     m_bHasPreRenderEffects = CEntity::HasPreRenderEffects();
 
-    if (pModelInfo->bDrawLast)
+    if (pModelInfo->GetIsDrawLast())
         m_bDrawLast = true;
 
-    if (!pModelInfo->bIsBackfaceCulled)
+    if (!pModelInfo->IsBackfaceCulled())
         m_bBackfaceCulled = false;
 
     auto pAtomicInfo = pModelInfo->AsAtomicModelInfoPtr();
-    if (pAtomicInfo && !pAtomicInfo->bTagSomething && pAtomicInfo->IsTagModel())
+    if (pAtomicInfo && !pAtomicInfo->bTagDisabled && pAtomicInfo->IsTagModel())
         CTagManager::AddTag(this);
 }
 

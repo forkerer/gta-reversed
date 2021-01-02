@@ -141,8 +141,8 @@ CBaseModelInfo::CBaseModelInfo()
     ((void(__thiscall *)(CBaseModelInfo *))0x4C4A60)(this);
 }
 
-// Converted from thiscall bool CBaseModelInfo::GetIsDrawLast(void) 0x5328C0
-bool CBaseModelInfo::GetIsDrawLast() {
+// Converted from thiscall bool CBaseModelInfo::IsBackfaceCulled(void) 0x5328C0
+bool CBaseModelInfo::IsBackfaceCulled() {
     return plugin::CallMethodAndReturn<bool, 0x5328C0, CBaseModelInfo *>(this);
 }
 
@@ -156,8 +156,8 @@ bool CBaseModelInfo::HasComplexHierarchy() {
     return plugin::CallMethodAndReturn<bool, 0x4C4E00, CBaseModelInfo *>(this);
 }
 
-// Converted from thiscall bool CBaseModelInfo::IsBackfaceCulled(void) 0x5328F0
-bool CBaseModelInfo::IsBackfaceCulled() {
+// Converted from thiscall bool CBaseModelInfo::GetIsDrawLast(void) 0x5328F0
+bool CBaseModelInfo::GetIsDrawLast() {
     return plugin::CallMethodAndReturn<bool, 0x5328F0, CBaseModelInfo *>(this);
 }
 
