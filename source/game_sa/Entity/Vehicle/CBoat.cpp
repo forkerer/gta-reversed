@@ -8,6 +8,9 @@ float& CBoat::fShapeLength = *(float*)0x8D3944; // 0.4
 float& CBoat::fShapeTime = *(float*)0x8D3948; // 0.05
 float& CBoat::fRangeMult = *(float*)0x8D394C; // 0.6
 
+short* CBoat::waUnknArr = (short*)0xC279A4;
+short* CBoat::waUnknArr2 = (short*)0xC279AC;
+
 RxObjSpace3DVertex* CBoat::aRenderVertices = (RxObjSpace3DVertex*)0xC278F8;
 RxVertexIndex* CBoat::auRenderIndices = (RxVertexIndex*)0xC27988;
 
@@ -35,6 +38,7 @@ void CBoat::InjectHooks()
     //Other
     ReversibleHooks::Install("CBoat", "FillBoatList", 0x6F2710, &CBoat::FillBoatList);
     ReversibleHooks::Install("CBoat", "IsSectorAffectedByWake", 0x6F0E80, &CBoat::IsSectorAffectedByWake);
+    ReversibleHooks::Install("CBoat", "IsVertexAffectedByWake", 0x6F0F50, &CBoat::IsVertexAffectedByWake);
     ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
 }
 
@@ -307,6 +311,43 @@ bool CBoat::IsSectorAffectedByWake(CVector2D vecPos, float fOffset, CBoat** ppBo
     }
 
     return bWakeFound;
+}
+
+float CBoat::IsVertexAffectedByWake(CVector vecPos, CBoat* pBoat, short wIndex, bool bUnkn)
+{
+    if (bUnkn) {
+        CBoat::waUnknArr[wIndex] = 0;
+        CBoat::waUnknArr2[wIndex] = 8;
+    }
+    else if (CBoat::waUnknArr[wIndex] > 0)
+        return 0.0F;
+
+    if (!pBoat->m_nNumWaterTrailPoints)
+        return 0.0F;
+
+    for (size_t iTrail = 0; iTrail < pBoat->m_nNumWaterTrailPoints; ++iTrail) {
+        auto fWakeDistSquared = pow((CBoat::WAKE_LIFETIME - pBoat->m_afWakePointLifeTime[iTrail]) * CBoat::fShapeTime + static_cast<float>(iTrail) * CBoat::fShapeLength, 2);
+        auto fTrailDistSquared = (pBoat->m_avecWakePoints[iTrail] - vecPos).SquaredMagnitude();
+        if (fTrailDistSquared < fWakeDistSquared)
+        {
+            CBoat::waUnknArr2[wIndex] = 0;
+            float fContrib = sqrt(fTrailDistSquared / fWakeDistSquared) * CBoat::fRangeMult + (CBoat::WAKE_LIFETIME - pBoat->m_afWakePointLifeTime[iTrail]) * 1.2F / CBoat::WAKE_LIFETIME;
+            fContrib = std::min(1.0F, fContrib);
+            return 1.0F - fContrib;
+        }
+
+        auto fDistDiff = fTrailDistSquared - fWakeDistSquared;
+        if (fDistDiff > 20.0F) {
+            if (CBoat::waUnknArr2[wIndex] > 3)
+                CBoat::waUnknArr2[wIndex] = 3;
+        }
+        else if (fDistDiff > 10.0F) {
+            if (CBoat::waUnknArr2[wIndex] > 2)
+                CBoat::waUnknArr2[wIndex] = 2;
+        }
+    }
+
+    return 0.0F;
 }
 
 void CBoat::FillBoatList()

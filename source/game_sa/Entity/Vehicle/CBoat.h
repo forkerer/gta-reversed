@@ -77,6 +77,9 @@ public:
     static float& fShapeTime; // 0.05
     static float& fRangeMult; // 0.6
 
+    static short* waUnknArr;  // static CBoat::waUnknArr[4]
+    static short* waUnknArr2; // static CBoat::waUnknArr2[4]
+
     static const constexpr uint32_t uiNumVertices = 4;
     static RxObjSpace3DVertex* aRenderVertices;
 
@@ -119,7 +122,7 @@ public:
     void AddWakePoint(CVector posn);
 
     static bool IsSectorAffectedByWake(CVector2D vecPos, float fOffset, CBoat** ppBoats);
-    static float IsVertexAffectedByWake(CVector arg0, CBoat* arg1, short arg2, bool arg3);
+    static float IsVertexAffectedByWake(CVector vecPos, CBoat* pBoat, short wIndex, bool bUnkn);
     static void CheckForSkippingCalculations();
     static void FillBoatList();
 };
