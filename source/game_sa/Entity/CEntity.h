@@ -119,6 +119,7 @@ private:
     void SetModelIndex_Reversed(unsigned int index);
     CRect* GetBoundRect_Reversed(CRect* pRect);
     void SetModelIndexNoCreate_Reversed(unsigned int index);
+    void CreateRwObject_Reversed();
 
 public:
     // funcs

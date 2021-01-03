@@ -14,7 +14,7 @@ public:
     static tTagDesc* ms_tagDesc; //ms_tagDesc[150]
     static int& ms_numTags;
     static int& ms_numTagged;
-    static RxPipeline* ms_pPipeline;
+    static RxPipeline* &ms_pPipeline;
 
 public:
     static void InjectHooks();

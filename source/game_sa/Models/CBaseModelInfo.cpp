@@ -61,9 +61,9 @@ RwObject *CBaseModelInfo::CreateInstance(RwMatrix *matrix)
     return ((RwObject *(__thiscall *)(CBaseModelInfo *, RwMatrix *))plugin::GetVMT(this, 10))(this, matrix);
 }
 
-RwObject *CBaseModelInfo::CreateInstance()
+RwObject *CBaseModelInfo::CreateInstance_()
 {
-    return ((RwObject *(__thiscall *)(CBaseModelInfo *))plugin::GetVMT(this, 11))(this);
+    return plugin::CallVirtualMethodAndReturn<RwObject*, 11, CBaseModelInfo*>(this);
 }
 
 void CBaseModelInfo::SetAnimFile(char *filename)

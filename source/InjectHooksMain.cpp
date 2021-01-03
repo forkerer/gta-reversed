@@ -133,6 +133,7 @@ void InjectHooksMain(void)
     CTaskSimplePickUpEntity::InjectHooks();
     CTaskSimpleStealthKill::InjectHooks();
     CTimer::InjectHooks();
+    CTagManager::InjectHooks();
     CWaterLevel::InjectHooks();
     cBuoyancy::InjectHooks();
     CWanted::InjectHooks();

@@ -67,7 +67,7 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "ProcessBoatControl", 0x6DBCE0, &CVehicle::ProcessBoatControl);
     ReversibleHooks::Install("CVehicle", "ChangeLawEnforcerState", 0x6D2330, &CVehicle::ChangeLawEnforcerState);
 
-    ReversibleHooks::Install("CVehicle", "SetModelIndex", 0x6D6A49, &CVehicle::SetModelIndex_Reversed);
+    ReversibleHooks::Install("CVehicle", "SetModelIndex", 0x6D6A40, &CVehicle::SetModelIndex_Reversed);
 }
 
 CVehicle::CVehicle(unsigned char createdBy) : CPhysical(plugin::dummy)

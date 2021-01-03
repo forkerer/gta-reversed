@@ -103,7 +103,7 @@ public:
     virtual void DeleteRwObject();//=0
     virtual unsigned int GetRwModelType();//=0
     virtual struct RwObject *CreateInstance(RwMatrix *matrix);//=0
-    virtual struct RwObject *CreateInstance();//=0
+    virtual struct RwObject *CreateInstance_();//=0
     virtual void SetAnimFile(char *filename);
     virtual void ConvertAnimFileIndex();
     virtual signed int GetAnimFileIndex();
