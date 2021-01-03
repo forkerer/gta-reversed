@@ -39,6 +39,7 @@ void CBoat::InjectHooks()
     ReversibleHooks::Install("CBoat", "FillBoatList", 0x6F2710, &CBoat::FillBoatList);
     ReversibleHooks::Install("CBoat", "IsSectorAffectedByWake", 0x6F0E80, &CBoat::IsSectorAffectedByWake);
     ReversibleHooks::Install("CBoat", "IsVertexAffectedByWake", 0x6F0F50, &CBoat::IsVertexAffectedByWake);
+    ReversibleHooks::Install("CBoat", "CheckForSkippingCalculations", 0x6F10C0, &CBoat::CheckForSkippingCalculations);
     ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
 }
 
@@ -348,6 +349,24 @@ float CBoat::IsVertexAffectedByWake(CVector vecPos, CBoat* pBoat, short wIndex, 
     }
 
     return 0.0F;
+}
+
+void CBoat::CheckForSkippingCalculations()
+{
+    for (size_t ind = 0; ind < 4; ++ind) {
+        auto iVal = CBoat::waUnknArr2[ind];
+        if (iVal <= 0 || iVal >= 8) {
+            if (CBoat::waUnknArr[ind] <= 0) {
+                CBoat::waUnknArr2[ind] = 8;
+                continue;
+            }
+            CBoat::waUnknArr[ind] = iVal - 1;
+        }
+        else if (iVal <= CBoat::waUnknArr[ind] - 1)
+            --CBoat::waUnknArr[ind];
+
+        CBoat::waUnknArr2[ind] = 8;
+    }
 }
 
 void CBoat::FillBoatList()
