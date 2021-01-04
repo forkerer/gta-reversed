@@ -56,10 +56,10 @@ void CEntity::SetModelIndexNoCreate_Reversed(unsigned int index)
     m_nModelIndex = index;
     m_bHasPreRenderEffects = CEntity::HasPreRenderEffects();
 
-    if (pModelInfo->GetIsDrawLast())
+    if (pModelInfo->bDrawLast)
         m_bDrawLast = true;
 
-    if (!pModelInfo->IsBackfaceCulled())
+    if (!pModelInfo->bIsBackfaceCulled)
         m_bBackfaceCulled = false;
 
     auto pAtomicInfo = pModelInfo->AsAtomicModelInfoPtr();
