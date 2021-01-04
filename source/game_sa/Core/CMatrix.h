@@ -41,11 +41,12 @@ public:
     inline CVector& GetForward() { return m_forward; }
     inline CVector& GetUp() { return m_up; }
     inline CVector& GetPosition() { return m_pos; }
-	void Attach(RwMatrix *matrix, bool temporary);
+
+    void Attach(RwMatrix *matrix, bool bOwnsMatrix);
 	void Detach();
 	void CopyOnlyMatrix(CMatrix const& matrix); // copy base RwMatrix to another matrix
 	void Update(); // update RwMatrix with attaching matrix. This doesn't check if attaching matrix is present, so use it only if you know it is present.
-	               // Using UpdateRW() is more safe since it perform this check.
+	                 // Using UpdateRW() is more safe since it perform this check.
 	void UpdateRW(); // update RwMatrix with attaching matrix.
 	void UpdateRwMatrix(RwMatrix *matrix); // update RwMatrix with this matrix
 	void UpdateMatrix(RwMatrixTag* rwMatrix);

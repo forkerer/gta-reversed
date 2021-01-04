@@ -10,6 +10,29 @@
 int32_t& numMatrices = *(int32_t*)0xB74238;
 CMatrix& gDummyMatrix = *(CMatrix*)0xB74240;
 
+void CMatrix::InjectHooks()
+{
+    ReversibleHooks::Install("CMatrix", "Attach", 0x59BD10, &CMatrix::Attach);
+    ReversibleHooks::Install("CMatrix", "Detach", 0x59ACF0, &CMatrix::Detach);
+    ReversibleHooks::Install("CMatrix", "CopyOnlyMatrix", 0x59ADD0, &CMatrix::CopyOnlyMatrix);
+    ReversibleHooks::Install("CMatrix", "Update", 0x59BB60, &CMatrix::Update);
+    ReversibleHooks::Install("CMatrix", "UpdateMatrix", 0x59AD20, &CMatrix::UpdateMatrix);
+    ReversibleHooks::Install("CMatrix", "UpdateRW", 0x59BBB0, &CMatrix::UpdateRW);
+    ReversibleHooks::Install("CMatrix", "UpdateRwMatrix", 0x59AD70, &CMatrix::UpdateRwMatrix);
+    ReversibleHooks::Install("CMatrix", "SetUnity", 0x59AE70, &CMatrix::SetUnity);
+    ReversibleHooks::Install("CMatrix", "ResetOrientation", 0x59AEA0, &CMatrix::ResetOrientation);
+    ReversibleHooks::Install("CMatrix", "SetScale", 0x59AED0, (void(CMatrix::*)(float))(&CMatrix::SetScale));
+    ReversibleHooks::Install("CMatrix", "SetScale", 0x59AF00, (void(CMatrix::*)(float, float, float))(&CMatrix::SetScale));
+    ReversibleHooks::Install("CMatrix", "SetTranslateOnly", 0x59AF80, &CMatrix::SetTranslateOnly);
+    ReversibleHooks::Install("CMatrix", "SetTranslate", 0x59AF40, &CMatrix::SetTranslate);
+    ReversibleHooks::Install("CMatrix", "SetRotateXOnly", 0x59AFA0, &CMatrix::SetRotateXOnly);
+    ReversibleHooks::Install("CMatrix", "SetRotateYOnly", 0x59AFE0, &CMatrix::SetRotateYOnly);
+    ReversibleHooks::Install("CMatrix", "SetRotateZOnly", 0x59B020, &CMatrix::SetRotateZOnly);
+    ReversibleHooks::Install("CMatrix", "SetRotateX", 0x59B060, &CMatrix::SetRotateX);
+    ReversibleHooks::Install("CMatrix", "SetRotateY", 0x59B0A0, &CMatrix::SetRotateY);
+    ReversibleHooks::Install("CMatrix", "SetRotateZ", 0x59B0E0, &CMatrix::SetRotateZ);
+}
+
 CMatrix::CMatrix(CMatrix const& matrix)
 {
     m_pAttachMatrix = nullptr;
@@ -27,110 +50,153 @@ CMatrix::CMatrix(RwMatrix* matrix, bool temporary)
 // destructor detaches matrix if attached 
 CMatrix::~CMatrix()
 {
-    if (m_bOwnsAttachedMatrix && m_pAttachMatrix)
-        RwMatrixDestroy(m_pAttachMatrix);
+    CMatrix::Detach();
 }
 
-void CMatrix::Attach(RwMatrix* matrix, bool temporary)
+void CMatrix::Attach(RwMatrix* matrix, bool bOwnsMatrix)
 {
-    ((void(__thiscall*)(CMatrix*, RwMatrix*, bool))0x59BD10)(this, matrix, temporary);
+    CMatrix::Detach();
+
+    m_pAttachMatrix = matrix;
+    m_bOwnsAttachedMatrix = bOwnsMatrix;
+    CMatrix::Update();
 }
 
 void CMatrix::Detach()
 {
-    ((void(__thiscall*)(CMatrix*))0x59ACF0)(this);
+    if (m_bOwnsAttachedMatrix && m_pAttachMatrix)
+        RwMatrixDestroy(m_pAttachMatrix);
+
+    m_pAttachMatrix = nullptr;
 }
 
 // copy base RwMatrix to another matrix
 void CMatrix::CopyOnlyMatrix(CMatrix const& matrix)
 {
-    ((void(__thiscall*)(CMatrix*, CMatrix const&))0x59ADD0)(this, matrix);
+    memcpy(this, &matrix, 0x40);
 }
 
 // update RwMatrix with attaching matrix. This doesn't check if attaching matrix is present, so use it only if you know it is present.
 // Using UpdateRW() is more safe since it perform this check.
 void CMatrix::Update()
 {
-    ((void(__thiscall*)(CMatrix*))0x59BB60)(this);
+    CMatrix::UpdateMatrix(m_pAttachMatrix);
 }
 
 // update RwMatrix with attaching matrix.
 void CMatrix::UpdateRW()
 {
-    ((void(__thiscall*)(CMatrix*))0x59BBB0)(this);
+    if (!m_pAttachMatrix)
+        return;
+
+    CMatrix::UpdateRwMatrix(m_pAttachMatrix);
 }
 
 // update RwMatrix with this matrix
 void CMatrix::UpdateRwMatrix(RwMatrix* matrix)
 {
-    ((void(__thiscall*)(CMatrix*, RwMatrix*))0x59AD70)(this, matrix);
+    *RwMatrixGetRight(matrix) = m_right;
+    *RwMatrixGetUp(matrix) = m_forward;
+    *RwMatrixGetAt(matrix) = m_up;
+    *RwMatrixGetPos(matrix) = m_pos;
 }
 
 void CMatrix::UpdateMatrix(RwMatrixTag* rwMatrix)
 {
-    ((void(__thiscall*)(CMatrix*, RwMatrixTag*))0x59AD20)(this, rwMatrix);
+    m_right = *RwMatrixGetRight(rwMatrix);
+    m_forward = *RwMatrixGetUp(rwMatrix);
+    m_up = *RwMatrixGetAt(rwMatrix);
+    m_pos = *RwMatrixGetPos(rwMatrix);
 }
 
 void CMatrix::SetUnity()
 {
-    ((void(__thiscall*)(CMatrix*))0x59AE70)(this);
+    CMatrix::ResetOrientation();
+    m_pos.Set(0.0F, 0.0F, 0.0F);
 }
 
 void CMatrix::ResetOrientation()
 {
-    ((void(__thiscall*)(CMatrix*))0x59AEA0)(this);
+    m_right.Set  (1.0F, 0.0F, 0.0F);
+    m_forward.Set(0.0F, 1.0F, 0.0F);
+    m_up.Set     (0.0F, 0.0F, 1.0F);
 }
 
 void CMatrix::SetScale(float scale)
 {
-    ((void(__thiscall*)(CMatrix*, float))0x59AED0)(this, scale);
+    m_right.Set  (scale, 1.0F,  1.0F);
+    m_forward.Set(0.0F,  scale, 0.0F);
+    m_up.Set     (0.0F,  0.0F,  scale);
+    m_pos.Set    (0.0F,  0.0F,  0.0F);
 }
 
 // scale on three axes
 void CMatrix::SetScale(float x, float y, float z)
 {
-    ((void(__thiscall*)(CMatrix*, float, float, float))0x59AF00)(this, x, y, z);
+    m_right.Set  (x,     1.0F,  1.0F);
+    m_forward.Set(0.0F,  y,     0.0F);
+    m_up.Set     (0.0F,  0.0F,  z   );
+    m_pos.Set    (0.0F,  0.0F,  0.0F);
 }
 
 void CMatrix::SetTranslateOnly(CVector translation)
 {
-    ((void(__thiscall*)(CMatrix*, CVector))0x59AF80)(this, translation);
+    m_pos = translation;
 }
 
 // like previous + reset orientation
 void CMatrix::SetTranslate(CVector translation)
 {
-    ((void(__thiscall*)(CMatrix*, CVector))0x59AF40)(this, translation);
+    CMatrix::ResetOrientation();
+    CMatrix::SetTranslateOnly(translation);
 }
 
 void CMatrix::SetRotateXOnly(float angle)
 {
-    ((void(__thiscall*)(CMatrix*, float))0x59AFA0)(this, angle);
+    auto fSin = sin(angle);
+    auto fCos = cos(angle);
+
+    m_right.Set  (1.0F,  0.0F,  0.0F);
+    m_forward.Set(0.0F,  fCos,  fSin);
+    m_up.Set     (0.0F, -fSin,  fCos);
 }
 
 void CMatrix::SetRotateYOnly(float angle)
 {
-    ((void(__thiscall*)(CMatrix*, float))0x59AFE0)(this, angle);
+    auto fSin = sin(angle);
+    auto fCos = cos(angle);
+
+    m_right.Set  (fCos,  0.0F, -fSin);
+    m_forward.Set(0.0F,  1.0F,  0.0F);
+    m_up.Set     (fSin,  0.0F,  fCos);
 }
 
 void CMatrix::SetRotateZOnly(float angle)
 {
-    ((void(__thiscall*)(CMatrix*, float))0x59B020)(this, angle);
+    auto fSin = sin(angle);
+    auto fCos = cos(angle);
+
+    m_right.Set  ( fCos, fSin, 0.0F);
+    m_forward.Set(-fSin, fCos, 0.0F);
+    m_up.Set     ( 0.0F, 0.0F, 1.0F);
 }
 
 void CMatrix::SetRotateX(float angle)
 {
-    ((void(__thiscall*)(CMatrix*, float))0x59B060)(this, angle);
+    CMatrix::SetRotateXOnly(angle);
+    m_pos.Set(0.0F, 0.0F, 0.0F);
 }
 
 void CMatrix::SetRotateY(float angle)
 {
-    ((void(__thiscall*)(CMatrix*, float))0x59B0A0)(this, angle);
+    CMatrix::SetRotateYOnly(angle);
+    m_pos.Set(0.0F, 0.0F, 0.0F);
 }
 
 void CMatrix::SetRotateZ(float angle)
 {
-    ((void(__thiscall*)(CMatrix*, float))0x59B0E0)(this, angle);
+    CMatrix::SetRotateZOnly(angle);
+    m_pos.Set(0.0F, 0.0F, 0.0F);
 }
 
 // set rotate on 3 axes
