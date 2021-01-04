@@ -7,21 +7,28 @@
 
 #include "StdInc.h"
 
+int32_t& numMatrices = *(int32_t*)0xB74238;
+CMatrix& gDummyMatrix = *(CMatrix*)0xB74240;
+
 CMatrix::CMatrix(CMatrix const& matrix)
 {
-    ((void(__thiscall*)(CMatrix*, CMatrix const&))0x59BCF0)(this, matrix);
+    m_pAttachMatrix = nullptr;
+    m_bOwnsAttachedMatrix = false;
+    CMatrix::CopyOnlyMatrix(matrix);
 }
 
 // like previous + attach
 CMatrix::CMatrix(RwMatrix* matrix, bool temporary)
 {
-    ((void(__thiscall*)(CMatrix*, RwMatrix*, bool))0x59C050)(this, matrix, temporary);
+    m_pAttachMatrix = nullptr;
+    CMatrix::Attach(matrix, temporary);
 }
 
 // destructor detaches matrix if attached 
 CMatrix::~CMatrix()
 {
-    ((void(__thiscall*)(CMatrix*))0x59ACD0)(this);
+    if (m_bOwnsAttachedMatrix && m_pAttachMatrix)
+        RwMatrixDestroy(m_pAttachMatrix);
 }
 
 void CMatrix::Attach(RwMatrix* matrix, bool temporary)

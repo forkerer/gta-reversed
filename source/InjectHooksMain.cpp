@@ -15,6 +15,8 @@ void InjectHooksMain(void)
     CGame::InjectHooks();
     CPad::InjectHooks();
     CVector2D::InjectHooks();
+    CMatrixLink::InjectHooks();
+    CMatrixLinkList::InjectHooks();
     CRunningScript::InjectHooks();
     CStreaming::InjectHooks();
     InjectCdStreamHooks();
@@ -22,6 +24,7 @@ void InjectHooksMain(void)
     SurfaceInfos_c::InjectHooks();
     CFileLoader::InjectHooks();
     CFileMgr::InjectHooks();
+    CPlaceable::InjectHooks();
     CEntity::InjectHooks();;
     CPhysical::InjectHooks();
     CRenderer::InjectHooks();

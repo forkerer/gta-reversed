@@ -10,6 +10,16 @@
 #include "CQuaternion.h"
 
 class CMatrix {
+public:
+    CMatrix(plugin::dummy_func_t) {}
+	CMatrix(CMatrix const& matrix);
+	CMatrix(RwMatrix *matrix, bool temporary); // like previous + attach
+	~CMatrix(); // destructor detaches matrix if attached
+    inline CMatrix() {
+        m_pAttachMatrix = nullptr;
+        m_bOwnsAttachedMatrix = false;
+    }
+
 private:
     // RwV3d-like:
     CVector      m_right;
@@ -24,15 +34,8 @@ public:
 	RwMatrix *m_pAttachMatrix;
 	bool m_bOwnsAttachedMatrix; // do we need to delete attaching matrix at detaching
 
-    inline CMatrix() {
-        m_pAttachMatrix = nullptr;
-        m_bOwnsAttachedMatrix = false;
-    }
-
-    CMatrix(plugin::dummy_func_t) {}
-	CMatrix(CMatrix const& matrix);
-	CMatrix(RwMatrix *matrix, bool temporary); // like previous + attach
-	~CMatrix(); // destructor detaches matrix if attached
+public:
+    static void InjectHooks();
 
     inline CVector& GetRight() { return m_right; }
     inline CVector& GetForward() { return m_forward; }
@@ -75,6 +78,9 @@ public:
 };
 
 VALIDATE_SIZE(CMatrix, 0x48);
+
+extern int32_t& numMatrices;
+extern CMatrix& gDummyMatrix;
 
 CMatrix operator*(CMatrix const&a, CMatrix const&b);
 CVector operator*(CMatrix const&a, CVector const&b);
