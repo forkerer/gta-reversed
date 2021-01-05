@@ -43,7 +43,7 @@ class CVehicleModelInfo;
 class  CBaseModelInfo {
 public:
     CBaseModelInfo();  // constructor
-    virtual ~CBaseModelInfo() {}
+    //virtual ~CBaseModelInfo() {} //TODO: Replace DeletingDestructor with this once we have all derived classes reversed
 public:
 	unsigned int   m_nKey;
 	unsigned short m_nRefCount;
