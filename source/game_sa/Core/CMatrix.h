@@ -38,9 +38,13 @@ public:
     static void InjectHooks();
 
     inline CVector& GetRight() { return m_right; }
+    inline const CVector& GetRight() const { return m_right; }
     inline CVector& GetForward() { return m_forward; }
+    inline const CVector& GetForward() const { return m_forward; }
     inline CVector& GetUp() { return m_up; }
+    inline const CVector& GetUp() const { return m_up; }
     inline CVector& GetPosition() { return m_pos; }
+    inline const CVector& GetPosition() const { return m_pos; }
 
     void Attach(RwMatrix *matrix, bool bOwnsMatrix);
 	void Detach();
@@ -69,10 +73,9 @@ public:
 	void Rotate(CVector rotation); // rotate on 3 axes
 	void Reorthogonalise();
 	void CopyToRwMatrix(RwMatrix *matrix); // similar to UpdateRW(RwMatrixTag *)
-	void SetRotate(CQuaternion  const& quat);
+	void SetRotate(CQuaternion& quat);
     void Scale(float scale);
-    void Scale(float x, float y, float z);
-	void ForceUpVector(float x, float y, float z);
+	void ForceUpVector(CVector vecUp);
 	void operator=(CMatrix const& right);
 	void operator+=(CMatrix const& right);
 	void operator*=(CMatrix const& right);

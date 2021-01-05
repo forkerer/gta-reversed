@@ -31,6 +31,19 @@ void CMatrix::InjectHooks()
     ReversibleHooks::Install("CMatrix", "SetRotateX", 0x59B060, &CMatrix::SetRotateX);
     ReversibleHooks::Install("CMatrix", "SetRotateY", 0x59B0A0, &CMatrix::SetRotateY);
     ReversibleHooks::Install("CMatrix", "SetRotateZ", 0x59B0E0, &CMatrix::SetRotateZ);
+    ReversibleHooks::Install("CMatrix", "SetRotate", 0x59B120, (void(CMatrix::*)(float, float, float))(&CMatrix::SetRotate));
+    ReversibleHooks::Install("CMatrix", "RotateX", 0x59B1E0, &CMatrix::RotateX);
+    ReversibleHooks::Install("CMatrix", "RotateY", 0x59B2C0, &CMatrix::RotateY);
+    ReversibleHooks::Install("CMatrix", "RotateZ", 0x59B390, &CMatrix::RotateZ);
+    ReversibleHooks::Install("CMatrix", "Rotate", 0x59B460, &CMatrix::Rotate);
+    ReversibleHooks::Install("CMatrix", "Reorthogonalise", 0x59B6A0, &CMatrix::Reorthogonalise);
+    ReversibleHooks::Install("CMatrix", "CopyToRwMatrix", 0x59B8B0, &CMatrix::CopyToRwMatrix);
+    ReversibleHooks::Install("CMatrix", "SetRotate", 0x59BBF0, (void(CMatrix::*)(CQuaternion&))(&CMatrix::SetRotate));
+    ReversibleHooks::Install("CMatrix", "Scale", 0x459350, &CMatrix::Scale);
+    ReversibleHooks::Install("CMatrix", "ForceUpVector", 0x59B7E0, &CMatrix::ForceUpVector);
+    ReversibleHooks::Install("CMatrix", "operator=", 0x59BBC0, &CMatrix::operator=);
+    ReversibleHooks::Install("CMatrix", "operator+=", 0x59ADF0, &CMatrix::operator+=);
+    ReversibleHooks::Install("CMatrix", "operator*=", 0x411A80, &CMatrix::operator*=);
 }
 
 CMatrix::CMatrix(CMatrix const& matrix)
@@ -73,7 +86,7 @@ void CMatrix::Detach()
 // copy base RwMatrix to another matrix
 void CMatrix::CopyOnlyMatrix(CMatrix const& matrix)
 {
-    memcpy(this, &matrix, 0x40);
+    memcpy(this, &matrix, sizeof(RwMatrix));
 }
 
 // update RwMatrix with attaching matrix. This doesn't check if attaching matrix is present, so use it only if you know it is present.
@@ -99,6 +112,8 @@ void CMatrix::UpdateRwMatrix(RwMatrix* matrix)
     *RwMatrixGetUp(matrix) = m_forward;
     *RwMatrixGetAt(matrix) = m_up;
     *RwMatrixGetPos(matrix) = m_pos;
+
+    RwMatrixUpdate(matrix);
 }
 
 void CMatrix::UpdateMatrix(RwMatrixTag* rwMatrix)
@@ -202,75 +217,129 @@ void CMatrix::SetRotateZ(float angle)
 // set rotate on 3 axes
 void CMatrix::SetRotate(float x, float y, float z)
 {
-    ((void(__thiscall*)(CMatrix*, float, float, float))0x59B120)(this, x, y, z);
+    auto fSinX = sin(x);
+    auto fCosX = cos(x);
+    auto fSinY = sin(y);
+    auto fCosY = cos(y);
+    auto fSinZ = sin(z);
+    auto fCosZ = cos(z);
+
+    m_right.Set  ( fCosZ*fCosY-fSinZ*fSinX*fSinY,  fCosZ*fSinX*fSinY+fSinZ*fCosY,  -fSinY*fCosX);
+    m_forward.Set(-fSinZ*fCosX,                    fCosZ*fCosX,                     fSinX);
+    m_up.Set     ( fCosZ*fSinX+fSinZ*fSinX*fCosY,  fSinZ*fSinY-fCosZ*fSinX*fCosY,   fCosY*fCosX);
+    m_pos.Set(0.0F, 0.0F, 0.0F);
 }
 
 void CMatrix::RotateX(float angle)
 {
-    ((void(__thiscall*)(CMatrix*, float))0x59B1E0)(this, angle);
+    auto rotMat = CMatrix();
+    rotMat.SetRotateXOnly(angle);
+    m_right =   Multiply3x3(&rotMat, &m_right);
+    m_forward = Multiply3x3(&rotMat, &m_forward);
+    m_up =      Multiply3x3(&rotMat, &m_up);
+    m_pos =     Multiply3x3(&rotMat, &m_pos);
 }
 
 void CMatrix::RotateY(float angle)
 {
-    ((void(__thiscall*)(CMatrix*, float))0x59B2C0)(this, angle);
+    auto rotMat = CMatrix();
+    rotMat.SetRotateYOnly(angle);
+    m_right =   Multiply3x3(&rotMat, &m_right);
+    m_forward = Multiply3x3(&rotMat, &m_forward);
+    m_up =      Multiply3x3(&rotMat, &m_up);
+    m_pos =     Multiply3x3(&rotMat, &m_pos);
 }
 
 void CMatrix::RotateZ(float angle)
 {
-    ((void(__thiscall*)(CMatrix*, float))0x59B390)(this, angle);
+    auto rotMat = CMatrix();
+    rotMat.SetRotateZOnly(angle);
+    m_right =   Multiply3x3(&rotMat, &m_right);
+    m_forward = Multiply3x3(&rotMat, &m_forward);
+    m_up =      Multiply3x3(&rotMat, &m_up);
+    m_pos =     Multiply3x3(&rotMat, &m_pos);
 }
 
 // rotate on 3 axes
 void CMatrix::Rotate(CVector rotation)
 {
-    ((void(__thiscall*)(CMatrix*, CVector))0x59B460)(this, rotation);
+    auto rotMat = CMatrix();
+    rotMat.SetRotate(rotation.x, rotation.y, rotation.z);
+    m_right =   Multiply3x3(&rotMat, &m_right);
+    m_forward = Multiply3x3(&rotMat, &m_forward);
+    m_up =      Multiply3x3(&rotMat, &m_up);
+    m_pos =     Multiply3x3(&rotMat, &m_pos);
 }
 
 void CMatrix::Reorthogonalise()
 {
-    ((void(__thiscall*)(CMatrix*))0x59B6A0)(this);
+    auto vecCross = CrossProduct(m_right, m_forward);
+    vecCross.Normalise();
+
+    auto vecCross2 = CrossProduct(m_forward, vecCross);
+    vecCross2.Normalise();
+
+    auto vecCross3 = CrossProduct(vecCross, vecCross2);
+
+    m_right = vecCross2;
+    m_forward = vecCross3;
+    m_up = vecCross;
 }
 
 // similar to UpdateRW(RwMatrixTag *)
 void CMatrix::CopyToRwMatrix(RwMatrix* matrix)
 {
-    ((void(__thiscall*)(CMatrix*, RwMatrix*))0x59B8B0)(this, matrix);
+    CMatrix::UpdateRwMatrix(matrix);
+    RwMatrixUpdate(matrix);
 }
 
-void CMatrix::SetRotate(CQuaternion  const& quat)
+void CMatrix::SetRotate(CQuaternion& quat)
 {
-    ((void(__thiscall*)(CMatrix*, CQuaternion  const&))0x59BBF0)(this, quat);
+    quat.Get(this);
 }
 
 void CMatrix::Scale(float scale) {
-    plugin::CallMethod<0x459350, CMatrix*, float>(this, scale);
+    m_right *= scale;
+    m_forward *= scale;
+    m_up *= scale;
 }
 
-void CMatrix::Scale(float x, float y, float z) {
-    plugin::CallMethod<0x459350, CMatrix*, float, float, float>(this, x, y, z);
-}
+void CMatrix::ForceUpVector(CVector vecUp) {
+    auto vecCross = CrossProduct(m_forward, vecUp);
+    auto vecCross2 = CrossProduct(vecUp, vecCross);
 
-void CMatrix::ForceUpVector(float x, float y, float z) {
-    plugin::CallMethod<0x59B7E0, CMatrix*, float, float, float>(this, x, y, z);
+    m_right = vecCross;
+    m_forward = vecCross2;
+    m_up = vecUp;
 }
 
 void CMatrix::operator=(CMatrix const& rvalue)
 {
-    ((void(__thiscall*)(CMatrix*, CMatrix const&))0x59BBC0)(this, rvalue);
+    CMatrix::CopyOnlyMatrix(rvalue);
+    CMatrix::UpdateRW();
 }
 
 void CMatrix::operator+=(CMatrix const& rvalue)
 {
-    ((void(__thiscall*)(CMatrix*, CMatrix const&))0x59ADF0)(this, rvalue);
+    m_right += rvalue.m_right;
+    m_forward += rvalue.m_forward;
+    m_up += rvalue.m_up;
+    m_pos += rvalue.m_pos;
 }
 
 void CMatrix::operator*=(CMatrix const& rvalue)
 {
-    ((void(__thiscall*)(CMatrix*, CMatrix const&))0x411A80)(this, rvalue);
+    *this = (*this * rvalue);
 }
 
 CMatrix operator*(CMatrix const& a, CMatrix const& b) {
     CMatrix result;
+
+    result.GetRight() = Multiply3x3(a, b.GetRight());
+    m_forward = Multiply3x3(&rotMat, &m_forward);
+    m_up = Multiply3x3(&rotMat, &m_up);
+    m_pos = Multiply3x3(&rotMat, &m_pos);
+    result.GetRight() = 
     ((void(__cdecl*)(CMatrix*, CMatrix const&, CMatrix const&))0x59BE30)(&result, a, b);
     return result;
 }

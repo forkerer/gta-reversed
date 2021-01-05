@@ -15,6 +15,8 @@ void InjectHooksMain(void)
     CGame::InjectHooks();
     CPad::InjectHooks();
     CVector2D::InjectHooks();
+    CQuaternion::InjectHooks();
+    CMatrix::InjectHooks();
     CMatrixLink::InjectHooks();
     CMatrixLinkList::InjectHooks();
     CRunningScript::InjectHooks();
