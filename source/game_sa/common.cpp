@@ -74,12 +74,12 @@ bool InTwoPlayersMode()
     return ((bool(__cdecl *)())0x441390)();
 }
 
-CVector* Multiply3x3(CVector* out, CMatrix const& m, CVector const& in)
+CVector* Multiply3x3(CVector* out, CMatrix* m, CVector* in)
 {
     CVector temp;
-    temp.x = m.GetRight().x * in.x + m.GetForward().x * in.y + m.GetUp().x * in.z;
-    temp.y = m.GetRight().y * in.x + m.GetForward().y * in.y + m.GetUp().y * in.z;
-    temp.z = m.GetRight().z * in.x + m.GetForward().z * in.y + m.GetUp().z * in.z;
+    temp.x = m->GetRight().x * in->x + m->GetForward().x * in->y + m->GetUp().x * in->z;
+    temp.y = m->GetRight().y * in->x + m->GetForward().y * in->y + m->GetUp().y * in->z;
+    temp.z = m->GetRight().z * in->x + m->GetForward().z * in->y + m->GetUp().z * in->z;
     *out = temp;
     return out;
     //return plugin::CallAndReturn<CVector*, 0x59C790, CVector*, CMatrix*, CVector*>(out, m, in);

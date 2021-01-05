@@ -12,38 +12,38 @@ CMatrix& gDummyMatrix = *(CMatrix*)0xB74240;
 
 void CMatrix::InjectHooks()
 {
-    ReversibleHooks::Install("CMatrix", "Attach", 0x59BD10, &CMatrix::Attach);
-    ReversibleHooks::Install("CMatrix", "Detach", 0x59ACF0, &CMatrix::Detach);
-    ReversibleHooks::Install("CMatrix", "CopyOnlyMatrix", 0x59ADD0, &CMatrix::CopyOnlyMatrix);
-    ReversibleHooks::Install("CMatrix", "Update", 0x59BB60, &CMatrix::Update);
-    ReversibleHooks::Install("CMatrix", "UpdateMatrix", 0x59AD20, &CMatrix::UpdateMatrix);
-    ReversibleHooks::Install("CMatrix", "UpdateRW", 0x59BBB0, &CMatrix::UpdateRW);
-    ReversibleHooks::Install("CMatrix", "UpdateRwMatrix", 0x59AD70, &CMatrix::UpdateRwMatrix);
-    ReversibleHooks::Install("CMatrix", "SetUnity", 0x59AE70, &CMatrix::SetUnity);
-    ReversibleHooks::Install("CMatrix", "ResetOrientation", 0x59AEA0, &CMatrix::ResetOrientation);
-    ReversibleHooks::Install("CMatrix", "SetScale", 0x59AED0, (void(CMatrix::*)(float))(&CMatrix::SetScale));
-    ReversibleHooks::Install("CMatrix", "SetScale", 0x59AF00, (void(CMatrix::*)(float, float, float))(&CMatrix::SetScale));
-    ReversibleHooks::Install("CMatrix", "SetTranslateOnly", 0x59AF80, &CMatrix::SetTranslateOnly);
-    ReversibleHooks::Install("CMatrix", "SetTranslate", 0x59AF40, &CMatrix::SetTranslate);
-    ReversibleHooks::Install("CMatrix", "SetRotateXOnly", 0x59AFA0, &CMatrix::SetRotateXOnly);
-    ReversibleHooks::Install("CMatrix", "SetRotateYOnly", 0x59AFE0, &CMatrix::SetRotateYOnly);
-    ReversibleHooks::Install("CMatrix", "SetRotateZOnly", 0x59B020, &CMatrix::SetRotateZOnly);
-    ReversibleHooks::Install("CMatrix", "SetRotateX", 0x59B060, &CMatrix::SetRotateX);
-    ReversibleHooks::Install("CMatrix", "SetRotateY", 0x59B0A0, &CMatrix::SetRotateY);
-    ReversibleHooks::Install("CMatrix", "SetRotateZ", 0x59B0E0, &CMatrix::SetRotateZ);
-    ReversibleHooks::Install("CMatrix", "SetRotate", 0x59B120, (void(CMatrix::*)(float, float, float))(&CMatrix::SetRotate));
-    ReversibleHooks::Install("CMatrix", "RotateX", 0x59B1E0, &CMatrix::RotateX);
-    ReversibleHooks::Install("CMatrix", "RotateY", 0x59B2C0, &CMatrix::RotateY);
-    ReversibleHooks::Install("CMatrix", "RotateZ", 0x59B390, &CMatrix::RotateZ);
-    ReversibleHooks::Install("CMatrix", "Rotate", 0x59B460, &CMatrix::Rotate);
-    ReversibleHooks::Install("CMatrix", "Reorthogonalise", 0x59B6A0, &CMatrix::Reorthogonalise);
-    ReversibleHooks::Install("CMatrix", "CopyToRwMatrix", 0x59B8B0, &CMatrix::CopyToRwMatrix);
-    ReversibleHooks::Install("CMatrix", "SetRotate", 0x59BBF0, (void(CMatrix::*)(CQuaternion&))(&CMatrix::SetRotate));
-    ReversibleHooks::Install("CMatrix", "Scale", 0x459350, &CMatrix::Scale);
-    ReversibleHooks::Install("CMatrix", "ForceUpVector", 0x59B7E0, &CMatrix::ForceUpVector);
-    ReversibleHooks::Install("CMatrix", "operator=", 0x59BBC0, &CMatrix::operator=);
-    ReversibleHooks::Install("CMatrix", "operator+=", 0x59ADF0, &CMatrix::operator+=);
-    ReversibleHooks::Install("CMatrix", "operator*=", 0x411A80, &CMatrix::operator*=);
+    ReversibleHooks::Install("CMatrix", "Attach", 0x59BD10, &CMatrix::Attach, true);
+    ReversibleHooks::Install("CMatrix", "Detach", 0x59ACF0, &CMatrix::Detach, true);
+    ReversibleHooks::Install("CMatrix", "CopyOnlyMatrix", 0x59ADD0, &CMatrix::CopyOnlyMatrix, true);
+    ReversibleHooks::Install("CMatrix", "Update", 0x59BB60, &CMatrix::Update, true);
+    ReversibleHooks::Install("CMatrix", "UpdateMatrix", 0x59AD20, &CMatrix::UpdateMatrix, true);
+    ReversibleHooks::Install("CMatrix", "UpdateRW", 0x59BBB0, &CMatrix::UpdateRW, true);
+    ReversibleHooks::Install("CMatrix", "UpdateRwMatrix", 0x59AD70, &CMatrix::UpdateRwMatrix, true);
+    ReversibleHooks::Install("CMatrix", "SetUnity", 0x59AE70, &CMatrix::SetUnity, true);
+    ReversibleHooks::Install("CMatrix", "ResetOrientation", 0x59AEA0, &CMatrix::ResetOrientation, true);
+    ReversibleHooks::Install("CMatrix", "SetScale_f", 0x59AED0, (void(CMatrix::*)(float))(&CMatrix::SetScale), true);
+    ReversibleHooks::Install("CMatrix", "SetScale_fff", 0x59AF00, (void(CMatrix::*)(float, float, float))(&CMatrix::SetScale), true);
+    ReversibleHooks::Install("CMatrix", "SetTranslateOnly", 0x59AF80, &CMatrix::SetTranslateOnly, true);
+    ReversibleHooks::Install("CMatrix", "SetTranslate", 0x59AF40, &CMatrix::SetTranslate, true);
+    ReversibleHooks::Install("CMatrix", "SetRotateXOnly", 0x59AFA0, &CMatrix::SetRotateXOnly, true);
+    ReversibleHooks::Install("CMatrix", "SetRotateYOnly", 0x59AFE0, &CMatrix::SetRotateYOnly, true);
+    ReversibleHooks::Install("CMatrix", "SetRotateZOnly", 0x59B020, &CMatrix::SetRotateZOnly, true);
+    ReversibleHooks::Install("CMatrix", "SetRotateX", 0x59B060, &CMatrix::SetRotateX, true);
+    ReversibleHooks::Install("CMatrix", "SetRotateY", 0x59B0A0, &CMatrix::SetRotateY, true);
+    ReversibleHooks::Install("CMatrix", "SetRotateZ", 0x59B0E0, &CMatrix::SetRotateZ, true);
+    ReversibleHooks::Install("CMatrix", "SetRotate_fff", 0x59B120, (void(CMatrix::*)(float, float, float))(&CMatrix::SetRotate), true);
+    ReversibleHooks::Install("CMatrix", "RotateX", 0x59B1E0, &CMatrix::RotateX, true);
+    ReversibleHooks::Install("CMatrix", "RotateY", 0x59B2C0, &CMatrix::RotateY, true);
+    ReversibleHooks::Install("CMatrix", "RotateZ", 0x59B390, &CMatrix::RotateZ, true);
+    ReversibleHooks::Install("CMatrix", "Rotate", 0x59B460, &CMatrix::Rotate, true);
+    ReversibleHooks::Install("CMatrix", "Reorthogonalise", 0x59B6A0, &CMatrix::Reorthogonalise, true);
+    ReversibleHooks::Install("CMatrix", "CopyToRwMatrix", 0x59B8B0, &CMatrix::CopyToRwMatrix, true);
+    ReversibleHooks::Install("CMatrix", "SetRotate_quat", 0x59BBF0, (void(CMatrix::*)(CQuaternion&))(&CMatrix::SetRotate), true);
+    ReversibleHooks::Install("CMatrix", "Scale", 0x459350, &CMatrix::Scale, true);
+    ReversibleHooks::Install("CMatrix", "ForceUpVector", 0x59B7E0, &CMatrix::ForceUpVector, true);
+    ReversibleHooks::Install("CMatrix", "operator=", 0x59BBC0, &CMatrix::operator=, true);
+    ReversibleHooks::Install("CMatrix", "operator+=", 0x59ADF0, &CMatrix::operator+=, true);
+    ReversibleHooks::Install("CMatrix", "operator*=", 0x411A80, &CMatrix::operator*=, true);
 }
 
 CMatrix::CMatrix(CMatrix const& matrix)
@@ -334,25 +334,19 @@ void CMatrix::operator*=(CMatrix const& rvalue)
 
 CMatrix operator*(CMatrix const& a, CMatrix const& b) {
     CMatrix result;
-
-    result.GetRight() = Multiply3x3(a, b.GetRight());
-    m_forward = Multiply3x3(&rotMat, &m_forward);
-    m_up = Multiply3x3(&rotMat, &m_up);
-    m_pos = Multiply3x3(&rotMat, &m_pos);
-    result.GetRight() = 
-    ((void(__cdecl*)(CMatrix*, CMatrix const&, CMatrix const&))0x59BE30)(&result, a, b);
+    plugin::Call<0x59BE30, CMatrix*, CMatrix const&, CMatrix const&>(&result, a, b);
     return result;
 }
 
 CVector operator*(CMatrix const& a, CVector const& b) {
     CVector result;
-    ((void(__cdecl*)(CVector*, CMatrix const&, CVector const&))0x59C890)(&result, a, b);
+    plugin::Call<0x59C890, CVector*, CMatrix const&, CVector const&>(&result, a, b);
     return result;
 }
 
 CMatrix operator+(CMatrix const& a, CMatrix const& b) {
     CMatrix result;
-    ((void(__cdecl*)(CMatrix*, CMatrix const&, CMatrix const&))0x59BFA0)(&result, a, b);
+    plugin::Call<0x59BFA0, CMatrix*, CMatrix const&, CMatrix const&>(&result, a, b);
     return result;
 }
 
