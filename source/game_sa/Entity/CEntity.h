@@ -93,8 +93,8 @@ public:
     static void InjectHooks();
 
     // originally virtual functions
-    virtual void Add(CRect &rect);
-    virtual void Add(); // similar to previous, but with entity bound rect
+    virtual void Add(CRect const& rect);
+    virtual void Add_(); // similar to previous, but with entity bound rect
     virtual void Remove();
     virtual void SetIsStatic(bool isStatic);
     virtual void SetModelIndex(unsigned int index);
@@ -116,6 +116,9 @@ public:
     virtual void FlagToDestroyWhenNextProcessed();
 
 private:
+    void Add_Reversed(CRect const& rect);
+    void Add__Reversed();
+    void Remove_Reversed();
     void SetModelIndex_Reversed(unsigned int index);
     CRect* GetBoundRect_Reversed(CRect* pRect);
     void SetModelIndexNoCreate_Reversed(unsigned int index);

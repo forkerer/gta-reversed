@@ -30,7 +30,7 @@ void CPhysical::InjectHooks()
     HookInstall(0x5428C0, &CPhysical::SetDamagedPieceRecord);
     HookInstall(0x542860, &CPhysical::RemoveFromMovingList);
     HookInstall(0x542800, &CPhysical::AddToMovingList);
-    HookInstall(0x544A30, &CPhysical::Add_Reversed);
+    HookInstall(0x544A30, &CPhysical::Add__Reversed);
     HookInstall(0x5424C0, &CPhysical::Remove_Reversed);
     HookInstall(0x5449B0, &CPhysical::GetBoundRect_Reversed);
     HookInstall(0x5485E0, &CPhysical::ProcessControl_Reversed);
@@ -81,15 +81,15 @@ void CPhysical::Add()
 #ifdef USE_DEFAULT_FUNCTIONS
     plugin::CallMethod<0x544A30, CPhysical*>(this);
 #else
-    CPhysical::Add_Reversed();
+    CPhysical::Add__Reversed();
 #endif
 }
 
-void CPhysical::Add_Reversed()
+void CPhysical::Add__Reversed()
 {
     if (m_bIsBIGBuilding)
     {
-        CEntity::Add();
+        CEntity::Add_();
     }
     else
     {
@@ -635,7 +635,7 @@ void CPhysical::RemoveAndAdd()
     if (m_bIsBIGBuilding)
     {
         CEntity::Remove();
-        CEntity::Add();
+        CEntity::Add_();
     }
     else
     {

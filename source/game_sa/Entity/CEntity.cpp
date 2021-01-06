@@ -9,24 +9,157 @@ Do not delete this comment block. Respect others' work!
 
 void CEntity::InjectHooks()
 {
+    ReversibleHooks::Install("CEntity", "Add", 0x5347D0, &CEntity::Add_Reversed);
+    ReversibleHooks::Install("CEntity", "Add_", 0x533020, &CEntity::Add__Reversed);
+    ReversibleHooks::Install("CEntity", "Remove", 0x534AE0, &CEntity::Remove);
     ReversibleHooks::Install("CEntity", "GetBoundRect", 0x534120, &CEntity::GetBoundRect_Reversed);
     ReversibleHooks::Install("CEntity", "SetModelIndexNoCreate", 0x533700, &CEntity::SetModelIndexNoCreate_Reversed);
     ReversibleHooks::Install("CEntity", "CreateRwObject", 0x533D30, &CEntity::CreateRwObject_Reversed);
 }
 
-void CEntity::Add(CRect &rect)
+void CEntity::Add(CRect const& rect)
 {
-    ((void(__thiscall *)(CEntity *, CRect &))(unsigned int)(*(void ***)this)[1])(this, rect);
+    CEntity::Add_Reversed(rect);
+}
+void CEntity::Add_Reversed(CRect const& rect)
+{
+    CRect usedRect = rect;
+    if (usedRect.left < -3000.0F)
+        usedRect.left = -3000.0F;
+
+    if (usedRect.right >= 3000.0F)
+        usedRect.right = 2999.0F;
+
+    if (usedRect.top < -3000.0F)
+        usedRect.top = -3000.0F;
+
+    if (usedRect.bottom >= 3000.0F)
+        usedRect.bottom = 2999.0F;
+
+    if (m_bIsBIGBuilding) {
+        std::int32_t startSectorX = CWorld::GetLodSectorX(usedRect.left);
+        std::int32_t startSectorY = CWorld::GetLodSectorY(usedRect.top);
+        std::int32_t endSectorX = CWorld::GetLodSectorX(usedRect.right);
+        std::int32_t endSectorY = CWorld::GetLodSectorY(usedRect.bottom);
+        for (std::int32_t sectorY = startSectorY; sectorY <= endSectorY; ++sectorY) {
+            for (std::int32_t sectorX = startSectorX; sectorX <= endSectorX; ++sectorX) {
+                auto pLodListEntry = CWorld::GetLodPtrList(sectorX, sectorY);
+                pLodListEntry.AddItem(this);
+            }
+        }
+    }
+    else {
+        std::int32_t startSectorX = CWorld::GetSectorX(usedRect.left);
+        std::int32_t startSectorY = CWorld::GetSectorY(usedRect.top);
+        std::int32_t endSectorX = CWorld::GetSectorX(usedRect.right);
+        std::int32_t endSectorY = CWorld::GetSectorY(usedRect.bottom);
+        for (std::int32_t sectorY = startSectorY; sectorY <= endSectorY; ++sectorY) {
+            for (std::int32_t sectorX = startSectorX; sectorX <= endSectorX; ++sectorX) {
+                CPtrListDoubleLink* pDoubleLinkList = nullptr;
+                auto pRepeatSector = GetRepeatSector(sectorX, sectorY);
+                auto pSector = GetSector(sectorX, sectorY);
+                switch (m_nType)
+                {
+                case ENTITY_TYPE_BUILDING:
+                    pDoubleLinkList = &pSector->m_buildings;
+                    break;
+                case ENTITY_TYPE_DUMMY:
+                    pDoubleLinkList = &pSector->m_dummies;
+                    break;
+                case ENTITY_TYPE_VEHICLE:
+                    pDoubleLinkList = &pRepeatSector->m_lists[REPEATSECTOR_VEHICLES];
+                    break;
+                case ENTITY_TYPE_PED:
+                    pDoubleLinkList = &pRepeatSector->m_lists[REPEATSECTOR_PEDS];
+                    break;
+                case ENTITY_TYPE_OBJECT:
+                    pDoubleLinkList = &pRepeatSector->m_lists[REPEATSECTOR_OBJECTS];
+                    break;
+                }
+
+                pDoubleLinkList->AddItem(this);
+            }
+        }
+    }
 }
 
-void CEntity::Add()
+void CEntity::Add_()
 {
-    ((void(__thiscall *)(CEntity *))0x533020)(this);
+    CEntity::Add__Reversed();
+}
+void CEntity::Add__Reversed()
+{
+    auto rect = CRect();
+    GetBoundRect(&rect);
+    Add(rect);
 }
 
 void CEntity::Remove()
 {
-    ((void(__thiscall *)(CEntity *))(0x534AE0))(this);
+    CEntity::Remove_Reversed();
+}
+void CEntity::Remove_Reversed()
+{
+    auto usedRect = CRect();
+    GetBoundRect(&usedRect);
+
+    if (usedRect.left < -3000.0F)
+        usedRect.left = -3000.0F;
+
+    if (usedRect.right >= 3000.0F)
+        usedRect.right = 2999.0F;
+
+    if (usedRect.top < -3000.0F)
+        usedRect.top = -3000.0F;
+
+    if (usedRect.bottom >= 3000.0F)
+        usedRect.bottom = 2999.0F;
+
+    if (m_bIsBIGBuilding) {
+        std::int32_t startSectorX = CWorld::GetLodSectorX(usedRect.left);
+        std::int32_t startSectorY = CWorld::GetLodSectorY(usedRect.top);
+        std::int32_t endSectorX = CWorld::GetLodSectorX(usedRect.right);
+        std::int32_t endSectorY = CWorld::GetLodSectorY(usedRect.bottom);
+        for (std::int32_t sectorY = startSectorY; sectorY <= endSectorY; ++sectorY) {
+            for (std::int32_t sectorX = startSectorX; sectorX <= endSectorX; ++sectorX) {
+                auto pLodListEntry = CWorld::GetLodPtrList(sectorX, sectorY);
+                pLodListEntry.DeleteItem(this);
+            }
+        }
+    }
+    else {
+        std::int32_t startSectorX = CWorld::GetSectorX(usedRect.left);
+        std::int32_t startSectorY = CWorld::GetSectorY(usedRect.top);
+        std::int32_t endSectorX = CWorld::GetSectorX(usedRect.right);
+        std::int32_t endSectorY = CWorld::GetSectorY(usedRect.bottom);
+        for (std::int32_t sectorY = startSectorY; sectorY <= endSectorY; ++sectorY) {
+            for (std::int32_t sectorX = startSectorX; sectorX <= endSectorX; ++sectorX) {
+                CPtrListDoubleLink* pDoubleLinkList = nullptr;
+                auto pRepeatSector = GetRepeatSector(sectorX, sectorY);
+                auto pSector = GetSector(sectorX, sectorY);
+                switch (m_nType)
+                {
+                case ENTITY_TYPE_BUILDING:
+                    pDoubleLinkList = &pSector->m_buildings;
+                    break;
+                case ENTITY_TYPE_DUMMY:
+                    pDoubleLinkList = &pSector->m_dummies;
+                    break;
+                case ENTITY_TYPE_VEHICLE:
+                    pDoubleLinkList = &pRepeatSector->m_lists[REPEATSECTOR_VEHICLES];
+                    break;
+                case ENTITY_TYPE_PED:
+                    pDoubleLinkList = &pRepeatSector->m_lists[REPEATSECTOR_PEDS];
+                    break;
+                case ENTITY_TYPE_OBJECT:
+                    pDoubleLinkList = &pRepeatSector->m_lists[REPEATSECTOR_OBJECTS];
+                    break;
+                }
+
+                pDoubleLinkList->DeleteItem(this);
+            }
+        }
+    }
 }
 
 void CEntity::SetIsStatic(bool isStatic)

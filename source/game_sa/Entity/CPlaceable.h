@@ -14,6 +14,7 @@ protected:
     CPlaceable(plugin::dummy_func_t) {}
     CPlaceable();
     //virtual ~CPlaceable();
+    virtual unsigned int DeletingDestructor(uint8_t deletingFlags);
 public:
     CSimpleTransform m_placement;
     CMatrixLink *m_matrix;
@@ -21,7 +22,6 @@ public:
 public:
     static void InjectHooks();
 
-    virtual unsigned int DeletingDestructor(uint8_t deletingFlags);
     
     CMatrixLink *GetMatrix();
     
