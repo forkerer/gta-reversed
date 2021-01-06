@@ -19,7 +19,7 @@ public:
     static void InjectHooks();
 
     // Quat to matrix
-    void Get(CMatrix* out);
+    void Get(RwMatrixTag* out);
 
     // Quat to euler angles
     void Get(float *x, float *y, float *z);

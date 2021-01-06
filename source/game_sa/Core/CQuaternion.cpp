@@ -9,11 +9,11 @@
 
 void CQuaternion::InjectHooks()
 {
-    ReversibleHooks::Install("CQuaternion", "Get", 0x59C080, (void(CQuaternion::*)(CMatrix*))(&CQuaternion::Get));
+    ReversibleHooks::Install("CQuaternion", "Get", 0x59C080, (void(CQuaternion::*)(RwMatrixTag*))(&CQuaternion::Get));
 }
 
 // Quat to matrix
-void CQuaternion::Get(CMatrix* out)
+void CQuaternion::Get(RwMatrixTag* out)
 {
     auto vecImag2 = imag + imag;
     auto x2x = vecImag2.x * imag.x;
@@ -28,9 +28,9 @@ void CQuaternion::Get(CMatrix* out)
     auto y2r = vecImag2.y * real;
     auto z2r = vecImag2.z * real;
 
-    out->GetRight().Set  (1.0F-(z2z+y2y),   z2r+y2x,        z2x-y2r);
-    out->GetForward().Set(y2x-z2r,          1.0F-(z2z+x2x), x2r+z2y);
-    out->GetUp().Set     (y2r+z2x,          z2y-x2r,        1.0F-(y2y+x2x));
+    RwV3dAssign(RwMatrixGetRight(out), &CVector(1.0F-(z2z+y2y),   z2r+y2x,        z2x-y2r));
+    RwV3dAssign(RwMatrixGetUp(out),    &CVector(y2x-z2r,          1.0F-(z2z+x2x), x2r+z2y));
+    RwV3dAssign(RwMatrixGetAt(out),    &CVector(y2r+z2x,          z2y-x2r,        1.0F-(y2y+x2x)));
 }
 
 // Quat to euler angles

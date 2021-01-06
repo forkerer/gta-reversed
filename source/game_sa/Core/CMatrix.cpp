@@ -305,7 +305,22 @@ void CMatrix::CopyToRwMatrix(RwMatrix* matrix)
 
 void CMatrix::SetRotate(CQuaternion& quat)
 {
-    quat.Get(this);
+    auto vecImag2 = quat.imag + quat.imag;
+    auto x2x = vecImag2.x * quat.imag.x;
+    auto y2x = vecImag2.y * quat.imag.x;
+    auto z2x = vecImag2.z * quat.imag.x;
+
+    auto y2y = vecImag2.y * quat.imag.y;
+    auto z2y = vecImag2.z * quat.imag.y;
+    auto z2z = vecImag2.z * quat.imag.z;
+
+    auto x2r = vecImag2.x * quat.real;
+    auto y2r = vecImag2.y * quat.real;
+    auto z2r = vecImag2.z * quat.real;
+
+    m_right.Set  (1.0F-(z2z+y2y),   z2r+y2x,        z2x-y2r);
+    m_forward.Set(y2x-z2r,          1.0F-(z2z+x2x), x2r+z2y);
+    m_up.Set     (y2r+z2x,          z2y-x2r,        1.0F-(y2y+x2x));
 }
 
 void CMatrix::Scale(float scale) {
