@@ -257,5 +257,7 @@ extern int WindowsCharset;
 
 extern unsigned short &uiTempBufferIndicesStored;
 extern unsigned short &uiTempBufferVerticesStored;
-extern RxVertexIndex *aTempBufferIndices; // size 4096
-extern RxObjSpace3DVertex* aTempBufferVertices; // size 1024 - after this there are 2 more arrays like this, both sized 512
+constexpr int32_t TOTAL_TEMP_BUFFER_INDICES = 4096;
+extern RxVertexIndex(&aTempBufferIndices)[TOTAL_TEMP_BUFFER_INDICES]; // size 4096
+constexpr int32_t TOTAL_TEMP_BUFFER_VERTICES = 1024;
+extern RxObjSpace3DVertex(&aTempBufferVertices)[TOTAL_TEMP_BUFFER_VERTICES]; // size 1024 - after this there are 2 more arrays like this, both sized 512

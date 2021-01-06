@@ -1,6 +1,6 @@
 #include "StdInc.h"
 
-CBoat** CBoat::apFrameWakeGeneratingBoats = (CBoat**)0xC27994; // static CBoat *apFrameWakeGeneratingBoats[4]
+CBoat* (&CBoat::apFrameWakeGeneratingBoats)[NUM_WAKE_GEN_BOATS] = *(CBoat*(*)[NUM_WAKE_GEN_BOATS])0xC27994;
 float& CBoat::MAX_WAKE_LENGTH = *(float*)0x8D3938; // 50.0
 float& CBoat::MIN_WAKE_INTERVAL = *(float*)0x8D393C; // 2.0
 float& CBoat::WAKE_LIFETIME = *(float*)0x8D3940; // 150.0
@@ -68,15 +68,15 @@ CBoat::CBoat(int modelIndex, unsigned char createdBy) : CVehicle(createdBy)
     pModelInfo->ChooseVehicleColour(m_nPrimaryColor, m_nSecondaryColor, m_nTertiaryColor, m_nQuaternaryColor, 1);
 
     m_fMass = m_pHandlingData->m_fMass;
-    m_fTurnMass = m_pHandlingData->m_fTurnMass * 0.5;
+    m_fTurnMass = m_pHandlingData->m_fTurnMass * 0.5F;
     m_vecCentreOfMass = m_pHandlingData->m_vecCentreOfMass;
-    m_fElasticity = 0.1;
+    m_fElasticity = 0.1F;
     m_fBuoyancyConstant = m_pHandlingData->m_fBuoyancyConstant;
 
     if (m_pHandlingData->m_fDragMult <= 0.01F)
         m_fAirResistance = m_pHandlingData->m_fDragMult;
     else
-        m_fAirResistance = m_pHandlingData->m_fDragMult / 1000.0 * 0.5;
+        m_fAirResistance = m_pHandlingData->m_fDragMult / 1000.0F * 0.5F;
 
     physicalFlags.bTouchingWater = true;
     physicalFlags.bSubmergedInWater = true;
@@ -89,7 +89,7 @@ CBoat::CBoat(int modelIndex, unsigned char createdBy) : CVehicle(createdBy)
     m_fBreakPedal = 0.0;
     m_fRawSteerAngle = 0.0;
     field_63C = 0;
-    m_fLastWaterImmersionDepth = 7.0;
+    m_fLastWaterImmersionDepth = 7.0F;
     field_604 = 0;
 
     m_fAnchoredAngle = -9999.99F;
@@ -213,9 +213,9 @@ void CBoat::PrintThrustAndRudderInfo()
 
 void CBoat::ModifyHandlingValue(bool const& bIncrement)
 {
-    auto fChange = -1.0;
+    auto fChange = -1.0F;
     if (bIncrement)
-        fChange = 1.0;
+        fChange = 1.0F;
 
     if (field_63C == 4)
         m_pHandlingData->m_fSteeringLock += fChange;
@@ -245,11 +245,11 @@ void CBoat::PruneWakeTrail()
 
 void CBoat::AddWakePoint(CVector posn)
 {
-    auto fIntensity = m_vecMoveSpeed.Magnitude() * 100.0F;
+    auto ucIntensity = static_cast<unsigned char>(m_vecMoveSpeed.Magnitude() * 100.0F);
 
     // No wake points exisiting, early out
     if (m_afWakePointLifeTime[0] < 0.0F) {
-        m_anWakePointIntensity[0] = fIntensity;
+        m_anWakePointIntensity[0] = ucIntensity;
         m_avecWakePoints[0].Set(posn.x, posn.y);
         m_afWakePointLifeTime[0] = CBoat::WAKE_LIFETIME;
 
@@ -278,7 +278,7 @@ void CBoat::AddWakePoint(CVector posn)
         }
     }
 
-    m_anWakePointIntensity[0] = fIntensity;
+    m_anWakePointIntensity[0] = ucIntensity;
     m_avecWakePoints[0].Set(posn.x, posn.y);
     m_afWakePointLifeTime[0] = CBoat::WAKE_LIFETIME;
     if (m_nNumWaterTrailPoints < 32)
@@ -291,7 +291,7 @@ bool CBoat::IsSectorAffectedByWake(CVector2D vecPos, float fOffset, CBoat** ppBo
         return false;
 
     bool bWakeFound = false;
-    for (size_t i = 0; i <= 3; ++i) {
+    for (int32_t i = 0; i < NUM_WAKE_GEN_BOATS; ++i) {
         auto pBoat = CBoat::apFrameWakeGeneratingBoats[i];
         if (!pBoat)
             continue;
@@ -299,7 +299,7 @@ bool CBoat::IsSectorAffectedByWake(CVector2D vecPos, float fOffset, CBoat** ppBo
         if (!pBoat->m_nNumWaterTrailPoints)
             continue;
 
-        for (size_t iTrail = 0; iTrail < pBoat->m_nNumWaterTrailPoints; ++iTrail) {
+        for (int32_t iTrail = 0; iTrail < pBoat->m_nNumWaterTrailPoints; ++iTrail) {
             auto fDist = (CBoat::WAKE_LIFETIME - pBoat->m_afWakePointLifeTime[iTrail]) * CBoat::fShapeTime + static_cast<float>(iTrail) * CBoat::fShapeLength + fOffset;
             if (fabs(pBoat->m_avecWakePoints[iTrail].x - vecPos.x) >= fDist
                 || fabs(pBoat->m_avecWakePoints[iTrail].y - vecPos.y) >= fDist)
@@ -326,13 +326,13 @@ float CBoat::IsVertexAffectedByWake(CVector vecPos, CBoat* pBoat, short wIndex, 
     if (!pBoat->m_nNumWaterTrailPoints)
         return 0.0F;
 
-    for (size_t iTrail = 0; iTrail < pBoat->m_nNumWaterTrailPoints; ++iTrail) {
-        auto fWakeDistSquared = pow((CBoat::WAKE_LIFETIME - pBoat->m_afWakePointLifeTime[iTrail]) * CBoat::fShapeTime + static_cast<float>(iTrail) * CBoat::fShapeLength, 2);
+    for (int32_t iTrail = 0; iTrail < pBoat->m_nNumWaterTrailPoints; ++iTrail) {
+        auto fWakeDistSquared = powf((CBoat::WAKE_LIFETIME - pBoat->m_afWakePointLifeTime[iTrail]) * CBoat::fShapeTime + static_cast<float>(iTrail) * CBoat::fShapeLength, 2);
         auto fTrailDistSquared = (pBoat->m_avecWakePoints[iTrail] - vecPos).SquaredMagnitude();
         if (fTrailDistSquared < fWakeDistSquared)
         {
             CBoat::waUnknArr2[wIndex] = 0;
-            float fContrib = sqrt(fTrailDistSquared / fWakeDistSquared) * CBoat::fRangeMult + (CBoat::WAKE_LIFETIME - pBoat->m_afWakePointLifeTime[iTrail]) * 1.2F / CBoat::WAKE_LIFETIME;
+            float fContrib = sqrtf(fTrailDistSquared / fWakeDistSquared) * CBoat::fRangeMult + (CBoat::WAKE_LIFETIME - pBoat->m_afWakePointLifeTime[iTrail]) * 1.2F / CBoat::WAKE_LIFETIME;
             fContrib = std::min(1.0F, fContrib);
             return 1.0F - fContrib;
         }
@@ -371,7 +371,7 @@ void CBoat::CheckForSkippingCalculations()
 
 void CBoat::FillBoatList()
 {
-    for (int32_t i = 0; i <= 3; i++)
+    for (int32_t i = 0; i < NUM_WAKE_GEN_BOATS; i++)
         CBoat::apFrameWakeGeneratingBoats[i] = nullptr;
 
     auto vecCamPos = CVector2D(TheCamera.GetPosition());
@@ -413,7 +413,7 @@ void CBoat::FillBoatList()
         // Insert the new boat into list, based on dist from camera
         auto iNewInd = -1;
         auto fMinDist = 999999.99F;
-        for (int32_t iCheckedInd = 0; iCheckedInd <= 3; ++iCheckedInd) {
+        for (int32_t iCheckedInd = 0; iCheckedInd < NUM_WAKE_GEN_BOATS; ++iCheckedInd) {
             auto pCheckedBoat = CBoat::apFrameWakeGeneratingBoats[iCheckedInd];
             auto vecCheckedPos = CVector2D(pCheckedBoat->GetPosition());
             auto fCheckedDistFromCam = DistanceBetweenPoints(vecCheckedPos, vecCamPos); // Originally squared dist
@@ -894,7 +894,7 @@ void CBoat::ProcessControlInputs_Reversed(unsigned char ucPadNum)
         m_nPadNumber = 3;
 
     auto pPad = CPad::GetPad(ucPadNum);
-    float fBrakePower = (static_cast<float>(pPad->GetBrake()) * (1.0F / 255.0F) - m_fBreakPedal) * 0.1 + m_fBreakPedal;
+    float fBrakePower = (static_cast<float>(pPad->GetBrake()) * (1.0F / 255.0F) - m_fBreakPedal) * 0.1F + m_fBreakPedal;
     fBrakePower = clamp(fBrakePower, 0.0F, 1.0F);
     m_fBreakPedal = fBrakePower;
 

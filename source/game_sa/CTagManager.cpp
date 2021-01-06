@@ -1,6 +1,6 @@
 #include "StdInc.h"
 
-tTagDesc* CTagManager::ms_tagDesc = (tTagDesc*)0xA9A8C0;
+tTagDesc(&CTagManager::ms_tagDesc)[MAX_TAGS] = *(tTagDesc(*)[MAX_TAGS])0xA9A8C0;
 int& CTagManager::ms_numTags = *(int*)0xA9AD70;
 int& CTagManager::ms_numTagged = *(int*)0xA9AD74;
 RxPipeline* &CTagManager::ms_pPipeline = *(RxPipeline**)0xA9AD78;
@@ -123,7 +123,7 @@ int64_t CTagManager::GetPercentageTaggedInArea(CRect* pArea)
         auto vecPos = CVector2D(pTagDesc.m_pEntity->GetPosition());
         if (pArea->IsPointInside(vecPos)) {
             ++iTotalTags;
-            if (pTagDesc.m_nAlpha > CTagManager::ucAlphaTagged)
+            if (pTagDesc.m_nAlpha > CTagManager::ALPHA_TAGGED)
                 ++iTagged;
         }
     }
@@ -139,7 +139,7 @@ void CTagManager::UpdateNumTagged()
 
     for (int32_t i = CTagManager::ms_numTags - 1; i >= 0; --i) {
         auto& pTagDesc = CTagManager::ms_tagDesc[i];
-        if (pTagDesc.m_nAlpha > CTagManager::ucAlphaTagged)
+        if (pTagDesc.m_nAlpha > CTagManager::ALPHA_TAGGED)
             ++CTagManager::ms_numTagged;
     }
 }
@@ -165,7 +165,7 @@ void CTagManager::SetAlpha(CEntity* pEntity, unsigned char ucAlpha)
 
     auto pTag = CTagManager::FindTagDesc(pEntity);
     auto bChangedState = false;
-    if (ucAlpha > CTagManager::ucAlphaTagged && pTag->m_nAlpha <= CTagManager::ucAlphaTagged)
+    if (ucAlpha > CTagManager::ALPHA_TAGGED && pTag->m_nAlpha <= CTagManager::ALPHA_TAGGED)
         bChangedState = true;
 
     pTag->m_nAlpha = ucAlpha;
@@ -179,21 +179,22 @@ void CTagManager::SetAlpha(CEntity* pEntity, unsigned char ucAlpha)
     }
 }
 
-CEntity* CTagManager::GetNearestTag(CVector* vecPos)
+CEntity* CTagManager::GetNearestTag(CVector const& vecPos)
 {
-    auto vecPosUsed = CVector2D(vecPos->x, vecPos->y);
+    auto vecPosUsed = CVector2D(vecPos.x, vecPos.y);
     int32_t iClosestInd = -1;
     float fMinDist = RwRealMAXVAL;
     for (int32_t i = CTagManager::ms_numTags - 1; i >= 0; --i) {
         auto& pTagDesc = CTagManager::ms_tagDesc[i];
         auto vecTagPos = CVector2D(pTagDesc.m_pEntity->GetPosition());
-        auto fDist = DistanceBetweenPoints(vecPosUsed, vecTagPos);
+        auto fDist = (vecPosUsed - vecTagPos).SquaredMagnitude();
         if (fDist < fMinDist) {
             fMinDist = fDist;
             iClosestInd = i;
         }
     }
 
+    assert(iClosestInd != -1);
     return CTagManager::ms_tagDesc[iClosestInd].m_pEntity;
 }
 
