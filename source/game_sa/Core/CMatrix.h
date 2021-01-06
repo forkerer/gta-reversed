@@ -102,8 +102,8 @@ public:
 	void SetRotate(CQuaternion& quat);
     void Scale(float scale);
 	void ForceUpVector(CVector vecUp);
-    void ConvertToEulerAngles(float* pPhi, float* pTheta, float* pPsi, unsigned int uiFlags);
-    void ConvertFromEulerAngles(float fPhi, float fTheta, float fPsi, unsigned int uiFlags);
+    void ConvertToEulerAngles(float* pX, float* pY, float* pZ, unsigned int uiFlags);
+    void ConvertFromEulerAngles(float x, float y, float z, unsigned int uiFlags);
 
 	void operator=(CMatrix const& right);
 	void operator+=(CMatrix const& right);

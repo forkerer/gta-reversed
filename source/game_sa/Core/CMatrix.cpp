@@ -44,6 +44,7 @@ void CMatrix::InjectHooks()
     ReversibleHooks::Install("CMatrix", "SetRotate_quat", 0x59BBF0, (void(CMatrix::*)(CQuaternion&))(&CMatrix::SetRotate));
     ReversibleHooks::Install("CMatrix", "Scale", 0x459350, &CMatrix::Scale);
     ReversibleHooks::Install("CMatrix", "ForceUpVector", 0x59B7E0, &CMatrix::ForceUpVector);
+    ReversibleHooks::Install("CMatrix", "ConvertToEulerAngles", 0x59A840, &CMatrix::ConvertToEulerAngles);
     ReversibleHooks::Install("CMatrix", "ConvertFromEulerAngles", 0x59AA40, &CMatrix::ConvertFromEulerAngles);
     ReversibleHooks::Install("CMatrix", "operator=", 0x59BBC0, &CMatrix::operator=);
     ReversibleHooks::Install("CMatrix", "operator+=", 0x59ADF0, &CMatrix::operator+=);
@@ -322,9 +323,87 @@ void CMatrix::ForceUpVector(CVector vecUp) {
     m_up = vecUp;
 }
 
-void CMatrix::ConvertToEulerAngles(float* pPhi, float* pTheta, float* pPsi, unsigned int uiFlags)
+void CMatrix::ConvertToEulerAngles(float* pX, float* pY, float* pZ, unsigned int uiFlags)
 {
-    plugin::CallMethod<0x59A840, CMatrix*, float*, float*, float*, unsigned int>(this, pPhi, pTheta, pPsi, uiFlags);
+    float fArr[3][3];
+
+    fArr[0][0] = m_right.x;
+    fArr[0][1] = m_right.y;
+    fArr[0][2] = m_right.z;
+
+    fArr[1][0] = m_forward.x;
+    fArr[1][1] = m_forward.y;
+    fArr[1][2] = m_forward.z;
+
+    fArr[2][0] = m_up.x;
+    fArr[2][1] = m_up.y;
+    fArr[2][2] = m_up.z;
+
+    /* Original indices deciding logic, i replaced it with clearer one
+    auto iInd1 = CMatrix::EulerIndices1[(uiFlags >> 3) & 0x3];
+    auto iInd2 = CMatrix::EulerIndices2[iInd1 + ((uiFlags & 0x4) != 0)];
+    auto iInd3 = CMatrix::EulerIndices2[iInd1 - ((uiFlags & 0x4) != 0) + 1]; */
+    int8_t iInd1 = 0, iInd2 = 1, iInd3 = 2;
+    switch (uiFlags & eMatrixEulerFlags::_ORDER_MASK) {
+    case ORDER_XYZ:
+        iInd1 = 0, iInd2 = 1, iInd3 = 2;
+        break;
+    case ORDER_XZY:
+        iInd1 = 0, iInd2 = 2, iInd3 = 1;
+        break;
+    case ORDER_YZX:
+        iInd1 = 1, iInd2 = 2, iInd3 = 0;
+        break;
+    case ORDER_YXZ:
+        iInd1 = 1, iInd2 = 0, iInd3 = 2;
+        break;
+    case ORDER_ZXY:
+        iInd1 = 2, iInd2 = 0, iInd3 = 1;
+        break;
+    case ORDER_ZYX:
+        iInd1 = 2, iInd2 = 1, iInd3 = 0;
+        break;
+    }
+
+    if (uiFlags & eMatrixEulerFlags::EULER_ANGLES) {
+        auto r13 = fArr[iInd1][iInd3];
+        auto r12 = fArr[iInd1][iInd2];
+        auto cy = sqrt(r12 * r12 + r13 * r13);
+        if (cy > 0.0000019073486) { // Some epsilon?
+            *pX = atan2(r12, r13);
+            *pY = atan2(cy, fArr[iInd1][iInd1]);
+            *pZ = atan2(fArr[iInd2][iInd3], -fArr[iInd3][iInd1]);
+        }
+        else {
+            *pX = atan2(-fArr[iInd2][iInd3], fArr[iInd2][iInd2]);
+            *pY = atan2(cy, fArr[iInd1][iInd1]);
+            *pZ = 0.0F;
+        }
+    }
+    else {
+        auto r21 = fArr[iInd2][iInd1];
+        auto r11 = fArr[iInd1][iInd1];
+        auto cy = sqrt(r11 * r11 + r21 * r21);
+        if (cy > 0.0000019073486) { // Some epsilon?
+            *pX = atan2(fArr[iInd3][iInd2], fArr[iInd3][iInd3]);
+            *pY = atan2(-fArr[iInd3][iInd1], cy);
+            *pZ = atan2(r21, r11);
+        }
+        else {
+            *pX = atan2(-fArr[iInd2][iInd3], fArr[iInd2][iInd2]);
+            *pY = atan2(-fArr[iInd3][iInd1], cy);
+            *pZ = 0.0F;
+        }
+    }
+
+    if (uiFlags & eMatrixEulerFlags::SWAP_XZ)
+        std::swap(*pX, *pZ);
+
+    if (uiFlags & eMatrixEulerFlags::_ORDER_NEEDS_SWAP) {
+        *pX = -*pX;
+        *pY = -*pY;
+        *pZ = -*pZ;
+    }
 }
 
 void CMatrix::ConvertFromEulerAngles(float x, float y, float z, unsigned int uiFlags)
@@ -336,34 +415,22 @@ void CMatrix::ConvertFromEulerAngles(float x, float y, float z, unsigned int uiF
     int8_t iInd1 = 0, iInd2 = 1, iInd3 = 2;
     switch (uiFlags & eMatrixEulerFlags::_ORDER_MASK) {
     case ORDER_XYZ:
-        iInd1 = 0;
-        iInd2 = 1;
-        iInd3 = 2;
+        iInd1 = 0, iInd2 = 1, iInd3 = 2;
         break;
     case ORDER_XZY:
-        iInd1 = 0;
-        iInd2 = 2;
-        iInd3 = 1;
+        iInd1 = 0, iInd2 = 2, iInd3 = 1;
         break;
     case ORDER_YZX:
-        iInd1 = 1;
-        iInd2 = 2;
-        iInd3 = 0;
+        iInd1 = 1, iInd2 = 2, iInd3 = 0;
         break;
     case ORDER_YXZ:
-        iInd1 = 1;
-        iInd2 = 0;
-        iInd3 = 2;
+        iInd1 = 1, iInd2 = 0, iInd3 = 2;
         break;
     case ORDER_ZXY:
-        iInd1 = 2;
-        iInd2 = 0;
-        iInd3 = 1;
+        iInd1 = 2, iInd2 = 0, iInd3 = 1;
         break;
     case ORDER_ZYX:
-        iInd1 = 2;
-        iInd2 = 1;
-        iInd3 = 0;
+        iInd1 = 2, iInd2 = 1, iInd3 = 0;
         break;
     }
 
