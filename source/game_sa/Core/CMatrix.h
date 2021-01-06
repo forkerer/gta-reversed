@@ -9,13 +9,38 @@
 #include "RenderWare.h"
 #include "CQuaternion.h"
 
+enum eMatrixEulerFlags : unsigned int {
+    SWAP_XZ =  0x01,
+
+    TAIT_BRYAN_ANGLES = 0x0,
+    EULER_ANGLES = 0x2,
+
+    ORDER_XYZ = 0x00,
+    ORDER_XZY = 0x04,
+    ORDER_YZX = 0x08,
+    ORDER_YXZ = 0x0C,
+    ORDER_ZXY = 0x10,
+    ORDER_ZYX = 0x14,
+    ORDER_MASK = 0x1C,
+};
+
+typedef union {
+    eMatrixEulerFlags uiFlags;
+    struct {
+        unsigned int bSwapXZ : 1;
+        unsigned int bFlag0x2 : 1;
+        unsigned int bFlipAngles : 1;
+        unsigned int ucOrder : 2;
+    };
+} MatrixEulerFlags;
+
 class CMatrix {
 public:
     CMatrix(plugin::dummy_func_t) {}
 	CMatrix(CMatrix const& matrix);
 	CMatrix(RwMatrix *matrix, bool temporary); // like previous + attach
 	~CMatrix(); // destructor detaches matrix if attached
-    inline CMatrix() {
+    CMatrix() {
         m_pAttachMatrix = nullptr;
         m_bOwnsAttachedMatrix = false;
     }
@@ -76,21 +101,40 @@ public:
 	void SetRotate(CQuaternion& quat);
     void Scale(float scale);
 	void ForceUpVector(CVector vecUp);
+    void ConvertToEulerAngles(float* pPhi, float* pTheta, float* pPsi, unsigned int uiFlags);
+    void ConvertFromEulerAngles(float fPhi, float fTheta, float fPsi, unsigned int uiFlags);
+
 	void operator=(CMatrix const& right);
 	void operator+=(CMatrix const& right);
 	void operator*=(CMatrix const& right);
+
+    static uint8_t* EulerIndices1;
+    static uint8_t* EulerIndices2;
+
+// operators and classes that aren't defined as part of class, but it's much easier to get them working with access to class private fields
+private:
+    friend CMatrix operator*(CMatrix const& a, CMatrix const& b);
+    //static CMatrix* impl_operatorMul(CMatrix* pOut, CMatrix const& a, CMatrix const& b);
+
+    friend CVector operator*(CMatrix const& a, CVector const& b);
+    //static CVector* impl_operatorMul(CVector* pOut, CMatrix const& a, CVector const& b);
+
+    friend CMatrix operator+(CMatrix const& a, CMatrix const& b);
+    //static CMatrix* impl_operatorAdd(CMatrix* pOut, CMatrix const& a, CMatrix const& b);
+
+    friend CMatrix* Invert(CMatrix* in, CMatrix* out);
+    friend CMatrix* InvertMatrix(CMatrix* out, CMatrix* in);
 };
+
+CMatrix operator*(CMatrix const& a, CMatrix const& b);
+CVector operator*(CMatrix const& a, CVector const& b);
+CMatrix operator+(CMatrix const& a, CMatrix const& b);
+
+CMatrix* Invert(CMatrix* in, CMatrix* out);
+// It's also called Invert, but renamed it as we cannot have 2 functions with same names and prototype
+CMatrix* InvertMatrix(CMatrix* out, CMatrix* in); 
 
 VALIDATE_SIZE(CMatrix, 0x48);
 
 extern int32_t& numMatrices;
 extern CMatrix& gDummyMatrix;
-
-CMatrix operator*(CMatrix const&a, CMatrix const&b);
-CVector operator*(CMatrix const&a, CVector const&b);
-CMatrix operator+(CMatrix const&a, CMatrix const&b);
-
-CMatrix* Invert(CMatrix* a1, CMatrix* out);
-
-// It's also called Invert, but renamed it as we cannot have 2 functions with same names and prototype
-CMatrix* InvertMatrix(CMatrix* out, CMatrix* a2); 

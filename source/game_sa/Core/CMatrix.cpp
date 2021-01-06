@@ -7,8 +7,11 @@
 
 #include "StdInc.h"
 
+uint8_t* CMatrix::EulerIndices1 = (uint8_t*)0x866D9C;
+uint8_t* CMatrix::EulerIndices2 = (uint8_t*)0x866D94;
 int32_t& numMatrices = *(int32_t*)0xB74238;
 CMatrix& gDummyMatrix = *(CMatrix*)0xB74240;
+
 
 void CMatrix::InjectHooks()
 {
@@ -31,7 +34,7 @@ void CMatrix::InjectHooks()
     ReversibleHooks::Install("CMatrix", "SetRotateX", 0x59B060, &CMatrix::SetRotateX);
     ReversibleHooks::Install("CMatrix", "SetRotateY", 0x59B0A0, &CMatrix::SetRotateY);
     ReversibleHooks::Install("CMatrix", "SetRotateZ", 0x59B0E0, &CMatrix::SetRotateZ);
-    ReversibleHooks::Install("CMatrix", "SetRotate_fff", 0x59B120, (void(CMatrix::*)(float, float, float))(&CMatrix::SetRotate));
+    ReversibleHooks::Install("CMatrix", "SetRotate_xyz", 0x59B120, (void(CMatrix::*)(float, float, float))(&CMatrix::SetRotate));
     ReversibleHooks::Install("CMatrix", "RotateX", 0x59B1E0, &CMatrix::RotateX);
     ReversibleHooks::Install("CMatrix", "RotateY", 0x59B2C0, &CMatrix::RotateY);
     ReversibleHooks::Install("CMatrix", "RotateZ", 0x59B390, &CMatrix::RotateZ);
@@ -41,9 +44,15 @@ void CMatrix::InjectHooks()
     ReversibleHooks::Install("CMatrix", "SetRotate_quat", 0x59BBF0, (void(CMatrix::*)(CQuaternion&))(&CMatrix::SetRotate));
     ReversibleHooks::Install("CMatrix", "Scale", 0x459350, &CMatrix::Scale);
     ReversibleHooks::Install("CMatrix", "ForceUpVector", 0x59B7E0, &CMatrix::ForceUpVector);
+    ReversibleHooks::Install("CMatrix", "ConvertFromEulerAngles", 0x59AA40, &CMatrix::ConvertFromEulerAngles);
     ReversibleHooks::Install("CMatrix", "operator=", 0x59BBC0, &CMatrix::operator=);
     ReversibleHooks::Install("CMatrix", "operator+=", 0x59ADF0, &CMatrix::operator+=);
     ReversibleHooks::Install("CMatrix", "operator*=", 0x411A80, &CMatrix::operator*=);
+    ReversibleHooks::Install("CMatrix", "operator*_Mat", 0x59BE30, (CMatrix(*)(CMatrix const&, CMatrix const&))(&::operator*));
+    ReversibleHooks::Install("CMatrix", "operator*_Vec", 0x59C890, (CVector(*)(CMatrix const&, CVector const&))(&::operator*));
+    ReversibleHooks::Install("CMatrix", "operator+", 0x59BFA0, (CMatrix(*)(CMatrix const&, CMatrix const&))(&::operator+));
+    ReversibleHooks::Install("CMatrix", "Invert", 0x59B920, &Invert);
+    ReversibleHooks::Install("CMatrix", "InvertMatrix", 0x59BDD0, &InvertMatrix);
 }
 
 CMatrix::CMatrix(CMatrix const& matrix)
@@ -233,31 +242,31 @@ void CMatrix::SetRotate(float x, float y, float z)
 void CMatrix::RotateX(float angle)
 {
     auto rotMat = CMatrix();
-    rotMat.SetRotateXOnly(angle);
-    m_right =   Multiply3x3(&rotMat, &m_right);
-    m_forward = Multiply3x3(&rotMat, &m_forward);
-    m_up =      Multiply3x3(&rotMat, &m_up);
-    m_pos =     Multiply3x3(&rotMat, &m_pos);
+    rotMat.SetRotateX(angle);
+    m_right =   rotMat * m_right;
+    m_forward = rotMat * m_forward;
+    m_up =      rotMat * m_up;
+    m_pos =     rotMat * m_pos;
 }
 
 void CMatrix::RotateY(float angle)
 {
     auto rotMat = CMatrix();
-    rotMat.SetRotateYOnly(angle);
-    m_right =   Multiply3x3(&rotMat, &m_right);
-    m_forward = Multiply3x3(&rotMat, &m_forward);
-    m_up =      Multiply3x3(&rotMat, &m_up);
-    m_pos =     Multiply3x3(&rotMat, &m_pos);
+    rotMat.SetRotateY(angle);
+    m_right =   rotMat * m_right;
+    m_forward = rotMat * m_forward;
+    m_up =      rotMat * m_up;
+    m_pos =     rotMat * m_pos;
 }
 
 void CMatrix::RotateZ(float angle)
 {
     auto rotMat = CMatrix();
-    rotMat.SetRotateZOnly(angle);
-    m_right =   Multiply3x3(&rotMat, &m_right);
-    m_forward = Multiply3x3(&rotMat, &m_forward);
-    m_up =      Multiply3x3(&rotMat, &m_up);
-    m_pos =     Multiply3x3(&rotMat, &m_pos);
+    rotMat.SetRotateZ(angle);
+    m_right =   rotMat * m_right;
+    m_forward = rotMat * m_forward;
+    m_up =      rotMat * m_up;
+    m_pos =     rotMat * m_pos;
 }
 
 // rotate on 3 axes
@@ -265,10 +274,10 @@ void CMatrix::Rotate(CVector rotation)
 {
     auto rotMat = CMatrix();
     rotMat.SetRotate(rotation.x, rotation.y, rotation.z);
-    m_right =   Multiply3x3(&rotMat, &m_right);
-    m_forward = Multiply3x3(&rotMat, &m_forward);
-    m_up =      Multiply3x3(&rotMat, &m_up);
-    m_pos =     Multiply3x3(&rotMat, &m_pos);
+    m_right =   rotMat * m_right;
+    m_forward = rotMat * m_forward;
+    m_up =      rotMat * m_up;
+    m_pos =     rotMat * m_pos;
 }
 
 void CMatrix::Reorthogonalise()
@@ -313,6 +322,101 @@ void CMatrix::ForceUpVector(CVector vecUp) {
     m_up = vecUp;
 }
 
+void CMatrix::ConvertToEulerAngles(float* pPhi, float* pTheta, float* pPsi, unsigned int uiFlags)
+{
+    plugin::CallMethod<0x59A840, CMatrix*, float*, float*, float*, unsigned int>(this, pPhi, pTheta, pPsi, uiFlags);
+}
+
+void CMatrix::ConvertFromEulerAngles(float x, float y, float z, unsigned int uiFlags)
+{
+    /* Original indices deciding logic, i replaced it with clearer one
+    auto iInd1 = CMatrix::EulerIndices1[(uiFlags >> 3) & 0x3];
+    auto iInd2 = CMatrix::EulerIndices2[iInd1 + ((uiFlags & 0x4) != 0)];
+    auto iInd3 = CMatrix::EulerIndices2[iInd1 - ((uiFlags & 0x4) != 0) + 1]; */
+    int8_t iInd1 = 0, iInd2 = 1, iInd3 = 2;
+    switch (uiFlags & eMatrixEulerFlags::ORDER_MASK) {
+    case ORDER_XYZ:
+        iInd1 = 0;
+        iInd2 = 1;
+        iInd3 = 2;
+        break;
+    case ORDER_XZY:
+        iInd1 = 0;
+        iInd2 = 2;
+        iInd3 = 1;
+        break;
+    case ORDER_YZX:
+        iInd1 = 1;
+        iInd2 = 2;
+        iInd3 = 0;
+        break;
+    case ORDER_YXZ:
+        iInd1 = 1;
+        iInd2 = 0;
+        iInd3 = 2;
+        break;
+    case ORDER_ZXY:
+        iInd1 = 2;
+        iInd2 = 0;
+        iInd3 = 1;
+        break;
+    case ORDER_ZYX:
+        iInd1 = 2;
+        iInd2 = 1;
+        iInd3 = 0;
+        break;
+    }
+
+    float fArr[3][3];
+
+    if (uiFlags & eMatrixEulerFlags::SWAP_XZ)
+        std::swap(x, z);
+
+    if (uiFlags & 0x4) {
+        x = -x;
+        y = -y;
+        z = -z;
+    }
+
+    auto fSinX = sin(x);
+    auto fCosX = cos(x);
+    auto fSinY = sin(y);
+    auto fCosY = cos(y);
+    auto fSinZ = sin(z);
+    auto fCosZ = cos(z);
+
+    if (uiFlags & eMatrixEulerFlags::EULER_ANGLES) {
+        fArr[iInd1][iInd1] = fCosY;
+        fArr[iInd1][iInd2] = fSinX*fSinY;
+        fArr[iInd1][iInd3] = fCosX*fSinY;
+
+        fArr[iInd2][iInd1] =   fSinY*fSinZ;
+        fArr[iInd2][iInd2] =   fCosX*fCosY  - fCosY*fSinX*fSinZ;
+        fArr[iInd2][iInd3] = -(fSinX*fCosZ) -(fCosX*fCosY*fSinZ);
+
+        fArr[iInd3][iInd1] = -(fCosZ*fSinY);
+        fArr[iInd3][iInd2] =   fCosX*fSinZ  + fCosY*fCosZ*fSinX;
+        fArr[iInd3][iInd3] = -(fSinX*fSinZ) + fCosX*fCosY*fCosZ;
+    }
+    else {
+        fArr[iInd1][iInd1] =   fCosY*fCosZ;
+        fArr[iInd1][iInd2] = -(fCosX*fSinZ) + fCosZ*fSinX*fSinY;
+        fArr[iInd1][iInd3] =   fSinX*fSinZ  + fCosX*fCosZ*fSinY;
+
+        fArr[iInd2][iInd1] =   fCosY*fSinZ;
+        fArr[iInd2][iInd2] =   fCosX*fCosZ  + fSinX*fSinY*fSinZ;
+        fArr[iInd2][iInd3] = -(fCosZ*fSinX) + fCosX*fSinY*fSinZ;
+
+        fArr[iInd3][iInd1] = -fSinY;
+        fArr[iInd3][iInd2] =  fCosY*fSinX;
+        fArr[iInd3][iInd3] =  fCosX*fCosY;
+    }
+
+    m_right.Set  (fArr[0][0], fArr[0][1], fArr[0][2]);
+    m_forward.Set(fArr[1][0], fArr[1][1], fArr[1][2]);
+    m_up.Set     (fArr[2][0], fArr[2][1], fArr[2][2]);
+}
+
 void CMatrix::operator=(CMatrix const& rvalue)
 {
     CMatrix::CopyOnlyMatrix(rvalue);
@@ -332,30 +436,63 @@ void CMatrix::operator*=(CMatrix const& rvalue)
     *this = (*this * rvalue);
 }
 
-CMatrix operator*(CMatrix const& a, CMatrix const& b) {
-    CMatrix result;
-    plugin::Call<0x59BE30, CMatrix*, CMatrix const&, CMatrix const&>(&result, a, b);
+CMatrix operator*(CMatrix const& a, CMatrix const& b)
+{
+    auto result = CMatrix();
+    result.m_right =   a.m_right * b.m_right.x   + a.m_forward * b.m_right.y   + a.m_up * b.m_right.z;
+    result.m_forward = a.m_right * b.m_forward.x + a.m_forward * b.m_forward.y + a.m_up * b.m_forward.z;
+    result.m_up =      a.m_right * b.m_up.x      + a.m_forward * b.m_up.y      + a.m_up * b.m_up.z;
+    result.m_pos =     a.m_right * b.m_pos.x     + a.m_forward * b.m_pos.y     + a.m_up * b.m_pos.z + a.m_pos;
     return result;
 }
 
-CVector operator*(CMatrix const& a, CVector const& b) {
+CVector operator*(CMatrix const& a, CVector const& b)
+{
     CVector result;
-    plugin::Call<0x59C890, CVector*, CMatrix const&, CVector const&>(&result, a, b);
+    result.x = a.m_pos.x + a.m_right.x * b.x + a.m_forward.x * b.y + a.m_up.x * b.z;
+    result.y = a.m_pos.y + a.m_right.y * b.x + a.m_forward.y * b.y + a.m_up.y * b.z;
+    result.z = a.m_pos.z + a.m_right.z * b.x + a.m_forward.z * b.y + a.m_up.z * b.z;
+    return result;
+}
+CMatrix operator+(CMatrix const& a, CMatrix const& b)
+{
+    auto result = CMatrix();
+    result.m_right =   a.m_right + b.m_right;
+    result.m_forward = a.m_forward + b.m_forward;
+    result.m_up =      a.m_up + b.m_up;
+    result.m_pos =     a.m_pos + b.m_pos;
     return result;
 }
 
-CMatrix operator+(CMatrix const& a, CMatrix const& b) {
-    CMatrix result;
-    plugin::Call<0x59BFA0, CMatrix*, CMatrix const&, CMatrix const&>(&result, a, b);
-    return result;
+CMatrix* Invert(CMatrix* in, CMatrix* out)
+{
+    out->m_pos.Set(0.0F, 0.0F, 0.0F);
+
+    out->m_right.x = in->m_right.x;
+    out->m_right.y = in->m_forward.x;
+    out->m_right.z = in->m_up.x;
+
+    out->m_forward.x = in->m_right.y;
+    out->m_forward.y = in->m_forward.y;
+    out->m_forward.z = in->m_up.y;
+
+    out->m_up.x = in->m_right.z;
+    out->m_up.y = in->m_forward.z;
+    out->m_up.z = in->m_up.z;
+
+    out->m_pos += in->m_pos.x * out->m_right;
+    out->m_pos += in->m_pos.y * out->m_forward;
+    out->m_pos += in->m_pos.z * out->m_up;
+    out->m_pos *= -1.0F;
+
+    return out;
 }
 
-CMatrix* Invert(CMatrix* a1, CMatrix* out)
+CMatrix* InvertMatrix(CMatrix* out, CMatrix* in)
 {
-    return plugin::CallAndReturn<CMatrix*, 0x59B920, CMatrix*, CMatrix*>(a1, out);
-}
-
-CMatrix* InvertMatrix(CMatrix* out, CMatrix* a2)
-{
-    return plugin::CallAndReturn<CMatrix*, 0x59BDD0, CMatrix*, CMatrix*>(out, a2);
+    auto result = CMatrix();
+    Invert(in, &result);
+    out->Detach();
+    out->CopyOnlyMatrix(result);
+    return out;
 }
