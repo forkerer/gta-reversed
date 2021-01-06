@@ -11,5 +11,5 @@ public:
     static float& m_fDNBalanceParam;
 
 public:
-    static void UnknSetup(RpAtomic* pAtomic, bool bUnkn); //Temporary function name, it doesn't exist in Android IDB, and it's not yet known what it does
+    static void PreRenderUpdate(RpAtomic* pAtomic, bool ignoreDNBalanceParam);
 };

@@ -104,7 +104,7 @@ void CEntity::CreateRwObject_Reversed()
         if (CTagManager::IsTag(this))
             CTagManager::ResetAlpha(this);
 
-        CCustomBuildingDNPipeline::UnknSetup(m_pRwAtomic, true);
+        CCustomBuildingDNPipeline::PreRenderUpdate(m_pRwAtomic, true);
     }
     else if (RwObjectGetType(m_pRwObject) == rpCLUMP && pModelInfo->bIsRoad) {
         if (IsObject()) {
