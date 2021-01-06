@@ -20,6 +20,10 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "ProcessControl", 0x403E40, &CEntity::ProcessControl_Reversed);
     ReversibleHooks::Install("CEntity", "ProcessCollision", 0x403E50, &CEntity::ProcessCollision_Reversed);
     ReversibleHooks::Install("CEntity", "ProcessShift", 0x403E60, &CEntity::ProcessShift_Reversed);
+    ReversibleHooks::Install("CEntity", "TestCollision", 0x403E70, &CEntity::TestCollision_Reversed);
+    ReversibleHooks::Install("CEntity", "Teleport", 0x403E80, &CEntity::Teleport_Reversed);
+    ReversibleHooks::Install("CEntity", "SpecialEntityPreCollisionStuff", 0x403E90, &CEntity::SpecialEntityPreCollisionStuff_Reversed);
+    ReversibleHooks::Install("CEntity", "SpecialEntityCalcCollisionSteps", 0x403EA0, &CEntity::SpecialEntityCalcCollisionSteps_Reversed);
 }
 
 void CEntity::Add(CRect const& rect)
@@ -375,22 +379,38 @@ void CEntity::ProcessShift_Reversed()
 
 bool CEntity::TestCollision(bool bApplySpeed)
 {
-    return ((bool(__thiscall *)(CEntity *, bool))(*(void ***)this)[13])(this, bApplySpeed);
+    return CEntity::TestCollision_Reversed(bApplySpeed);
+}
+bool CEntity::TestCollision_Reversed(bool bApplySpeed)
+{
+    return false;
 }
 
 void CEntity::Teleport(CVector destination, bool resetRotation)
 {
-    ((void(__thiscall *)(CEntity *, CVector, bool))(*(void ***)this)[14])(this, destination, resetRotation);
+    CEntity::Teleport_Reversed(destination, resetRotation);
+}
+void CEntity::Teleport_Reversed(CVector destination, bool resetRotation)
+{
+    return;
 }
 
 void CEntity::SpecialEntityPreCollisionStuff(CEntity *colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck)
 {
-    ((void(__thiscall *)(CEntity *, CEntity *, bool, bool *, bool *, bool *, bool *))(*(void ***)this)[15])(this, colEntity, bIgnoreStuckCheck, bCollisionDisabled, bCollidedEntityCollisionIgnored, bCollidedEntityUnableToMove, bThisOrCollidedEntityStuck);
+    CEntity::SpecialEntityPreCollisionStuff_Reversed(colEntity, bIgnoreStuckCheck, bCollisionDisabled, bCollidedEntityCollisionIgnored, bCollidedEntityUnableToMove, bThisOrCollidedEntityStuck);
+}
+void CEntity::SpecialEntityPreCollisionStuff_Reversed(CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck)
+{
+    return;
 }
 
 unsigned char CEntity::SpecialEntityCalcCollisionSteps(bool * bProcessCollisionBeforeSettingTimeStep, bool* unk2)
 {
-    return ((unsigned char(__thiscall *)(CEntity *, bool*, bool*))(*(void ***)this)[16])(this, bProcessCollisionBeforeSettingTimeStep, unk2);
+    return CEntity::SpecialEntityCalcCollisionSteps_Reversed(bProcessCollisionBeforeSettingTimeStep, unk2);
+}
+unsigned char CEntity::SpecialEntityCalcCollisionSteps_Reversed(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2)
+{
+    return 1;
 }
 
 void CEntity::PreRender()

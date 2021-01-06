@@ -128,6 +128,10 @@ private:
     void ProcessControl_Reversed();
     void ProcessCollision_Reversed();
     void ProcessShift_Reversed();
+    bool TestCollision_Reversed(bool bApplySpeed);
+    void Teleport_Reversed(CVector destination, bool resetRotation);
+    void SpecialEntityPreCollisionStuff_Reversed(class CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck);
+    unsigned char SpecialEntityCalcCollisionSteps_Reversed(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2);
 
 public:
     // funcs
