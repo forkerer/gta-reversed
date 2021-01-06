@@ -25,16 +25,6 @@ enum eMatrixEulerFlags : unsigned int {
     _ORDER_NEEDS_SWAP = 0x4
 };
 
-typedef union {
-    eMatrixEulerFlags uiFlags;
-    struct {
-        unsigned int bSwapXZ : 1;
-        unsigned int bFlag0x2 : 1;
-        unsigned int bFlipAngles : 1;
-        unsigned int ucOrder : 2;
-    };
-} MatrixEulerFlags;
-
 class CMatrix {
 public:
     CMatrix(plugin::dummy_func_t) {}
