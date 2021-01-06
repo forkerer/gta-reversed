@@ -334,7 +334,7 @@ void CMatrix::ConvertFromEulerAngles(float x, float y, float z, unsigned int uiF
     auto iInd2 = CMatrix::EulerIndices2[iInd1 + ((uiFlags & 0x4) != 0)];
     auto iInd3 = CMatrix::EulerIndices2[iInd1 - ((uiFlags & 0x4) != 0) + 1]; */
     int8_t iInd1 = 0, iInd2 = 1, iInd3 = 2;
-    switch (uiFlags & eMatrixEulerFlags::ORDER_MASK) {
+    switch (uiFlags & eMatrixEulerFlags::_ORDER_MASK) {
     case ORDER_XYZ:
         iInd1 = 0;
         iInd2 = 1;
@@ -372,7 +372,7 @@ void CMatrix::ConvertFromEulerAngles(float x, float y, float z, unsigned int uiF
     if (uiFlags & eMatrixEulerFlags::SWAP_XZ)
         std::swap(x, z);
 
-    if (uiFlags & 0x4) {
+    if (uiFlags & eMatrixEulerFlags::_ORDER_NEEDS_SWAP) {
         x = -x;
         y = -y;
         z = -z;
@@ -398,7 +398,7 @@ void CMatrix::ConvertFromEulerAngles(float x, float y, float z, unsigned int uiF
         fArr[iInd3][iInd2] =   fCosX*fSinZ  + fCosY*fCosZ*fSinX;
         fArr[iInd3][iInd3] = -(fSinX*fSinZ) + fCosX*fCosY*fCosZ;
     }
-    else {
+    else { // Use Tait-Bryan angles
         fArr[iInd1][iInd1] =   fCosY*fCosZ;
         fArr[iInd1][iInd2] = -(fCosX*fSinZ) + fCosZ*fSinX*fSinY;
         fArr[iInd1][iInd3] =   fSinX*fSinZ  + fCosX*fCosZ*fSinY;

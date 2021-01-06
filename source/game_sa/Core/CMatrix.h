@@ -21,7 +21,8 @@ enum eMatrixEulerFlags : unsigned int {
     ORDER_YXZ = 0x0C,
     ORDER_ZXY = 0x10,
     ORDER_ZYX = 0x14,
-    ORDER_MASK = 0x1C,
+    _ORDER_MASK = 0x1C,
+    _ORDER_NEEDS_SWAP = 0x4
 };
 
 typedef union {
