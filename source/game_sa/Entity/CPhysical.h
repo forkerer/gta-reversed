@@ -162,7 +162,7 @@ public:
     static void InjectHooks();
 
     // originally virtual functions
-    void Add() override;
+    void Add_() override;
     void Remove() override;
     CRect* GetBoundRect(CRect* pRect) override;
     void ProcessControl() override;

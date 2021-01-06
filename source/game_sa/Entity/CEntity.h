@@ -77,7 +77,7 @@ public:
     };
     unsigned short m_nModelIndex;
     CReference *m_pReferences;
-    void *m_pStreamingLink;
+    CLink<CEntity*> *m_pStreamingLink;
     unsigned short m_nScanCode;
     char m_nIplIndex;
     unsigned char m_nAreaCode; // see eAreaCodes
@@ -93,36 +93,41 @@ public:
     static void InjectHooks();
 
     // originally virtual functions
-    virtual void Add(CRect const& rect);
-    virtual void Add_(); // similar to previous, but with entity bound rect
-    virtual void Remove();
-    virtual void SetIsStatic(bool isStatic);
-    virtual void SetModelIndex(unsigned int index);
-    virtual void SetModelIndexNoCreate(unsigned int index);
-    virtual void CreateRwObject();
-    virtual void DeleteRwObject();
-    virtual CRect* GetBoundRect(CRect* pRect);
-    virtual void ProcessControl();
-    virtual void ProcessCollision();
-    virtual void ProcessShift();
-    virtual bool TestCollision(bool bApplySpeed);
-    virtual void Teleport(CVector destination, bool resetRotation);
-    virtual void SpecialEntityPreCollisionStuff(class CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck);
-    virtual unsigned char SpecialEntityCalcCollisionSteps(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2);
-    virtual void PreRender();
-    virtual void Render();
-    virtual bool SetupLighting();
-    virtual void RemoveLighting(bool bRemove);
-    virtual void FlagToDestroyWhenNextProcessed();
+    virtual void Add(CRect const& rect); //VTab: 1
+    virtual void Add_(); //VTab: 2, similar to previous, but with entity bound rect
+    virtual void Remove(); //VTab: 3
+    virtual void SetIsStatic(bool isStatic); //VTab: 4
+    virtual void SetModelIndex(unsigned int index); //VTab: 5
+    virtual void SetModelIndexNoCreate(unsigned int index); //VTab: 6
+    virtual void CreateRwObject(); //VTab: 7
+    virtual void DeleteRwObject(); //VTab: 8
+    virtual CRect* GetBoundRect(CRect* pRect); //VTab: 9
+    virtual void ProcessControl(); //VTab: 10
+    virtual void ProcessCollision(); //VTab: 11
+    virtual void ProcessShift(); //VTab: 12
+    virtual bool TestCollision(bool bApplySpeed); //VTab: 13
+    virtual void Teleport(CVector destination, bool resetRotation); //VTab: 14
+    virtual void SpecialEntityPreCollisionStuff(class CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck); //VTab: 15
+    virtual unsigned char SpecialEntityCalcCollisionSteps(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2); //VTab: 16
+    virtual void PreRender(); //VTab: 17
+    virtual void Render(); //VTab: 18
+    virtual bool SetupLighting(); //VTab: 19
+    virtual void RemoveLighting(bool bRemove); //VTab: 20
+    virtual void FlagToDestroyWhenNextProcessed(); //VTab: 21
 
 private:
     void Add_Reversed(CRect const& rect);
     void Add__Reversed();
     void Remove_Reversed();
+    void SetIsStatic_Reversed(bool isStatic);
     void SetModelIndex_Reversed(unsigned int index);
-    CRect* GetBoundRect_Reversed(CRect* pRect);
     void SetModelIndexNoCreate_Reversed(unsigned int index);
     void CreateRwObject_Reversed();
+    void DeleteRwObject_Reversed();
+    CRect* GetBoundRect_Reversed(CRect* pRect);
+    void ProcessControl_Reversed();
+    void ProcessCollision_Reversed();
+    void ProcessShift_Reversed();
 
 public:
     // funcs

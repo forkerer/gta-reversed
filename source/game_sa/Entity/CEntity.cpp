@@ -12,9 +12,14 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "Add", 0x5347D0, &CEntity::Add_Reversed);
     ReversibleHooks::Install("CEntity", "Add_", 0x533020, &CEntity::Add__Reversed);
     ReversibleHooks::Install("CEntity", "Remove", 0x534AE0, &CEntity::Remove);
-    ReversibleHooks::Install("CEntity", "GetBoundRect", 0x534120, &CEntity::GetBoundRect_Reversed);
+    ReversibleHooks::Install("CEntity", "SetIsStatic", 0x403E20, &CEntity::SetIsStatic_Reversed);
     ReversibleHooks::Install("CEntity", "SetModelIndexNoCreate", 0x533700, &CEntity::SetModelIndexNoCreate_Reversed);
     ReversibleHooks::Install("CEntity", "CreateRwObject", 0x533D30, &CEntity::CreateRwObject_Reversed);
+    ReversibleHooks::Install("CEntity", "DeleteRwObject", 0x534030, &CEntity::DeleteRwObject_Reversed);
+    ReversibleHooks::Install("CEntity", "GetBoundRect", 0x534120, &CEntity::GetBoundRect_Reversed);
+    ReversibleHooks::Install("CEntity", "ProcessControl", 0x403E40, &CEntity::ProcessControl_Reversed);
+    ReversibleHooks::Install("CEntity", "ProcessCollision", 0x403E50, &CEntity::ProcessCollision_Reversed);
+    ReversibleHooks::Install("CEntity", "ProcessShift", 0x403E60, &CEntity::ProcessShift_Reversed);
 }
 
 void CEntity::Add(CRect const& rect)
@@ -164,14 +169,17 @@ void CEntity::Remove_Reversed()
 
 void CEntity::SetIsStatic(bool isStatic)
 {
-    ((void(__thiscall *)(CEntity *, bool))(*(void ***)this)[4])(this, isStatic);
+    return CEntity::SetIsStatic_Reversed(isStatic);
+}
+void CEntity::SetIsStatic_Reversed(bool isStatic)
+{
+    m_bIsStatic = isStatic;
 }
 
 void CEntity::SetModelIndex(unsigned int index)
 {
     return CEntity::SetModelIndex_Reversed(index);
 }
-
 void CEntity::SetModelIndex_Reversed(unsigned int index)
 {
     CEntity::SetModelIndexNoCreate(index);
@@ -182,7 +190,6 @@ void CEntity::SetModelIndexNoCreate(unsigned int index)
 {
     return CEntity::SetModelIndexNoCreate_Reversed(index);
 }
-
 void CEntity::SetModelIndexNoCreate_Reversed(unsigned int index)
 {
     auto pModelInfo = CModelInfo::GetModelInfo(index);
@@ -204,7 +211,6 @@ void CEntity::CreateRwObject()
 {
     return CEntity::CreateRwObject_Reversed();
 }
-
 void CEntity::CreateRwObject_Reversed()
 {
     if (!m_bIsVisible)
@@ -248,11 +254,7 @@ void CEntity::CreateRwObject_Reversed()
             pObj->SetIsStatic(false);
         }
         else {
-            auto pPtrList = reinterpret_cast<CPtrNodeDoubleLink*>(CPtrNodeDoubleLink::operator new(0xC));
-            if (pPtrList)
-                pPtrList->pItem = this;
-
-            pPtrList->AddToList(&CWorld::ms_listMovingEntityPtrs); //pPtrList can be nullptr when calling this method if the operator new failed
+            CWorld::ms_listMovingEntityPtrs.AddItem(this);
         }
 
         if (m_pLod && m_pLod->m_pRwObject && RwObjectGetType(m_pLod->m_pRwObject) == rpCLUMP) {
@@ -277,17 +279,51 @@ void CEntity::CreateRwObject_Reversed()
         m_bLightObject = true;
 }
 
-
 void CEntity::DeleteRwObject()
 {
-    ((void(__thiscall *)(CEntity *))(*(void ***)this)[8])(this);
+    CEntity::DeleteRwObject_Reversed();
+}
+void CEntity::DeleteRwObject_Reversed()
+{
+    if (!m_pRwObject)
+        return;
+
+    if (RwObjectGetType(m_pRwObject) == rpATOMIC) {
+        auto pParent = static_cast<RwFrame*>(rwObjectGetParent(m_pRwAtomic));
+        RpAtomicDestroy(m_pRwAtomic);
+        RwFrameDestroy(pParent);
+    }
+    else if (RwObjectGetType(m_pRwObject) == rpCLUMP) {
+        auto pFirstAtomic = GetFirstAtomic(m_pRwClump);
+        if (pFirstAtomic && RpSkinGeometryGetSkin(RpAtomicGetGeometry(pFirstAtomic)))
+            RpClumpForAllAtomics(m_pRwClump, AtomicRemoveAnimFromSkinCB, nullptr);
+
+        RpClumpDestroy(m_pRwClump);
+    }
+    m_pRwObject = nullptr;
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    pModelInfo->RemoveRef();
+    CStreaming::RemoveEntity(m_pStreamingLink);
+    m_pStreamingLink = nullptr;
+
+    if (IsBuilding())
+        --gBuildings;
+
+    if (pModelInfo->GetModelType() == MODEL_INFO_CLUMP
+        && pModelInfo->bIsRoad
+        && !IsObject()) {
+
+        CWorld::ms_listMovingEntityPtrs.DeleteItem(this);
+    }
+
+    CEntity::DestroyEffects();
+    CEntity::RemoveEscalatorsForEntity();
 }
 
 CRect* CEntity::GetBoundRect(CRect* pRect)
 {
     return CEntity::GetBoundRect_Reversed(pRect);
 }
-
 CRect* CEntity::GetBoundRect_Reversed(CRect* pRect)
 {
     CColModel* colModel = CModelInfo::GetModelInfo(m_nModelIndex)->m_pColModel;
@@ -312,17 +348,29 @@ CRect* CEntity::GetBoundRect_Reversed(CRect* pRect)
 
 void CEntity::ProcessControl()
 {
-    ((void(__thiscall *)(CEntity *))(*(void ***)this)[10])(this);
+    CEntity::ProcessControl_Reversed();
+}
+void CEntity::ProcessControl_Reversed()
+{
+    return;
 }
 
 void CEntity::ProcessCollision()
 {
-    ((void(__thiscall *)(CEntity *))(*(void ***)this)[11])(this);
+    CEntity::ProcessCollision_Reversed();
+}
+void CEntity::ProcessCollision_Reversed()
+{
+    return;
 }
 
 void CEntity::ProcessShift()
 {
-    ((void(__thiscall *)(CEntity *))(*(void ***)this)[12])(this);
+    CEntity::ProcessShift_Reversed();
+}
+void CEntity::ProcessShift_Reversed()
+{
+    return;
 }
 
 bool CEntity::TestCollision(bool bApplySpeed)

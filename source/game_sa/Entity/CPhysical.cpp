@@ -76,7 +76,7 @@ void CPhysical::InjectHooks()
     HookInstall(0x546FF0, &CPhysical::PositionAttachedEntity);
 }
 
-void CPhysical::Add()
+void CPhysical::Add_()
 {
 #ifdef USE_DEFAULT_FUNCTIONS
     plugin::CallMethod<0x544A30, CPhysical*>(this);

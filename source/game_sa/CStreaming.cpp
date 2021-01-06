@@ -152,7 +152,7 @@ void CStreaming::InjectHooks()
     HookInstall(0x407F80, &CStreaming::WeAreTryingToPhaseVehicleOut);
 }
 
-void* CStreaming::AddEntity(CEntity* pEntity) {
+CLink<CEntity*>* CStreaming::AddEntity(CEntity* pEntity) {
 #ifdef USE_DEFAULT_FUNCTIONS
     return plugin::CallAndReturnDynGlobal<void*, CEntity*>(0x409650, pEntity);
 #else
