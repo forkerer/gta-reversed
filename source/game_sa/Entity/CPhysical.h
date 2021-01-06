@@ -171,7 +171,7 @@ public:
     bool TestCollision(bool bApplySpeed) override;
     virtual int ProcessEntityCollision(CPhysical* entity, CColPoint* colpoint);
 private:
-    void Add_Reversed();
+    void Add__Reversed();
     void Remove_Reversed();
     CRect* GetBoundRect_Reversed(CRect* pRect);
     void ProcessControl_Reversed();
