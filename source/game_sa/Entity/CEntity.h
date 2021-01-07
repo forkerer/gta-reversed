@@ -132,6 +132,7 @@ private:
     void Teleport_Reversed(CVector destination, bool resetRotation);
     void SpecialEntityPreCollisionStuff_Reversed(class CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck);
     unsigned char SpecialEntityCalcCollisionSteps_Reversed(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2);
+    void PreRender_Reversed();
 
 public:
     // funcs

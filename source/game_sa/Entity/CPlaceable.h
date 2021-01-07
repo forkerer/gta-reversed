@@ -14,6 +14,7 @@ protected:
     CPlaceable(plugin::dummy_func_t) {}
     CPlaceable();
     //virtual ~CPlaceable();
+public:
     virtual unsigned int DeletingDestructor(uint8_t deletingFlags);
 public:
     CSimpleTransform m_placement;

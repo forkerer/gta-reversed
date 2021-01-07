@@ -1,5 +1,10 @@
 #include "StdInc.h"
 
+void CPtrListDoubleLink::Flush()
+{
+    plugin::CallMethod<0x552470, CPtrListDoubleLink*>(this);
+}
+
 void CPtrListDoubleLink::AddItem(void* item)
 {
     plugin::CallMethod<0x533670, CPtrListDoubleLink*, void*>(this, item);

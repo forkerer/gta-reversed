@@ -149,6 +149,7 @@ public:
     inline bool IsGlassType2() { return nSpecialType == 5; }       //0x2800
     inline bool IsGlass() { return IsGlassType1() || IsGlassType2(); }
     //inline bool IsTagModel() { return nSpecialType == 6; }         //0x3000
+
     inline bool IsCrane() { return nSpecialType == 9; }            //0x4800
     inline bool IsBreakableStatue() { return nSpecialType == 11; } //0x5800
 };

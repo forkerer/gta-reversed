@@ -20,6 +20,7 @@
 #include <dinput.h>
 
 #include "game_sa\constants.h"
+#include "game_sa\ModelIndices.h"
 #include "game_sa\CPedGeometryAnalyser.h"
 #include "game_sa\CDebug.h"
 #include "game_sa\CPostEffects.h"
@@ -252,6 +253,7 @@
 #include "game_sa\CTimer.h"
 #include "game_sa\CTrainNode.h"
 #include "game_sa\cTransmission.h"
+#include "game_sa\CTrafficLights.h"
 #include "game_sa\CTxdStore.h"
 #include "game_sa\CUpsideDownCarCheck.h"
 #include "game_sa\CUserDisplay.h"

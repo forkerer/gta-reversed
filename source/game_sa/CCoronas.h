@@ -56,4 +56,5 @@ public:
 };
 
 extern unsigned int MAX_CORONAS;
-extern RwTexture **gpCoronaTexture;
+constexpr int CORONA_TEXTURES_COUNT = 10;
+extern RwTexture*(&gpCoronaTexture)[CORONA_TEXTURES_COUNT];
