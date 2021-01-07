@@ -92,7 +92,11 @@ public:
 	};
 	CColModel        *m_pColModel; // 20
 	float             m_fDrawDistance; // 24
-	struct RwObject  *m_pRwObject; // 28
+    union {
+        struct RwObject* m_pRwObject;
+        struct RpClump* m_pRwClump;
+        struct RpAtomic* m_pRwAtomic;
+    };
 
 	// vtable
 	virtual CBaseModelInfo* DeletingDestructor(uint8_t deletingFlags);

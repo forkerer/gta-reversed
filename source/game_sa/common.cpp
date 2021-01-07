@@ -360,7 +360,7 @@ void DeActivateDirectional() {
 
 // Converted from cdecl void ActivateDirectional(void) 0x735C80
 void ActivateDirectional() {
-    ((void(__cdecl *)())0x735C80)();
+    plugin::Call<0x735C80>();
 }
 
 // Converted from cdecl void SetAmbientColoursToIndicateRoadGroup(int) 0x735C90

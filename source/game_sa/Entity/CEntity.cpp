@@ -26,6 +26,10 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "SpecialEntityPreCollisionStuff", 0x403E90, &CEntity::SpecialEntityPreCollisionStuff_Reversed);
     ReversibleHooks::Install("CEntity", "SpecialEntityCalcCollisionSteps", 0x403EA0, &CEntity::SpecialEntityCalcCollisionSteps_Reversed);
     ReversibleHooks::Install("CEntity", "PreRender", 0x535FA0, &CEntity::PreRender_Reversed);
+    ReversibleHooks::Install("CEntity", "Render", 0x534310, &CEntity::Render_Reversed);
+    ReversibleHooks::Install("CEntity", "SetupLighting", 0x553DC0, &CEntity::SetupLighting_Reversed);
+    ReversibleHooks::Install("CEntity", "RemoveLighting", 0x553370, &CEntity::RemoveLighting_Reversed);
+    ReversibleHooks::Install("CEntity", "FlagToDestroyWhenNextProcessed", 0x403EB0, &CEntity::FlagToDestroyWhenNextProcessed_Reversed);
 }
 
 void CEntity::Add(CRect const& rect)
@@ -437,9 +441,8 @@ void CEntity::PreRender_Reversed()
         pModelInfo->bHasBeenPreRendered = true;
 
         if (pAtomicInfo && pAtomicInfo->m_pRwObject) {
-            auto pAtomic = reinterpret_cast<RpAtomic*>(pAtomicInfo->m_pRwObject);
-            if (RpMatFXAtomicQueryEffects(pAtomic) && RpAtomicGetGeometry(pAtomic)) {
-                RpGeometryForAllMaterials(RpAtomicGetGeometry(pAtomic), MaterialUpdateUVAnimCB, nullptr);
+            if (RpMatFXAtomicQueryEffects(pAtomicInfo->m_pRwAtomic) && RpAtomicGetGeometry(pAtomicInfo->m_pRwAtomic)) {
+                RpGeometryForAllMaterials(RpAtomicGetGeometry(pAtomicInfo->m_pRwAtomic), MaterialUpdateUVAnimCB, nullptr);
             }
         }
 
@@ -449,12 +452,10 @@ void CEntity::PreRender_Reversed()
             pModelInfo->m_nAlpha += 16;
 
         if (pAtomicInfo) {
-            auto pAtomic = reinterpret_cast<RpAtomic*>(pAtomicInfo->m_pRwObject);
-            CCustomBuildingDNPipeline::PreRenderUpdate(pAtomic, false);
+            CCustomBuildingDNPipeline::PreRenderUpdate(pAtomicInfo->m_pRwAtomic, false);
         }
         else if (pModelInfo->GetModelType() == MODEL_INFO_CLUMP) {
-            auto pClump = reinterpret_cast<RpClump*>(pModelInfo->m_pRwObject);
-            RpClumpForAllAtomics(pClump, CCustomBuildingDNPipeline::PreRenderUpdateRpAtomicCB, false);
+            RpClumpForAllAtomics(pAtomicInfo->m_pRwClump, CCustomBuildingDNPipeline::PreRenderUpdateRpAtomicCB, false);
         }
     }
 
@@ -744,22 +745,79 @@ void CEntity::PreRender_Reversed()
 
 void CEntity::Render()
 {
-    ((void(__thiscall *)(CEntity *))(*(void ***)this)[18])(this);
+    CEntity::Render_Reversed();
+}
+void CEntity::Render_Reversed()
+{
+    if (!m_pRwObject)
+        return;
+
+    if (RwObjectGetType(m_pRwObject) == rpATOMIC && CTagManager::IsTag(this)) {
+        CTagManager::RenderTagForPC(m_pRwAtomic);
+        return;
+    }
+
+    uint32_t savedAlphaTestFunc;
+    if (m_nModelIndex == ModelIndices::MI_JELLYFISH || m_nModelIndex == ModelIndices::MI_JELLYFISH01) {
+        RwRenderStateGet(rwRENDERSTATEALPHATESTFUNCTIONREF, &savedAlphaTestFunc);
+        RwRenderStateSet(rwRENDERSTATEALPHATESTFUNCTIONREF, 0u);
+    }
+
+    m_bImBeingRendered = true;
+
+    if (RwObjectGetType(m_pRwObject) == rpATOMIC)
+        RpAtomicRender(m_pRwAtomic);
+    else
+        RpClumpRender(m_pRwClump);
+
+    CStreaming::RenderEntity(m_pStreamingLink);
+    CEntity::RenderEffects();
+
+    m_bImBeingRendered = false;
+
+    if (m_nModelIndex == ModelIndices::MI_JELLYFISH || m_nModelIndex == ModelIndices::MI_JELLYFISH01) {
+        RwRenderStateSet(rwRENDERSTATEALPHATESTFUNCTIONREF, (void*)savedAlphaTestFunc);
+    }
 }
 
 bool CEntity::SetupLighting()
 {
-    return ((bool(__thiscall *)(CEntity *))(*(void ***)this)[19])(this);
+    return CEntity::SetupLighting_Reversed();
+}
+bool CEntity::SetupLighting_Reversed()
+{
+    if (!m_bLightObject)
+        return false;
+
+    ActivateDirectional();
+    const auto& vecPos = GetPosition();
+    auto fLight = CPointLights::GenerateLightsAffectingObject(&vecPos, nullptr, this) * 0.5;
+    SetLightColoursForPedsCarsAndObjects(fLight);
+
+    return true;
 }
 
 void CEntity::RemoveLighting(bool bRemove)
 {
-    ((void(__thiscall *)(CEntity *, bool))(*(void ***)this)[20])(this, bRemove);
+    CEntity::RemoveLighting_Reversed(bRemove);
+}
+void CEntity::RemoveLighting_Reversed(bool bRemove)
+{
+    if (!bRemove)
+        return;
+
+    SetAmbientColours();
+    DeActivateDirectional();
+    CPointLights::RemoveLightsAffectingObject();
 }
 
 void CEntity::FlagToDestroyWhenNextProcessed()
 {
-    ((void(__thiscall *)(CEntity *))(*(void ***)this)[21])(this);
+    CEntity::FlagToDestroyWhenNextProcessed_Reversed();
+}
+void CEntity::FlagToDestroyWhenNextProcessed_Reversed()
+{
+    return;
 }
 
 // Converted from thiscall void CEntity::UpdateRwFrame(void) 0x532B00
