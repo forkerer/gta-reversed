@@ -9,7 +9,7 @@ Do not delete this comment block. Respect others' work!
 
 void CEntity::InjectHooks()
 {
-    //Virtual
+//Virtual
     ReversibleHooks::Install("CEntity", "Add", 0x5347D0, &CEntity::Add_Reversed);
     ReversibleHooks::Install("CEntity", "Add_", 0x533020, &CEntity::Add__Reversed);
     ReversibleHooks::Install("CEntity", "Remove", 0x534AE0, &CEntity::Remove_Reversed);
@@ -757,9 +757,9 @@ void CEntity::Render_Reversed()
         return;
     }
 
-    uint32_t savedAlphaTestFunc;
+    uint32_t savedAlphaRef;
     if (m_nModelIndex == ModelIndices::MI_JELLYFISH || m_nModelIndex == ModelIndices::MI_JELLYFISH01) {
-        RwRenderStateGet(rwRENDERSTATEALPHATESTFUNCTIONREF, &savedAlphaTestFunc);
+        RwRenderStateGet(rwRENDERSTATEALPHATESTFUNCTIONREF, &savedAlphaRef);
         RwRenderStateSet(rwRENDERSTATEALPHATESTFUNCTIONREF, 0u);
     }
 
@@ -776,7 +776,7 @@ void CEntity::Render_Reversed()
     m_bImBeingRendered = false;
 
     if (m_nModelIndex == ModelIndices::MI_JELLYFISH || m_nModelIndex == ModelIndices::MI_JELLYFISH01) {
-        RwRenderStateSet(rwRENDERSTATEALPHATESTFUNCTIONREF, (void*)savedAlphaTestFunc);
+        RwRenderStateSet(rwRENDERSTATEALPHATESTFUNCTIONREF, (void*)savedAlphaRef);
     }
 }
 
