@@ -30,6 +30,11 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "SetupLighting", 0x553DC0, &CEntity::SetupLighting_Reversed);
     ReversibleHooks::Install("CEntity", "RemoveLighting", 0x553370, &CEntity::RemoveLighting_Reversed);
     ReversibleHooks::Install("CEntity", "FlagToDestroyWhenNextProcessed", 0x403EB0, &CEntity::FlagToDestroyWhenNextProcessed_Reversed);
+
+//Class
+    ReversibleHooks::Install("CEntity", "UpdateRwFrame", 0x532B00, &CEntity::UpdateRwFrame);
+    ReversibleHooks::Install("CEntity", "UpdateRpHAnim", 0x532B20, &CEntity::UpdateRpHAnim);
+    ReversibleHooks::Install("CEntity", "HasPreRenderEffects", 0x532B70, &CEntity::HasPreRenderEffects);
 }
 
 void CEntity::Add(CRect const& rect)
@@ -823,19 +828,66 @@ void CEntity::FlagToDestroyWhenNextProcessed_Reversed()
 // Converted from thiscall void CEntity::UpdateRwFrame(void) 0x532B00
 void CEntity::UpdateRwFrame()
 {
-    ((void(__thiscall *)(CEntity*))0x532B00)(this);
+    if (!m_pRwObject)
+        return;
+
+    RwFrameUpdateObjects((RwFrame*)rwObjectGetParent(m_pRwObject));
 }
 
 // Converted from thiscall void CEntity::UpdateRpHAnim(void) 0x532B20
 void CEntity::UpdateRpHAnim()
 {
-    ((void(__thiscall *)(CEntity*))0x532B20)(this);
+    auto pFirstAtomic = GetFirstAtomic(m_pRwClump);
+    if (!pFirstAtomic)
+        return;
+
+    if (RpSkinGeometryGetSkin(RpAtomicGetGeometry(pFirstAtomic)) && !m_bDontUpdateHierarchy) {
+        auto pAnimHierarchy = GetAnimHierarchyFromClump(m_pRwClump);
+        RpHAnimHierarchyUpdateMatrices(pAnimHierarchy);
+    }
 }
 
 // Converted from thiscall bool CEntity::HasPreRenderEffects(void) 0x532B70
 bool CEntity::HasPreRenderEffects()
 {
-    return ((bool(__thiscall *)(CEntity*))0x532B70)(this);
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    if (!pModelInfo->SwaysInWind()
+        && !pModelInfo->IsCrane()
+        && m_nModelIndex != ModelIndices::MI_COLLECTABLE1
+        && m_nModelIndex != ModelIndices::MI_MONEY
+        && m_nModelIndex != ModelIndices::MI_CARMINE
+        && m_nModelIndex != ModelIndices::MI_NAUTICALMINE
+        && m_nModelIndex != ModelIndices::MI_BRIEFCASE
+        && m_nModelIndex != eModelID::MODEL_MISSILE
+        && m_nModelIndex != eModelID::MODEL_GRENADE
+        && m_nModelIndex != eModelID::MODEL_MOLOTOV
+        && m_nModelIndex != ModelIndices::MI_BEACHBALL
+        && m_nModelIndex != ModelIndices::MI_MAGNOCRANE_HOOK
+        && m_nModelIndex != ModelIndices::MI_WRECKING_BALL
+        && m_nModelIndex != ModelIndices::MI_CRANE_MAGNET
+        && m_nModelIndex != ModelIndices::MI_MINI_MAGNET
+        && m_nModelIndex != ModelIndices::MI_CRANE_HARNESS
+        && m_nModelIndex != ModelIndices::MI_WINDSOCK
+        && m_nModelIndex != ModelIndices::MI_FLARE
+        && !IsGlassModel(this)
+        && (!IsObject() || !reinterpret_cast<CObject*>(this)->objectFlags.bIsPickup)
+        && !CTrafficLights::IsMITrafficLight(m_nModelIndex)
+        && m_nModelIndex != ModelIndices::MI_SINGLESTREETLIGHTS1
+        && m_nModelIndex != ModelIndices::MI_SINGLESTREETLIGHTS2
+        && m_nModelIndex != ModelIndices::MI_SINGLESTREETLIGHTS3
+        && m_nModelIndex != ModelIndices::MI_DOUBLESTREETLIGHTS) {
+
+        if (!pModelInfo->m_n2dfxCount)
+            return false;
+
+        for (int32_t i = 0; i < pModelInfo->m_n2dfxCount; ++i) {
+            if (pModelInfo->Get2dEffect(i)->m_nType == e2dEffectType::EFFECT_LIGHT)
+                return true;
+        }
+
+        return false;
+    }
+    return true;
 }
 
 // Converted from thiscall bool CEntity::DoesNotCollideWithFlyers(void) 0x532D40
