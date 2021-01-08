@@ -248,6 +248,8 @@ void AsciiToGxtChar(char const *src, char *dst);
 void Render2dStuff();
 void WriteRaster(RwRaster * pRaster, char const * pszPath);
 
+void LittleTest();
+
 /* Convert UTF-8 string to Windows Unicode. Free pointer using delete[] */
 std::wstring UTF8ToUnicode(const std::string &str);
 /* Convert Windows Unicode to UTF-8. Free pointer using delete[] */

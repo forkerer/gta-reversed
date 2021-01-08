@@ -620,6 +620,11 @@ void WriteRaster(RwRaster * pRaster, char const * pszPath) {
     plugin::Call<0x005A4150>(pRaster, pszPath);
 }
 
+void LittleTest()
+{
+    plugin::Call<0x541330>();
+}
+
 void Render2dStuff()
 {
 #ifdef USE_DEFAULT_FUNCTIONS

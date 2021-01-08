@@ -14,6 +14,11 @@ public:
     static constexpr unsigned int MAX_NUM_MOTIONBLUR_STREAKS = 4; // default 4
     static CRegisteredMotionBlurStreak(&aStreaks)[MAX_NUM_MOTIONBLUR_STREAKS]; // static CRegisteredMotionBlurStreak aStreaks[4]
 
+    static constexpr unsigned int NUM_STREAK_VERTICES = 4;
+    static RxObjSpace3DVertex(&aStreakVertices)[NUM_STREAK_VERTICES];
+    static constexpr unsigned int NUM_STREAK_INDICES = 12;
+    static RxVertexIndex(&aIndices)[NUM_STREAK_INDICES];
+
 public:
     static void InjectHooks();
 
