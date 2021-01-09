@@ -196,6 +196,7 @@
 #include "game_sa\CPedList.h"
 #include "game_sa\CPedPlacement.h"
 #include "game_sa\CPedTaskPair.h"
+#include "game_sa\CPedAttractorManager.h"
 #include "game_sa\CPickup.h"
 #include "game_sa\CPickups.h"
 #include "game_sa\CPlaneTrail.h"

@@ -15,7 +15,6 @@ public:
     CRGBA   m_color;
     CVector m_avecLeftPoints[3];
     CVector m_avecRightPoints[3];
-    bool    m_bExists;
     bool    m_acRenderHistory[3];
 
 public:

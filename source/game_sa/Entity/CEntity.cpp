@@ -29,12 +29,32 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "Render", 0x534310, &CEntity::Render_Reversed);
     ReversibleHooks::Install("CEntity", "SetupLighting", 0x553DC0, &CEntity::SetupLighting_Reversed);
     ReversibleHooks::Install("CEntity", "RemoveLighting", 0x553370, &CEntity::RemoveLighting_Reversed);
-    ReversibleHooks::Install("CEntity", "FlagToDestroyWhenNextProcessed", 0x403EB0, &CEntity::FlagToDestroyWhenNextProcessed_Reversed);
+    ReversibleHooks::Install("CEntity", "FlagToDestroyWhenNextProcessed", 0x533240, &CEntity::FlagToDestroyWhenNextProcessed_Reversed);
 
 //Class
     ReversibleHooks::Install("CEntity", "UpdateRwFrame", 0x532B00, &CEntity::UpdateRwFrame);
     ReversibleHooks::Install("CEntity", "UpdateRpHAnim", 0x532B20, &CEntity::UpdateRpHAnim);
     ReversibleHooks::Install("CEntity", "HasPreRenderEffects", 0x532B70, &CEntity::HasPreRenderEffects);
+    ReversibleHooks::Install("CEntity", "DoesNotCollideWithFlyers", 0x532D40, &CEntity::DoesNotCollideWithFlyers);
+    ReversibleHooks::Install("CEntity", "ModifyMatrixForPoleInWind", 0x532DB0, &CEntity::ModifyMatrixForPoleInWind);
+    ReversibleHooks::Install("CEntity", "LivesInThisNonOverlapSector", 0x533050, &CEntity::LivesInThisNonOverlapSector);
+    ReversibleHooks::Install("CEntity", "SetupBigBuilding", 0x533150, &CEntity::SetupBigBuilding);
+    ReversibleHooks::Install("CEntity", "ModifyMatrixForCrane", 0x533170, &CEntity::ModifyMatrixForCrane);
+    ReversibleHooks::Install("CEntity", "PreRenderForGlassWindow", 0x533170, &CEntity::PreRenderForGlassWindow);
+    ReversibleHooks::Install("CEntity", "SetRwObjectAlpha", 0x5332C0, &CEntity::SetRwObjectAlpha);
+    ReversibleHooks::Install("CEntity", "FindTriggerPointCoors", 0x533380, &CEntity::FindTriggerPointCoors);
+    ReversibleHooks::Install("CEntity", "GetRandom2dEffect", 0x533410, &CEntity::GetRandom2dEffect);
+    ReversibleHooks::Install("CEntity", "TransformFromObjectSpace_ret", 0x5334F0, (CVector(CEntity::*)(CVector const&)) (&CEntity::TransformFromObjectSpace));
+    ReversibleHooks::Install("CEntity", "TransformFromObjectSpace_ptr", 0x533560, (CVector*(CEntity::*)(CVector&, CVector const&)) (&CEntity::TransformFromObjectSpace));
+
+    ReversibleHooks::Install("CEntity", "GetModellingMatrix", 0x46A2D0, &CEntity::GetModellingMatrix);
+    ReversibleHooks::Install("CEntity", "UpdateRW", 0x446F90, &CEntity::UpdateRW);
+    ReversibleHooks::Install("CEntity", "SetAtomicAlphaCB", 0x533290, &CEntity::SetAtomicAlphaCB);
+    ReversibleHooks::Install("CEntity", "SetMaterialAlphaCB", 0x533280, &CEntity::SetMaterialAlphaCB);
+
+//Statics
+    ReversibleHooks::Install("CEntity", "MaterialUpdateUVAnimCB", 0x532D70, &MaterialUpdateUVAnimCB);
+    ReversibleHooks::Install("CEntity", "IsEntityPointerValid", 0x533310, &IsEntityPointerValid);
 }
 
 void CEntity::Add(CRect const& rect)
@@ -253,13 +273,7 @@ void CEntity::CreateRwObject_Reversed()
     if (IsBuilding())
         ++gBuildings;
 
-    auto pRwMat = RwFrameGetMatrix((RwFrame*)rwObjectGetParent(m_pRwObject));
-    auto pMatrix = GetMatrix();
-    if (pMatrix)
-        pMatrix->UpdateRwMatrix(pRwMat);
-    else
-        m_placement.UpdateRwMatrix(pRwMat);
-
+    CEntity::UpdateRW();
     if (RwObjectGetType(m_pRwObject) == rpATOMIC) {
         if (CTagManager::IsTag(this))
             CTagManager::ResetAlpha(this);
@@ -492,8 +506,7 @@ void CEntity::PreRender_Reversed()
         if(m_nModelIndex == ModelIndices::MI_COLLECTABLE1) {
             CPickups::DoCollectableEffects(this);
             CEntity::UpdateRW();
-            if (m_pRwObject)
-                RwFrameUpdateObjects((RwFrame*)rwObjectGetParent(m_pRwObject));
+            CEntity::UpdateRwFrame();
         }
         else if (m_nModelIndex == ModelIndices::MI_MONEY) {
             CPickups::DoMoneyEffects(this);
@@ -893,83 +906,200 @@ bool CEntity::HasPreRenderEffects()
 // Converted from thiscall bool CEntity::DoesNotCollideWithFlyers(void) 0x532D40
 bool CEntity::DoesNotCollideWithFlyers()
 {
-    return ((bool(__thiscall *)(CEntity*))0x532D40)(this);
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    if (pModelInfo->SwaysInWind())
+        return true;
+
+    return pModelInfo->bDontCollideWithFlyer;
 }
 
 // Converted from stdcall RpMaterial* MaterialUpdateUVAnimCB(RpMaterial *material,void *data) 0x532D70
 RpMaterial* MaterialUpdateUVAnimCB(RpMaterial* material, void* data)
 {
-    return ((RpMaterial* (__cdecl *)(RpMaterial*, void*))0x532D70)(material, data);
+    if (!RpMaterialUVAnimExists(material))
+        return material;
+
+    auto fTimeStep = CTimer::ms_fTimeStep / 50.0F;
+    RpMaterialUVAnimAddAnimTime(material, fTimeStep);
+    RpMaterialUVAnimApplyUpdate(material);
+    return material;
 }
 
 // Converted from thiscall void CEntity::ModifyMatrixForPoleInWind(void) 0x532DB0
 void CEntity::ModifyMatrixForPoleInWind()
 {
-    ((void(__thiscall *)(CEntity*))0x532DB0)(this);
+    auto vecWindDir = CVector(CWeather::WindDir.x + 0.01F, CWeather::WindDir.y + 0.01F, 0.1F);
+    auto vecNormalisedDir = vecWindDir;
+    vecNormalisedDir.Normalise();
+
+    auto vecCross = CrossProduct(CVector(0.0F, 0.0F, 1.0F), vecNormalisedDir);
+    vecCross.Normalise();
+    auto vecCross2 = CrossProduct(vecNormalisedDir, vecCross);
+
+    auto pMatrix = GetMatrix();
+    pMatrix->GetRight() = vecCross;
+    pMatrix->GetForward() = vecNormalisedDir;
+    pMatrix->GetUp() = vecCross2;
+    CEntity::UpdateRW();
+    CEntity::UpdateRwFrame();
 }
 
 // Converted from thiscall bool CEntity::LivesInThisNonOverlapSector(int sectorX,int sectorY) 0x533050
 bool CEntity::LivesInThisNonOverlapSector(int sectorX, int sectorY)
 {
-    return ((bool(__thiscall *)(CEntity*, int, int))0x533050)(this, sectorX, sectorY);
+    auto rect = CRect();
+    GetBoundRect(&rect);
+    float xCenter, yCenter;
+    rect.GetCenter(&xCenter, &yCenter);
+    auto xEntSector = CWorld::GetSectorX(xCenter);
+    auto yEntSector = CWorld::GetSectorY(yCenter);
+
+    return sectorX == xEntSector && sectorY == yEntSector;
+
 }
 
 // Converted from thiscall void CEntity::SetupBigBuilding(void) 0x533150
 void CEntity::SetupBigBuilding()
 {
-    ((void(__thiscall *)(CEntity*))0x533150)(this);
+    m_bUsesCollision = false;
+    m_bIsBIGBuilding = true;
+    m_bStreamingDontDelete = true;
+
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    pModelInfo->bDoWeOwnTheColModel = true;
 }
 
 // Converted from thiscall void CEntity::ModifyMatrixForCrane(void) 0x533170
 void CEntity::ModifyMatrixForCrane()
 {
-    ((void(__thiscall *)(CEntity*))0x533170)(this);
+    if (CTimer::GetIsPaused())
+        return;
+
+    if (!m_pRwObject)
+        return;
+
+    auto pRwMat = CEntity::GetModellingMatrix();
+    if (!pRwMat)
+        return;
+
+    auto tempMat = CMatrix(pRwMat, 0);
+    auto fRot = (CTimer::m_snTimeInMilliseconds & 0x3FF) * (PI / 512.26F);
+    tempMat.SetRotateZOnly(fRot);
+    tempMat.UpdateRW();
+    CEntity::UpdateRwFrame();
+
 }
 
 // Converted from thiscall void CEntity::PreRenderForGlassWindow(void) 0x533240
 void CEntity::PreRenderForGlassWindow()
 {
-    ((void(__thiscall *)(CEntity*))0x533240)(this);
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    if (pModelInfo->IsGlassType2())
+        return;
+
+    CGlass::AskForObjectToBeRenderedInGlass(this);
+    m_bIsVisible = false;
 }
 
 // Converted from thiscall void CEntity::SetRwObjectAlpha(int alpha) 0x5332C0
 void CEntity::SetRwObjectAlpha(int alpha)
 {
-    ((void(__thiscall *)(CEntity*, int))0x5332C0)(this, alpha);
+    if (!m_pRwObject)
+        return;
+
+    if (RwObjectGetType(m_pRwObject) == rpATOMIC) {
+        CEntity::SetAtomicAlphaCB(m_pRwAtomic, (void*)alpha);
+    }
+    else if (RwObjectGetType(m_pRwObject) == rpCLUMP) {
+        RpClumpForAllAtomics(m_pRwClump, CEntity::SetAtomicAlphaCB, (void*)alpha);
+    }
 }
 
 // Converted from stdcall bool IsEntityPointerValid(CEntity *entity) 0x533310
 bool IsEntityPointerValid(CEntity* entity)
 {
-    return ((bool(__cdecl *)(CEntity*))0x533310)(entity);
+    if (!entity)
+        return false;
+
+    switch (entity->m_nType) {
+    case eEntityType::ENTITY_TYPE_BUILDING:
+        return IsBuildingPointerValid(reinterpret_cast<CBuilding*>(entity));
+    case eEntityType::ENTITY_TYPE_VEHICLE:
+        return IsVehiclePointerValid(reinterpret_cast<CVehicle*>(entity));
+    case eEntityType::ENTITY_TYPE_PED:
+        return IsPedPointerValid(reinterpret_cast<CPed*>(entity));
+    case eEntityType::ENTITY_TYPE_OBJECT:
+        return IsObjectPointerValid(reinterpret_cast<CObject*>(entity));
+    case eEntityType::ENTITY_TYPE_DUMMY:
+        return IsDummyPointerValid(reinterpret_cast<CDummy*>(entity));
+    case eEntityType::ENTITY_TYPE_NOTINPOOLS:
+        return true;
+    }
+
+    return false;
 }
 
 // Converted from thiscall CVector CEntity::FindTriggerPointCoors(int triggerIndex) 0x533380
-CVector CEntity::FindTriggerPointCoors(int triggerIndex)
+CVector* CEntity::FindTriggerPointCoors(CVector* pOutVec, int triggerIndex)
 {
-    CVector result;
-    ((void(__thiscall *)(CEntity*, CVector*, int))0x533380)(this, &result, triggerIndex);
-    return result;
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    for (int32_t iFxInd = 0; iFxInd < pModelInfo->m_n2dfxCount; ++iFxInd) {
+        auto pEffect = pModelInfo->Get2dEffect(iFxInd);
+        if (pEffect->m_nType == e2dEffectType::EFFECT_SLOTMACHINE_WHEEL && pEffect->iSlotMachineIndex == triggerIndex) {
+            *pOutVec = *GetMatrix() * pEffect->m_vecPosn;
+            return pOutVec;
+        }
+    }
+
+    pOutVec->Set(0.0F, 0.0F, 0.0F);
+    return pOutVec;
 }
 
 // Converted from thiscall C2dEffect* CEntity::GetRandom2dEffect(int effectType,uchar) 0x533410
-C2dEffect* CEntity::GetRandom2dEffect(int effectType, unsigned char arg1)
+C2dEffect* CEntity::GetRandom2dEffect(int effectType, unsigned char bCheckForEmptySlot)
 {
-    return ((C2dEffect* (__thiscall *)(CEntity*, int, unsigned char))0x533410)(this, effectType, arg1);
+    C2dEffect* apArr[32];
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    int iFoundCount = 0;
+    for (int32_t iFxInd = 0; iFxInd < pModelInfo->m_n2dfxCount; ++iFxInd) {
+        auto pEffect = pModelInfo->Get2dEffect(iFxInd);
+        if (pEffect->m_nType != effectType)
+            continue;
+
+        if (bCheckForEmptySlot && !GetPedAttractorManager()->HasEmptySlot(pEffect, this))
+            continue;
+
+        if (iFoundCount < 32) {
+            apArr[iFoundCount] = pEffect;
+            ++iFoundCount;
+        }
+    }
+
+    if (iFoundCount) {
+        auto iRandInd = CGeneral::GetRandomNumberInRange(0, iFoundCount);
+        return apArr[iRandInd];
+    }
+
+    return nullptr;
 }
 
 // Converted from thiscall CVector CEntity::TransformFromObjectSpace(CVector const &offset) 0x5334F0
 CVector CEntity::TransformFromObjectSpace(CVector const& offset)
 {
+    if (m_matrix)
+        return *m_matrix * offset;
+
     CVector result;
-    ((void(__thiscall *)(CEntity*, CVector*, CVector const&))0x5334F0)(this, &result, offset);
+    TransformPoint(result, m_placement, offset);
     return result;
 }
 
 // Converted from thiscall void CEntity::TransformFromObjectSpace(CVector &outPosn,CVector const &offset) 0x533560
-void CEntity::TransformFromObjectSpace(CVector& outPosn, CVector const& offset)
+CVector* CEntity::TransformFromObjectSpace(CVector& outPosn, CVector const& offset)
 {
-    ((void(__thiscall *)(CEntity*, CVector&, CVector const&))0x533560)(this, outPosn, offset);
+    auto result = CEntity::TransformFromObjectSpace(offset);
+    outPosn = result;
+    return &outPosn;
 }
 
 // Converted from thiscall void CEntity::CreateEffects(void) 0x533790
@@ -1052,7 +1182,10 @@ void CEntity::ModifyMatrixForBannerInWind()
 
 RwMatrix* CEntity::GetModellingMatrix()
 {
-    return plugin::CallMethodAndReturn<RwMatrix*, 0x46A2D0, CEntity*>(this);
+    if (!m_pRwObject)
+        return nullptr;
+
+    return RwFrameGetMatrix((RwFrame*)rwObjectGetParent(m_pRwObject));
 }
 
 // Converted from thiscall CColModel* CEntity::GetColModel(void) 0x535300
@@ -1133,16 +1266,26 @@ bool CEntity::IsCurrentAreaOrBarberShopInterior()
 }
 
 void CEntity::UpdateRW() {
-#ifdef USE_DEFAULT_FUNCTIONS 
-    plugin::CallMethod<0x446F90, CEntity*>(this);
-#else
-    if (m_pRwObject) {
-        RwFrame* frame = reinterpret_cast<RwFrame*>(rwObjectGetParent(m_pRwObject));
-        RwMatrix* pRwMatrix = RwFrameGetMatrix(frame);
-        if (m_matrix)
-            m_matrix->UpdateRwMatrix(pRwMatrix);
-        else
-            m_placement.UpdateRwMatrix(pRwMatrix);
-    }
-#endif
+    if (!m_pRwObject)
+        return;
+
+    auto pRwMatrix = CEntity::GetModellingMatrix();
+    if (m_matrix)
+        m_matrix->UpdateRwMatrix(pRwMatrix);
+    else
+        m_placement.UpdateRwMatrix(pRwMatrix);
+}
+
+RpAtomic* CEntity::SetAtomicAlphaCB(RpAtomic* pAtomic, void* pData)
+{
+    auto pGeometry = RpAtomicGetGeometry(pAtomic);
+    RpGeometrySetFlags(pGeometry, rpGEOMETRYMODULATEMATERIALCOLOR);
+    RpGeometryForAllMaterials(pGeometry, CEntity::SetMaterialAlphaCB, pData);
+    return pAtomic;
+}
+
+RpMaterial* CEntity::SetMaterialAlphaCB(RpMaterial* pMaterial, void* pData)
+{
+    pMaterial->color.alpha = reinterpret_cast<RwUInt8>(pData);
+    return pMaterial;
 }

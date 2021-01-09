@@ -58,17 +58,27 @@ void CMotionBlurStreaks::Render()
 void CMotionBlurStreaks::RegisterStreak(unsigned int id, unsigned char red, unsigned char green, unsigned char blue, unsigned char alpha, CVector leftPoint, CVector rightPoint)
 {
     for (auto& pStreak : CMotionBlurStreaks::aStreaks) {
-        if (pStreak.m_nId && pStreak.m_nId != id)
+        if (pStreak.m_nId != id)
             continue;
 
         pStreak.m_color.Set(red, green, blue, alpha);
         pStreak.m_avecLeftPoints[0] = leftPoint;
         pStreak.m_avecRightPoints[0] = rightPoint;
-        pStreak.m_bExists = true;
-        if (!pStreak.m_nId) {
-            pStreak.m_nId = id;
-            pStreak.m_acRenderHistory[0] = false;
-        }
+        pStreak.m_acRenderHistory[0] = true;
+        return;
+    }
+
+
+    for (auto& pStreak : CMotionBlurStreaks::aStreaks) {
+        if (pStreak.m_nId)
+            continue;
+
+        pStreak.m_nId = id;
+        pStreak.m_color.Set(red, green, blue, alpha);
+        pStreak.m_avecLeftPoints[0] = leftPoint;
+        pStreak.m_avecRightPoints[0] = rightPoint;
+        pStreak.m_acRenderHistory[0] = true;
+        pStreak.m_acRenderHistory[1] = false;
         return;
     }
 }

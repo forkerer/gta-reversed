@@ -707,9 +707,7 @@ void CBoat::PreRender_Reversed()
     constexpr eBoatNodes aCheckedNodes[2] = { eBoatNodes::BOAT_STATIC_PROP, eBoatNodes::BOAT_STATIC_PROP_2 };
     for (const auto eNode : aCheckedNodes) {
         auto pProp = m_aBoatNodes[eNode];
-        RwMatrix* pSplashMat = nullptr;
-        if (m_pRwClump) 
-            pSplashMat = RwFrameGetMatrix(RpClumpGetFrame(m_pRwClump));
+        RwMatrix* pSplashMat = CEntity::GetModellingMatrix();
 
         auto pSplashFx = m_apPropSplashFx[iCounter];
         if (!pSplashFx && pSplashMat && pProp) {

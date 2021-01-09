@@ -150,10 +150,10 @@ public:
     void ModifyMatrixForCrane();
     void PreRenderForGlassWindow();
     void SetRwObjectAlpha(int alpha);
-    CVector FindTriggerPointCoors(int triggerIndex);
-    C2dEffect* GetRandom2dEffect(int effectType, unsigned char arg1);
+    CVector* FindTriggerPointCoors(CVector* pOutVec, int triggerIndex);
+    C2dEffect* GetRandom2dEffect(int effectType, unsigned char bCheckForEmptySlot);
     CVector TransformFromObjectSpace(CVector const& offset);
-    void TransformFromObjectSpace(CVector& outPosn, CVector const& offset);
+    CVector* TransformFromObjectSpace(CVector& outPosn, CVector const& offset);
     void CreateEffects();
     void DestroyEffects();
     void AttachToRwObject(RwObject* object, bool updateEntityMatrix);
@@ -185,6 +185,12 @@ public:
     bool IsCurrentAreaOrBarberShopInterior();
     void UpdateRW();
 
+public:
+    //Rw callbacks
+    static RpAtomic* SetAtomicAlphaCB(RpAtomic* pAtomic, void* pData);
+    static RpMaterial* SetMaterialAlphaCB(RpMaterial* pMaterial, void* pData);
+
+
     inline bool IsPhysical()
     {
         return m_nType == eEntityType::ENTITY_TYPE_VEHICLE ||
@@ -200,5 +206,5 @@ public:
 
 VALIDATE_SIZE(CEntity, 0x38);
 
- bool IsEntityPointerValid(CEntity* entity);
- struct RpMaterial* MaterialUpdateUVAnimCB(struct RpMaterial* material, void* data);
+bool IsEntityPointerValid(CEntity* entity);
+RpMaterial* MaterialUpdateUVAnimCB(RpMaterial* material, void* data);

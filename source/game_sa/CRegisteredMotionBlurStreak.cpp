@@ -12,13 +12,12 @@ void CRegisteredMotionBlurStreak::Update()
     for (int32_t i = 2; i >= 1; --i) {
         m_avecLeftPoints[i] = m_avecLeftPoints[i - 1];
         m_avecRightPoints[i] = m_avecRightPoints[i - 1];
-        if (bAlive || m_acRenderHistory[i-1])
+        m_acRenderHistory[i] = m_acRenderHistory[i - 1];
+        if (bAlive || m_acRenderHistory[i])
             bAlive = true;
-
-        m_acRenderHistory[i] = m_acRenderHistory[i-1];
     }
 
-    m_bExists = false;
+    m_acRenderHistory[0] = false;
     if (!bAlive)
         m_nId = 0;
 }
@@ -27,11 +26,11 @@ void CRegisteredMotionBlurStreak::Render()
 {
     for (int32_t iInd = 0; iInd < 2; ++iInd) {
         auto iAlpha = 255 - (iInd * 85);
-        if (!m_bExists || !m_acRenderHistory[iInd])
+        if (!m_acRenderHistory[0] || !m_acRenderHistory[iInd + 1])
             continue;
 
-        auto ucAlpha1 = static_cast<RwUInt8>((static_cast<float>(iAlpha) / 3.0F) / 255.0F);
-        auto ucAlpha2 = static_cast<RwUInt8>((static_cast<float>(iAlpha-85) / 3.0F) / 255.0F);
+        auto ucAlpha1 = static_cast<RwUInt8>((static_cast<float>(m_color.a) * static_cast<float>(iAlpha) / 3.0F) / 255.0F);
+        auto ucAlpha2 = static_cast<RwUInt8>((static_cast<float>(m_color.a) * static_cast<float>(iAlpha-85) / 3.0F) / 255.0F);
 
         auto rwColor1 = CRGBA(m_color.r, m_color.g, m_color.b, ucAlpha1).ToRwRGBA();
         auto rwColor2 = CRGBA(m_color.r, m_color.g, m_color.b, ucAlpha2).ToRwRGBA();

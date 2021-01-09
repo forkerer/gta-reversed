@@ -153,13 +153,13 @@ public:
     static CPtrListSingleLink& GetLodPtrList(std::int32_t x, std::int32_t y);
 
     // returns sector index in range 0 to 60 (covers half of the map) 
-    static float GetHalfMapSectorX(float fSector) { return fSector / (MAX_WORLD_UNITS / MAX_SECTORS_X); }
-    static float GetHalfMapSectorY(float fSector) { return fSector / (MAX_WORLD_UNITS / MAX_SECTORS_Y); }
-    static float GetSectorfX(float fSector) { return GetHalfMapSectorX(fSector) + (MAX_SECTORS_X / 2); }
-    static float GetSectorfY(float fSector) { return GetHalfMapSectorY(fSector) + (MAX_SECTORS_Y / 2); }
+    static float GetHalfMapSectorX(float x) { return x / (MAX_WORLD_UNITS / MAX_SECTORS_X); }
+    static float GetHalfMapSectorY(float y) { return y / (MAX_WORLD_UNITS / MAX_SECTORS_Y); }
+    static float GetSectorfX(float x) { return GetHalfMapSectorX(x) + (MAX_SECTORS_X / 2); }
+    static float GetSectorfY(float y) { return GetHalfMapSectorY(y) + (MAX_SECTORS_Y / 2); }
     // returns sector index in range 0 to 120 (covers full map) 
-    static std::int32_t GetSectorX(float fSector) { return static_cast<std::int32_t>(std::floor(GetSectorfX(fSector))); }
-    static std::int32_t GetSectorY(float fSector) { return static_cast<std::int32_t>(std::floor(GetSectorfY(fSector))); }
+    static std::int32_t GetSectorX(float x) { return static_cast<std::int32_t>(std::floor(GetSectorfX(x))); }
+    static std::int32_t GetSectorY(float y) { return static_cast<std::int32_t>(std::floor(GetSectorfY(y))); }
     static float GetSectorPosX(std::int32_t sector)
     {
         const std::int32_t HalfOfTotalSectorsX = MAX_SECTORS_Y / 2;

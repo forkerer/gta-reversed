@@ -16,7 +16,8 @@ char(&PC_Scratch)[16384] = *(char(*)[16384])0xC8E0C8;
 
 void InjectCommonHooks()
 {
-    HookInstall(0x53E230, &Render2dStuff);
+    HookInstall(0x53E230, &Render2dStuff); // This one shouldn't be reversible, it contains imgui debug menu logic, and makes game unplayable without :D
+    ReversibleHooks::Install("common", "IsGlassModel", 0x46A760, &IsGlassModel);
 }
 
 CVector FindPlayerCoors(int playerId)
@@ -99,6 +100,11 @@ CVector Multiply3x3(CVector* vector, CMatrix* matrix)
     CVector result;
     plugin::Call<0x59C810, CVector*, CVector*, CMatrix*>(&result, vector, matrix);
     return result;
+}
+
+void TransformPoint(RwV3d& point, CSimpleTransform const& placement, RwV3d const& vecPos)
+{
+    plugin::Call<0x54ECE0, RwV3d&, CSimpleTransform const&, RwV3d const&>(point, placement, vecPos);
 }
 
 CWanted * FindPlayerWanted(int playerId)
@@ -430,7 +436,14 @@ void RemoveRefsForAtomic(RpClump* clump) {
 
 bool IsGlassModel(CEntity* pEntity)
 {
-    return plugin::CallAndReturn<bool, 0x46A760, CEntity*>(pEntity);
+    if (!pEntity->IsObject())
+        return false;
+
+    auto pModelInfo = CModelInfo::GetModelInfo(pEntity->m_nModelIndex);
+    if (!pModelInfo->AsAtomicModelInfoPtr())
+        return false;
+
+    return pModelInfo->IsGlass();
 }
 
 // Converted from cdecl CAnimBlendClumpData* RpAnimBlendAllocateData(RpClump *clump) 0x4D5F50

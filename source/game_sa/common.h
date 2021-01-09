@@ -90,6 +90,8 @@ CVector Multiply3x3(CMatrix* matrix, CVector* vector);
 // vector by matrix mult, resulting in a vector where each component is the dot product of the in vector and a matrix direction
 CVector Multiply3x3(CVector* vector, CMatrix* matrix);
 
+void TransformPoint(RwV3d& point, CSimpleTransform const& placement, RwV3d const& vecPos);
+
 
 // returns player wanted
 CWanted * FindPlayerWanted(int playerId = -1);

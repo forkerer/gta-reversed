@@ -98,6 +98,9 @@ public:
         struct RpAtomic* m_pRwAtomic;
     };
 
+public:
+    static void InjectHooks();
+
 	// vtable
 	virtual CBaseModelInfo* DeletingDestructor(uint8_t deletingFlags);
 	virtual class CAtomicModelInfo*AsAtomicModelInfoPtr();
@@ -149,7 +152,7 @@ public:
     inline bool IsSwayInWind1() { return nSpecialType == 1; }      //0x0800
     inline bool IsSwayInWind2() { return nSpecialType == 2; }      //0x1000
     //inline bool SwaysInWind() { return IsSwayInWind1() || IsSwayInWind2(); }
-    inline bool IsGlassType1() { return nSpecialType == 4; }       //0x1800
+    inline bool IsGlassType1() { return nSpecialType == 4; }       //0x2000
     inline bool IsGlassType2() { return nSpecialType == 5; }       //0x2800
     inline bool IsGlass() { return IsGlassType1() || IsGlassType2(); }
     //inline bool IsTagModel() { return nSpecialType == 6; }         //0x3000

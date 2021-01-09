@@ -247,8 +247,8 @@ void CAutomobile::DoNitroEffect(float power)
             }
         }
     }
-    RwFrame* frame = reinterpret_cast<RwFrame*>(rwObjectGetParent(m_pRwObject));
-    RwMatrix* rwMatrix = RwFrameGetMatrix(frame);
+
+    RwMatrix* rwMatrix = CEntity::GetModellingMatrix();
     FxSystem_c* firstExhaustFxSystem = m_exhaustNitroFxSystem[0];
     if (firstExhaustFxSystem)
     {
