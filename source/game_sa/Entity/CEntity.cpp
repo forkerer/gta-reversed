@@ -460,7 +460,7 @@ void CEntity::PreRender_Reversed()
             CCustomBuildingDNPipeline::PreRenderUpdate(pAtomicInfo->m_pRwAtomic, false);
         }
         else if (pModelInfo->GetModelType() == MODEL_INFO_CLUMP) {
-            RpClumpForAllAtomics(pAtomicInfo->m_pRwClump, CCustomBuildingDNPipeline::PreRenderUpdateRpAtomicCB, false);
+            RpClumpForAllAtomics(pModelInfo->m_pRwClump, CCustomBuildingDNPipeline::PreRenderUpdateRpAtomicCB, false);
         }
     }
 

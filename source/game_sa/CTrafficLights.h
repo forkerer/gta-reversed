@@ -4,7 +4,7 @@
 
 enum eTrafficLightsState {
     LIGHT_GREEN = 0,
-    LIGHT_ORANGE = 1,
+    LIGHT_YELLOW = 1,
     LIGHT_RED = 2,
     LIGHT_OFF = 3
 };
@@ -16,10 +16,17 @@ enum eTrafficLightsDirection {
 };
 
 class CTrafficLights {
-public:
-    static RwUInt8(&aTrafficLightColoursR)[3];
-    static RwUInt8(&aTrafficLightColoursG)[3];
-    static RwUInt8(&aTrafficLightColoursB)[3];
+private:
+    static uint8_t(&aTrafficLightColoursR)[3];
+    static uint8_t(&aTrafficLightColoursG)[3];
+    static uint8_t(&aTrafficLightColoursB)[3];
+    static float& fLightMult;
+
+    static CVector& vecTrafficLights5_1;
+    static CVector& vecTrafficLights5_2;
+    static CVector& vecTrafficLights_1;
+    static CVector& vecTrafficLights_2;
+    static uint32_t& uiPedLightFlags;
 
 public:
     static void InjectHooks();
@@ -29,6 +36,7 @@ public:
     static bool ShouldCarStopForBridge(CVehicle* pVehicle);
     static void DisplayActualLight(CEntity* pEntity);
     static bool IsMITrafficLight(int modelIndex);
+    static unsigned char LightForPeds();
 
 private:
     static unsigned char LightForCars1(); //Are red lights on
@@ -36,5 +44,6 @@ private:
     static unsigned char LightForCars1_Visual(); // Switch lights to tellow
     static unsigned char LightForCars2_Visual(); // Switch lights to green
     static int FindTrafficLightType(CEntity* pEntity);
+    static float FindOrientationForTrafficLightType(CEntity* pEntity);
     static int FindTrafficLightTypeFromOrientation(float fOrientation);
 };

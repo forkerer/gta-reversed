@@ -123,6 +123,7 @@ public:
 	CNodeAddress info;
 	CPathNode *m_apNodesSearchLists[512];
 	CPathNode *m_pPathNodes[NUM_PATH_MAP_AREAS + NUM_PATH_INTERIOR_AREAS];
+    // Use CPathFind::GetCarPathLink to access
 	CCarPathLink *m_pNaviNodes[NUM_PATH_MAP_AREAS + NUM_PATH_INTERIOR_AREAS];
 	CNodeAddress *m_pNodeLinks[NUM_PATH_MAP_AREAS + NUM_PATH_INTERIOR_AREAS];
 	unsigned char *m_pLinkLengths[NUM_PATH_MAP_AREAS + NUM_PATH_INTERIOR_AREAS];
@@ -166,6 +167,8 @@ public:
     // the result is stored in it
     CNodeAddress* FindNodeClosestToCoors(CNodeAddress* pathLink, float X, float Y, float Z, int _nodeType, float maxDistance,
         unsigned short unk2, int unk3, unsigned short unk4, unsigned short bBoatsOnly, int unk6);
+
+    inline CCarPathLink& GetCarPathLink(CCarPathLinkAddress const& address) { return m_pNaviNodes[address.m_wAreaId][address.m_wCarPathLinkId]; }
 };
 
 VALIDATE_SIZE(CPathFind, 0x3C80);

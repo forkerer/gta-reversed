@@ -104,7 +104,11 @@ constexpr float PI = 3.14159265358979323846f;
 constexpr float PI_2 = PI / 2.0f;
 
 constexpr float DegreesToRadians(float angleInDegrees) {
-    return angleInDegrees * PI / 180.0f;
+    return angleInDegrees * PI / 180.0F;
+}
+
+constexpr float RadiansToDegrees(float angleInRadians) {
+    return angleInRadians * 180.0F / PI;
 }
 
 template <typename T>
