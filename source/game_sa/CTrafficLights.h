@@ -2,6 +2,19 @@
 #include "PluginBase.h"
 #include "CVehicle.h"
 
+enum eTrafficLightsState {
+    LIGHT_GREEN = 0,
+    LIGHT_ORANGE = 1,
+    LIGHT_RED = 2,
+    LIGHT_OFF = 3
+};
+
+//1 - North-South, 2 - West-East cycle
+enum eTrafficLightsDirection {
+    DIR_NORTH_SOUTH = 1,
+    DIR_WEST_EAST = 2
+};
+
 class CTrafficLights {
 public:
     static RwUInt8(&aTrafficLightColoursR)[3];

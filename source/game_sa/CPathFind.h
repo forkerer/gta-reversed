@@ -37,8 +37,12 @@ VALIDATE_SIZE(CForbiddenArea, 0x1C);
 class  CCarPathLinkAddress
 {
 public:
-    short m_wCarPathLinkId : 10;
-    short m_wAreaId : 6;
+    unsigned short m_wCarPathLinkId : 10;
+    unsigned short m_wAreaId : 6;
+
+    inline bool IsValid() {
+        return *reinterpret_cast<unsigned short*>(this) != 0xFFFF;
+    }
 };
 
 VALIDATE_SIZE(CCarPathLinkAddress, 0x2);
@@ -65,18 +69,16 @@ public:
     char m_nDirX;
     char m_nDirY;
     char m_nPathNodeWidth;
+    unsigned char m_nNumLeftLanes : 3;
+    unsigned char m_nNumRightLanes : 3;
+    unsigned char m_bTrafficLightDirection : 1; // 1 if the navi node has the same direction as the traffic light and 0 if the navi node points somewhere else
+    unsigned char unk1 : 1;
 
-    unsigned short m_nNumLeftLanes : 3;
-    unsigned short m_nNumRightLanes : 3;
-    unsigned short m_bTrafficLightDirection : 1; // 1 if the navi node has the same direction as the traffic light and 0 if the navi node points somewhere else
-    unsigned short unk1 : 1;
-
-    unsigned short m_nTrafficLightState : 2; // 1 - North-South, 2 - West-East cycle
+    unsigned short m_nTrafficLightState : 2; // 1 - North-South, 2 - West-East cycle, enum: eTrafficLightsDirection
     unsigned short m_bTrainCrossing : 1;
 };
 
 VALIDATE_SIZE(CCarPathLink, 0xE);
-
 
 class  CPathNode
 {
