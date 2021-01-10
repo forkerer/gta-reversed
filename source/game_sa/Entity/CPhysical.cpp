@@ -116,28 +116,15 @@ void CPhysical::Add__Reversed()
                     break;
                 }
 
-                auto pNewEntityInfoNode = CPools::ms_pEntryInfoNodePool->New();
+                auto pNewEntityInfoNode = new CEntryInfoNode();
                 if (pNewEntityInfoNode)
                 {
-                    auto pNewDoubleLink = CPools::ms_pPtrNodeDoubleLinkPool->New();;
-                    if (pNewDoubleLink)
-                        pNewDoubleLink->pItem = this;
-           
-                    pNewDoubleLink->pPrev = nullptr;
-                    pNewDoubleLink->pNext = (CPtrNodeDoubleLink*)pDoubleLinkList->pNode;
-                    if (pDoubleLinkList->GetNode())
-                        pDoubleLinkList->GetNode()->pPrev = pNewDoubleLink;
-                    pDoubleLinkList->pNode = (CPtrNode * )pNewDoubleLink;
+                    auto pNewDoubleLink = pDoubleLinkList->AddItem(this);
                     pNewEntityInfoNode->m_pDoubleLink = pNewDoubleLink;
                     pNewEntityInfoNode->m_pRepeatSector = pRepeatSector;
                     pNewEntityInfoNode->m_pDoubleLinkList = pDoubleLinkList;
                 }
-                pNewEntityInfoNode->m_pPrevious = nullptr;
-                pNewEntityInfoNode->m_pNext = m_pCollisionList;
-                auto pEntityCollisionList = m_pCollisionList;
-                if (pEntityCollisionList)
-                    pEntityCollisionList->m_pPrevious = pNewEntityInfoNode;
-
+                pNewEntityInfoNode->AddToList(m_pCollisionList);
                 m_pCollisionList = pNewEntityInfoNode;
             }
         }
@@ -823,7 +810,7 @@ void CPhysical::SetDamagedPieceRecord(float fDamageIntensity, CEntity* entity, C
 
     if (physicalFlags.bDisableZ)
     {
-        if (entity->m_nModelIndex == MI_POOL_CUE_BALL && m_nType == ENTITY_TYPE_OBJECT)
+        if (entity->m_nModelIndex == ModelIndices::MI_POOL_CUE_BALL && m_nType == ENTITY_TYPE_OBJECT)
         {
             pObject->m_nLastWeaponDamage = pObject->m_nLastWeaponDamage != -1 ? WEAPON_RUNOVERBYCAR : WEAPON_DROWNING;
         }
@@ -3178,9 +3165,9 @@ bool CPhysical::ApplyCollision(CEntity* pTheEntity, CColPoint* pColPoint, float*
                     }
 
                     int entityModelIndex = pEntity->m_nModelIndex;
-                    if (entityModelIndex != MI_FIRE_HYDRANT || pEntityObject->objectFlags.bIsExploded)
+                    if (entityModelIndex != ModelIndices::MI_FIRE_HYDRANT || pEntityObject->objectFlags.bIsExploded)
                     {
-                        if (entityModelIndex != MI_PARKINGMETER && entityModelIndex != MI_PARKINGMETER2 || pEntityObject->objectFlags.bIsExploded)
+                        if (entityModelIndex != ModelIndices::MI_PARKINGMETER && entityModelIndex != ModelIndices::MI_PARKINGMETER2 || pEntityObject->objectFlags.bIsExploded)
                         {
                             if (pEntity->m_nType != ENTITY_TYPE_OBJECT || pEntityObjectInfo->m_bCausesExplosion)
                             {
@@ -3911,7 +3898,7 @@ bool CPhysical::ApplySoftCollision(CPhysical* pEntity, CColPoint* pColPoint, flo
                 int entityModelIndex = pEntity->m_nModelIndex;
                 if (entityModelIndex != MODEL_FIRE_HYDRANT || pEntityObject->objectFlags.bIsExploded)
                 {
-                    if (entityModelIndex != MI_PARKINGMETER && entityModelIndex != MI_PARKINGMETER2 || pEntityObject->objectFlags.bIsExploded)
+                    if (entityModelIndex != ModelIndices::MI_PARKINGMETER && entityModelIndex != ModelIndices::MI_PARKINGMETER2 || pEntityObject->objectFlags.bIsExploded)
                     {
                         CBaseModelInfo* pBaseModelInfo = CModelInfo::ms_modelInfoPtrs[entityModelIndex];
                         if (pEntity->m_nType != ENTITY_TYPE_OBJECT || pBaseModelInfo->AsAtomicModelInfoPtr())

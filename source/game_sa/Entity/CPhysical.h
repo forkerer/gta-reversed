@@ -124,7 +124,7 @@ public:
     float            m_fElasticity;
     float            m_fBuoyancyConstant;
     CVector          m_vecCentreOfMass;
-    CEntryInfoNode*  m_pCollisionList;
+    CEntryInfoNode*  m_pCollisionList; // It should be CEntryInfoList, but all but one method from this class were inlined in final exe
     CPtrNodeDoubleLink* m_pMovingList;
     unsigned char    m_bFakePhysics;
     unsigned char    m_nNumEntitiesCollided;

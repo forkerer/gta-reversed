@@ -788,13 +788,7 @@ void CPedIntelligence::ProcessAfterPreRender() {
         RwV3d pointOut;
         RwV3dTransformPoint(&pointOut, &pointIn, &pMatrixArray[animIDIndex]);
 
-        RwMatrix* pRwMatrix = nullptr;
-        RwObject* pRwObject = m_pPed->m_pRwObject;
-        if (pRwObject)
-        {
-            pRwMatrix = &((RwFrame*)pRwObject->parent)->modelling;
-        }
-
+        RwMatrix* pRwMatrix = m_pPed->GetModellingMatrix();
         RwMatrix matrix;
         memcpy(&matrix, pRwMatrix, sizeof(matrix));
         matrix.pos = pointOut;

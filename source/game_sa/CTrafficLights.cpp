@@ -213,9 +213,9 @@ void CTrafficLights::DisplayActualLight(CEntity* pEntity)
 
         CCoronas::RegisterCorona(reinterpret_cast<uint32_t>(pEntity) + iFxInd,
                                  nullptr,
-                                 aTrafficLightColoursR[iColorState] * fBrightness,
-                                 aTrafficLightColoursG[iColorState] * fBrightness,
-                                 aTrafficLightColoursB[iColorState] * fBrightness,
+                                 static_cast<unsigned char>(aTrafficLightColoursR[iColorState] * fBrightness),
+                                 static_cast<unsigned char>(aTrafficLightColoursG[iColorState] * fBrightness),
+                                 static_cast<unsigned char>(aTrafficLightColoursB[iColorState] * fBrightness),
                                  255,
                                  vecLightPos,
                                  fSize,
@@ -265,9 +265,9 @@ void CTrafficLights::DisplayActualLight(CEntity* pEntity)
 
             if (CWeather::TrafficLightsBrightness > 0.05F) {
                 auto fColMult = CTimeCycle::m_CurrentColours.m_fLightsOnGroundBrightness * CWeather::TrafficLightsBrightness / 80.0F;
-                uint8_t ucRed =   CTrafficLights::aTrafficLightColoursR[iLightState] * fColMult;
-                uint8_t ucGreen = CTrafficLights::aTrafficLightColoursG[iLightState] * fColMult;
-                uint8_t ucBlue =  CTrafficLights::aTrafficLightColoursB[iLightState] * fColMult;
+                uint8_t ucRed = static_cast<uint8_t>(CTrafficLights::aTrafficLightColoursR[iLightState] * fColMult);
+                uint8_t ucGreen = static_cast<uint8_t>(CTrafficLights::aTrafficLightColoursG[iLightState] * fColMult);
+                uint8_t ucBlue = static_cast<uint8_t>(CTrafficLights::aTrafficLightColoursB[iLightState] * fColMult);
 
                 CShadows::StoreStaticShadow(reinterpret_cast<uint32_t>(pEntity),
                                             eShadowType::SHADOW_ADDITIVE,

@@ -19,8 +19,11 @@ public:
         Flush();
     }
 
+public:
+    static void InjectHooks();
+
     void Flush();
-    void AddItem(void* item);
+    CPtrNodeDoubleLink* AddItem(void* item);
     void DeleteItem(void* item);
 };
 

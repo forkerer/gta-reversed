@@ -1,13 +1,21 @@
 #include "StdInc.h"
 
+void CPtrListDoubleLink::InjectHooks()
+{
+    ReversibleHooks::Install("CPtrListDoubleLink", "AddItem", 0x533670, &CPtrListDoubleLink::AddItem);
+}
+
 void CPtrListDoubleLink::Flush()
 {
     plugin::CallMethod<0x552470, CPtrListDoubleLink*>(this);
 }
 
-void CPtrListDoubleLink::AddItem(void* item)
+CPtrNodeDoubleLink* CPtrListDoubleLink::AddItem(void* item)
 {
-    plugin::CallMethod<0x533670, CPtrListDoubleLink*, void*>(this, item);
+    auto pNewDoubleLink = new CPtrNodeDoubleLink(item);
+    pNewDoubleLink->AddToList(this);
+    return pNewDoubleLink;
+
 }
 
 void CPtrListDoubleLink::DeleteItem(void* item)

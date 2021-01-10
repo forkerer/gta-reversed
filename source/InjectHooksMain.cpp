@@ -19,6 +19,10 @@ void InjectHooksMain(void)
     CMatrix::InjectHooks();
     CMatrixLink::InjectHooks();
     CMatrixLinkList::InjectHooks();
+    CEntryInfoNode::InjectHooks();
+    CEntryInfoList::InjectHooks();
+    CPtrNodeDoubleLink::InjectHooks();
+    CPtrListDoubleLink::InjectHooks();
     CRunningScript::InjectHooks();
     CStreaming::InjectHooks();
     InjectCdStreamHooks();
