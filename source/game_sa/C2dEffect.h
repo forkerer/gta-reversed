@@ -76,11 +76,17 @@ struct tEffectPedAttractor {
 
 struct tEffectEnEx {
     float m_fEnterAngle;
-    RwV3d m_vecSize;
+    RwV2d m_vecRadius;
     RwV3d m_vecExitPosn;
     float m_fExitAngle;
     short m_nInteriorId;
-    unsigned char m_nFlags1;
+    union {
+        unsigned char m_nFlags1;
+        struct {
+            unsigned char bUnkn0 : 1;
+            unsigned char bTimedEffect : 1;
+        };
+    };
     unsigned char m_nSkyColor;
     char m_szInteriorName[8];
     unsigned char m_nTimeOn;
@@ -88,14 +94,22 @@ struct tEffectEnEx {
     unsigned char m_nFlags2;
 };
 
+struct CRoadsignAttrFlags {
+    unsigned short m_nNumOfLines : 2;
+    unsigned short m_nSymbolsPerLine : 2;
+    unsigned short m_nTextColor : 2;
+};
+VALIDATE_SIZE(CRoadsignAttrFlags, 0x2);
+
+
 struct tEffectRoadsign {
     RwV2d m_vecSize;
-    float m_afRotation[3];
-    unsigned short m_nFlags;
+    RwV3d m_vecRotation;
+    CRoadsignAttrFlags m_nFlags;
 private:
     char _pad26[2];
 public:
-    char *m_pText;
+    char (&m_pText)[64];
     RpAtomic *m_pAtomic;
 };
 
@@ -111,7 +125,7 @@ struct tEffectEscalator {
     RwV3d m_vecBottom;
     RwV3d m_vecTop;
     RwV3d m_vecEnd;
-    unsigned char m_nDirection;
+    unsigned char m_nDirection; // 0 - down, 1 - up
 private:
     char _pad35[3];
 public:
@@ -132,6 +146,14 @@ public:
         tEffectCoverPoint coverPoint;
         tEffectEscalator escalator;
     };
+
+public:
+    static void InjectHooks();
+
+public:
+    static int Roadsign_GetNumLinesFromFlags(CRoadsignAttrFlags flags);
+    static int Roadsign_GetNumLettersFromFlags(CRoadsignAttrFlags flags);
+    static int Roadsign_GetPaletteIDFromFlags(CRoadsignAttrFlags flags);
 };
 
 VALIDATE_SIZE(C2dEffect, 0x40);

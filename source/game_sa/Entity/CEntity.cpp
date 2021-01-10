@@ -46,6 +46,7 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "GetRandom2dEffect", 0x533410, &CEntity::GetRandom2dEffect);
     ReversibleHooks::Install("CEntity", "TransformFromObjectSpace_ret", 0x5334F0, (CVector(CEntity::*)(CVector const&)) (&CEntity::TransformFromObjectSpace));
     ReversibleHooks::Install("CEntity", "TransformFromObjectSpace_ptr", 0x533560, (CVector*(CEntity::*)(CVector&, CVector const&)) (&CEntity::TransformFromObjectSpace));
+    ReversibleHooks::Install("CEntity", "CreateEffects", 0x533790, &CEntity::CreateEffects);
 
     ReversibleHooks::Install("CEntity", "GetModellingMatrix", 0x46A2D0, &CEntity::GetModellingMatrix);
     ReversibleHooks::Install("CEntity", "UpdateRW", 0x446F90, &CEntity::UpdateRW);
@@ -1105,7 +1106,100 @@ CVector* CEntity::TransformFromObjectSpace(CVector& outPosn, CVector const& offs
 // Converted from thiscall void CEntity::CreateEffects(void) 0x533790
 void CEntity::CreateEffects()
 {
-    ((void(__thiscall *)(CEntity*))0x533790)(this);
+    m_bHasRoadsignText = false;
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    if (!pModelInfo->m_n2dfxCount)
+        return;
+
+    for (int32_t iFxInd = 0; iFxInd < pModelInfo->m_n2dfxCount; ++iFxInd) {
+        auto pEffect = pModelInfo->Get2dEffect(iFxInd);
+        if (pEffect->m_nType == e2dEffectType::EFFECT_LIGHT) {
+            m_bHasPreRenderEffects = true;
+        }
+        else if (pEffect->m_nType == e2dEffectType::EFFECT_PARTICLE) {
+            auto pMatrix = CEntity::GetModellingMatrix();
+            g_fx.CreateEntityFx(this, pEffect->particle.m_szName, &pEffect->m_vecPosn, pMatrix);
+        }
+        else if (pEffect->m_nType == e2dEffectType::EFFECT_ATTRACTOR) {
+            if (pEffect->pedAttractor.m_nAttractorType == ePedAttractorType::PED_ATTRACTOR_TRIGGER_SCRIPT)
+                CTheScripts::ScriptsForBrains.RequestAttractorScriptBrainWithThisName(pEffect->pedAttractor.m_szScriptName);
+        }
+        else if (pEffect->m_nType == e2dEffectType::EFFECT_ENEX) {
+            auto vecExit = pEffect->m_vecPosn + pEffect->enEx.m_vecExitPosn;
+            auto vecWorldEffect = CEntity::TransformFromObjectSpace(pEffect->m_vecPosn);
+            auto vecWorldExit = CEntity::TransformFromObjectSpace(vecExit);
+
+            if (pEffect->enEx.bTimedEffect) {
+                auto ucDays = CClock::ms_nGameClockDays;
+                if (pEffect->enEx.m_nTimeOn > pEffect->enEx.m_nTimeOff && CClock::ms_nGameClockHours < pEffect->enEx.m_nTimeOff)
+                    ucDays--;
+
+                srand(reinterpret_cast<unsigned int>(this) + ucDays);
+            }
+
+            auto fHeading = GetHeading();
+            auto fExitRot = pEffect->enEx.m_fExitAngle + RadiansToDegrees(fHeading);
+            auto fEnterRot = pEffect->enEx.m_fEnterAngle + RadiansToDegrees(fHeading);
+            auto iEnExId = CEntryExitManager::AddOne(vecWorldEffect.x,
+                                                     vecWorldEffect.y,
+                                                     vecWorldEffect.z,
+                                                     fEnterRot,
+                                                     pEffect->enEx.m_vecRadius.x,
+                                                     pEffect->enEx.m_vecRadius.y,
+                                                     0,
+                                                     vecWorldExit.x,
+                                                     vecWorldExit.y,
+                                                     vecWorldExit.z,
+                                                     fExitRot,
+                                                     pEffect->enEx.m_nInteriorId,
+                                                     pEffect->enEx.m_nFlags1 + pEffect->enEx.m_nFlags2 << 8,
+                                                     pEffect->enEx.m_nSkyColor,
+                                                     pEffect->enEx.m_nTimeOn,
+                                                     pEffect->enEx.m_nTimeOff,
+                                                     0,
+                                                     pEffect->enEx.m_szInteriorName);
+
+            if (iEnExId != -1) {
+                auto pAddedEffect = CEntryExitManager::mp_poolEntryExits->GetAt(iEnExId);
+                if (pAddedEffect->m_pLink && !pAddedEffect->m_pLink->m_nFlags.bEnableAccess)
+                    pAddedEffect->m_nFlags.bEnableAccess = false;
+            }
+        }
+        else if (pEffect->m_nType == e2dEffectType::EFFECT_ROADSIGN) {
+            m_bHasRoadsignText = true;
+            auto uiPalleteId = C2dEffect::Roadsign_GetPaletteIDFromFlags(pEffect->roadsign.m_nFlags);
+            auto uiLettersPerLine = C2dEffect::Roadsign_GetNumLettersFromFlags(pEffect->roadsign.m_nFlags);
+            auto uiNumLines = C2dEffect::Roadsign_GetNumLinesFromFlags(pEffect->roadsign.m_nFlags);
+
+            auto pSignAtomic = CCustomRoadsignMgr::CreateRoadsignAtomic(pEffect->roadsign.m_vecSize.x,
+                pEffect->roadsign.m_vecSize.y,
+                uiNumLines,
+                &pEffect->roadsign.m_pText[0],
+                &pEffect->roadsign.m_pText[16],
+                &pEffect->roadsign.m_pText[32],
+                &pEffect->roadsign.m_pText[48],
+                uiLettersPerLine,
+                uiPalleteId);
+
+            auto pFrame = RpAtomicGetFrame(pSignAtomic);
+            RwFrameSetIdentity(pFrame);
+            RwFrameRotate(pFrame, &CVector(0.0F, 0.0F, 1.0F), pEffect->roadsign.m_vecRotation.z, RwOpCombineType::rwCOMBINEREPLACE);
+            RwFrameRotate(pFrame, &CVector(1.0F, 0.0F, 0.0F), pEffect->roadsign.m_vecRotation.x, RwOpCombineType::rwCOMBINEPOSTCONCAT);
+            RwFrameRotate(pFrame, &CVector(0.0F, 1.0F, 0.0F), pEffect->roadsign.m_vecRotation.y, RwOpCombineType::rwCOMBINEPOSTCONCAT);
+            RwFrameTranslate(pFrame, &pEffect->m_vecPosn, RwOpCombineType::rwCOMBINEPOSTCONCAT);
+            RwFrameUpdateObjects(pFrame);
+            pEffect->roadsign.m_pAtomic = pSignAtomic;
+        }
+        else if (pEffect->m_nType == e2dEffectType::EFFECT_ESCALATOR) {
+            auto vecStart = CEntity::TransformFromObjectSpace(pEffect->m_vecPosn);
+            auto vecBottom = CEntity::TransformFromObjectSpace(pEffect->escalator.m_vecBottom);
+            auto vecTop = CEntity::TransformFromObjectSpace(pEffect->escalator.m_vecTop);
+            auto vecEnd = CEntity::TransformFromObjectSpace(pEffect->escalator.m_vecEnd);
+            auto bMovingDown = pEffect->escalator.m_nDirection == 0;
+
+            CEscalators::AddOne(vecStart, vecBottom, vecTop, vecEnd, bMovingDown, this);
+        }
+    }
 }
 
 // Converted from thiscall void CEntity::DestroyEffects(void) 0x533BF0
