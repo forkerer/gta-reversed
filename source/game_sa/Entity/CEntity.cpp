@@ -44,9 +44,17 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "SetRwObjectAlpha", 0x5332C0, &CEntity::SetRwObjectAlpha);
     ReversibleHooks::Install("CEntity", "FindTriggerPointCoors", 0x533380, &CEntity::FindTriggerPointCoors);
     ReversibleHooks::Install("CEntity", "GetRandom2dEffect", 0x533410, &CEntity::GetRandom2dEffect);
-    ReversibleHooks::Install("CEntity", "TransformFromObjectSpace_ret", 0x5334F0, (CVector(CEntity::*)(CVector const&)) (&CEntity::TransformFromObjectSpace));
+    ReversibleHooks::Install("CEntity", "TransformFromObjectSpace_ref", 0x5334F0, (CVector(CEntity::*)(CVector const&)) (&CEntity::TransformFromObjectSpace));
     ReversibleHooks::Install("CEntity", "TransformFromObjectSpace_ptr", 0x533560, (CVector*(CEntity::*)(CVector&, CVector const&)) (&CEntity::TransformFromObjectSpace));
     ReversibleHooks::Install("CEntity", "CreateEffects", 0x533790, &CEntity::CreateEffects);
+    ReversibleHooks::Install("CEntity", "DestroyEffects", 0x533BF0, &CEntity::DestroyEffects);
+    ReversibleHooks::Install("CEntity", "AttachToRwObject", 0x533ED0, &CEntity::AttachToRwObject);
+    ReversibleHooks::Install("CEntity", "DetachFromRwObject", 0x533FB0, &CEntity::DetachFromRwObject);
+    ReversibleHooks::Install("CEntity", "GetBoundCentre_ptr", 0x534250, (CVector*(CEntity::*)(CVector*)) (&CEntity::GetBoundCentre));
+    ReversibleHooks::Install("CEntity", "GetBoundCentre_ref", 0x534290, (void(CEntity::*)(CVector&)) (&CEntity::GetBoundCentre));
+    ReversibleHooks::Install("CEntity", "RenderEffects", 0x5342B0, &CEntity::RenderEffects);
+    ReversibleHooks::Install("CEntity", "GetIsTouching_ent", 0x5343F0, (bool(CEntity::*)(CEntity*)) (&CEntity::GetIsTouching));
+    ReversibleHooks::Install("CEntity", "GetIsTouching_vec", 0x5344B0, (bool(CEntity::*)(CVector const&, float)) (&CEntity::GetIsTouching));
 
     ReversibleHooks::Install("CEntity", "GetModellingMatrix", 0x46A2D0, &CEntity::GetModellingMatrix);
     ReversibleHooks::Install("CEntity", "UpdateRW", 0x446F90, &CEntity::UpdateRW);
@@ -100,7 +108,7 @@ void CEntity::Add_Reversed(CRect const& rect)
                 auto pRepeatSector = GetRepeatSector(sectorX, sectorY);
                 auto pSector = GetSector(sectorX, sectorY);
 
-                if (IsBuilding()) { //Buildings are treated as single link here
+                if (IsBuilding()) { //Buildings are treated as single link here, needs checking if the list is actually single or double
                     reinterpret_cast<CPtrListSingleLink*>(&pSector->m_buildings)->AddItem(this);
                     continue;
                 }
@@ -1087,10 +1095,12 @@ C2dEffect* CEntity::GetRandom2dEffect(int effectType, unsigned char bCheckForEmp
 // Converted from thiscall CVector CEntity::TransformFromObjectSpace(CVector const &offset) 0x5334F0
 CVector CEntity::TransformFromObjectSpace(CVector const& offset)
 {
-    if (m_matrix)
-        return *m_matrix * offset;
+    auto result = CVector();
+    if (m_matrix) {
+        result = *m_matrix * offset;
+        return result;
+    }
 
-    CVector result;
     TransformPoint(result, m_placement, offset);
     return result;
 }
@@ -1205,49 +1215,159 @@ void CEntity::CreateEffects()
 // Converted from thiscall void CEntity::DestroyEffects(void) 0x533BF0
 void CEntity::DestroyEffects()
 {
-    ((void(__thiscall *)(CEntity*))0x533BF0)(this);
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    if (!pModelInfo->m_n2dfxCount)
+        return;
+
+    for (int32_t iFxInd = 0; iFxInd < pModelInfo->m_n2dfxCount; ++iFxInd) {
+        auto pEffect = pModelInfo->Get2dEffect(iFxInd);
+
+        if (pEffect->m_nType == e2dEffectType::EFFECT_ATTRACTOR) {
+            if (pEffect->pedAttractor.m_nAttractorType == ePedAttractorType::PED_ATTRACTOR_TRIGGER_SCRIPT)
+                CTheScripts::ScriptsForBrains.MarkAttractorScriptBrainWithThisNameAsNoLongerNeeded(pEffect->pedAttractor.m_szScriptName);
+        }
+        else if (pEffect->m_nType == e2dEffectType::EFFECT_PARTICLE) {
+            g_fx.DestroyEntityFx(this);
+        }
+        else if (pEffect->m_nType == e2dEffectType::EFFECT_ROADSIGN) {
+            if (pEffect->roadsign.m_pAtomic) {
+                auto pFrame = RpAtomicGetFrame(pEffect->roadsign.m_pAtomic);
+                if (pFrame) {
+                    RpAtomicSetFrame(pEffect->roadsign.m_pAtomic, nullptr);
+                    RwFrameDestroy(pFrame);
+                }
+                RpAtomicDestroy(pEffect->roadsign.m_pAtomic);
+                pEffect->roadsign.m_pAtomic = nullptr;
+            }
+        }
+        else if (pEffect->m_nType == e2dEffectType::EFFECT_ENEX) {
+            auto vecWorld = CEntity::TransformFromObjectSpace(pEffect->m_vecPosn);
+            auto iNearestEnex = CEntryExitManager::FindNearestEntryExit(vecWorld, 1.5F, -1);
+            if (iNearestEnex != -1) {
+                auto enex = CEntryExitManager::mp_poolEntryExits->GetAt(iNearestEnex);
+                if (enex->m_nFlags.bEnteredWithoutExit)
+                    enex->m_nFlags.bDeleteEnex = true;
+                else
+                    CEntryExitManager::DeleteOne(iNearestEnex);
+            }
+        }
+    }
 }
 
 // Converted from thiscall void CEntity::AttachToRwObject(RwObject *object, bool updateEntityMatrix) 0x533ED0
 void CEntity::AttachToRwObject(RwObject* object, bool updateEntityMatrix)
 {
-    ((void(__thiscall *)(CEntity*, RwObject*, bool))0x533ED0)(this, object, updateEntityMatrix);
+    if (!m_bIsVisible)
+        return;
+
+    m_pRwObject = object;
+    if (!m_pRwObject)
+        return;
+
+    if (updateEntityMatrix) {
+        auto pMatrix = GetMatrix();
+        auto pRwMatrix = CEntity::GetModellingMatrix();
+        pMatrix->UpdateMatrix(pRwMatrix);
+    }
+
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    if (RwObjectGetType(m_pRwObject) == rpCLUMP && pModelInfo->bIsRoad) {
+        if (IsObject())
+        {
+            reinterpret_cast<CObject*>(this)->AddToMovingList();
+            SetIsStatic(false);
+        }
+        else {
+            CWorld::ms_listMovingEntityPtrs.AddItem(this);
+        }
+    }
+    
+
+    pModelInfo->AddRef();
+    m_pStreamingLink = CStreaming::AddEntity(this);
+    CEntity::CreateEffects();
 }
 
 // Converted from thiscall void CEntity::DetachFromRwObject(void) 0x533FB0
 void CEntity::DetachFromRwObject()
 {
-    ((void(__thiscall *)(CEntity*))0x533FB0)(this);
+    if (!m_pRwObject)
+        return;
+
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    pModelInfo->RemoveRef();
+    CStreaming::RemoveEntity(m_pStreamingLink);
+    m_pStreamingLink = nullptr;
+
+    if (pModelInfo->GetModelType() == ModelInfoType::MODEL_INFO_CLUMP
+        && pModelInfo->bIsRoad
+        && !IsObject()) {
+
+        CWorld::ms_listMovingEntityPtrs.DeleteItem(this);
+    }
+
+    CEntity::DestroyEffects();
+    m_pRwObject = nullptr;
 }
 
 // Converted from thiscall CVector CEntity::GetBoundCentre(void) 0x534250
 CVector* CEntity::GetBoundCentre(CVector* pOutCentre)
 {
-    return ((CVector * (__thiscall *)(CEntity*, CVector*))0x534250)(this, pOutCentre);
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    const auto& pColCenter = pModelInfo->GetColModel()->GetBoundCenter();
+    return CEntity::TransformFromObjectSpace(*pOutCentre, pColCenter);
 }
 
 // Converted from thiscall void CEntity::GetBoundCentre(CVector &outCentre) 0x534290
 void CEntity::GetBoundCentre(CVector& outCentre)
 {
-    ((void(__thiscall *)(CEntity*, CVector&))0x534290)(this, outCentre);
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    const auto& pColCenter = pModelInfo->GetColModel()->GetBoundCenter();
+    CEntity::TransformFromObjectSpace(outCentre, pColCenter);
 }
 
 // Converted from thiscall void CEntity::RenderEffects(void) 0x5342B0
 void CEntity::RenderEffects()
 {
-    ((void(__thiscall *)(CEntity*))0x5342B0)(this);
+    if (!m_bHasRoadsignText)
+        return;
+
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    if (!pModelInfo->m_n2dfxCount)
+        return;
+
+    for (int32_t iFxInd = 0; iFxInd < pModelInfo->m_n2dfxCount; ++iFxInd) {
+        auto pEffect = pModelInfo->Get2dEffect(iFxInd);
+        if (pEffect->m_nType != e2dEffectType::EFFECT_ROADSIGN)
+            continue;
+
+        CCustomRoadsignMgr::RenderRoadsignAtomic(pEffect->roadsign.m_pAtomic, TheCamera.GetPosition());
+    }
 }
 
 // Converted from thiscall bool CEntity::GetIsTouching(CEntity *entity) 0x5343F0
 bool CEntity::GetIsTouching(CEntity* entity)
 {
-    return ((bool(__thiscall *)(CEntity*, CEntity*))0x5343F0)(this, entity);
+    CVector thisVec;
+    CEntity::GetBoundCentre(thisVec);
+
+    CVector otherVec;
+    entity->GetBoundCentre(otherVec);
+
+    auto fThisRadius = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel()->GetBoundRadius();
+    auto fOtherRadius = CModelInfo::GetModelInfo(entity->m_nModelIndex)->GetColModel()->GetBoundRadius();
+
+    return (thisVec - otherVec).Magnitude() <= (fThisRadius + fOtherRadius);
 }
 
 // Converted from thiscall bool CEntity::GetIsTouching(CVector const &centre,float radius) 0x5344B0
-bool CEntity::GetIsTouching(CVector* centre, float radius)
+bool CEntity::GetIsTouching(CVector const& centre, float radius)
 {
-    return ((bool(__thiscall *)(CEntity*, CVector *, float))0x5344B0)(this, centre, radius);
+    CVector thisVec;
+    CEntity::GetBoundCentre(thisVec);
+    auto fThisRadius = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel()->GetBoundRadius();
+
+    return (thisVec - centre).Magnitude() <= (fThisRadius + radius);
 }
 
 // Converted from thiscall bool CEntity::GetIsOnScreen(void) 0x534540

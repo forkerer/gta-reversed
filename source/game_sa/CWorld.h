@@ -51,7 +51,7 @@ public:
     // Use GetSector() to access this array
     static CSector *ms_aSectors; // static CSector ms_aSectors[MAX_SECTORS] default 120x120
     // Use GetRepeatSector() to access this array
-    static CRepeatSector *ms_aRepeatSectors; // static CRepeatSector ms_aRepeatSectors[MAX_REPEAT_SECTORS] default 16x16
+    static CRepeatSector (&ms_aRepeatSectors)[MAX_REPEAT_SECTORS]; // static CRepeatSector ms_aRepeatSectors[MAX_REPEAT_SECTORS] default 16x16
     // Use GetLodPtrList() to access this array
     
     static CPtrListSingleLink(&ms_aLodPtrLists)[MAX_LOD_PTR_LISTS_Y][MAX_LOD_PTR_LISTS_X];

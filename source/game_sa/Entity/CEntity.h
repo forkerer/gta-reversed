@@ -164,7 +164,7 @@ public:
     // is entity touching entity
     bool GetIsTouching(CEntity* entity);
     // is entity touching sphere
-    bool GetIsTouching(CVector* centre, float radius);
+    bool GetIsTouching(CVector const& centre, float radius);
     bool GetIsOnScreen();
     bool GetIsBoundingBoxOnScreen();
     void ModifyMatrixForTreeInWind();

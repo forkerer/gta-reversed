@@ -17,3 +17,13 @@ int CEntryExitManager::AddOne(float entranceX, float entranceY, float entranceZ,
     return plugin::CallAndReturn<int, 0x43FA00, float, float, float, float, float, float, float, float, float, float, float, int, int, int, int, int, int, char const*>
         (entranceX, entranceY, entranceZ, entranceAngle, entranceRangeX, entranceRangeY, unused, exitX, exitY, exitZ, exitAngle, area, flags, skyColor, timeOn, timeOff, numberOfPeds, name);
 }
+
+void CEntryExitManager::DeleteOne(int index)
+{
+    plugin::Call<0x43FD50, int>(index);
+}
+
+int CEntryExitManager::FindNearestEntryExit(CVector2D const& position, float range, int ignoreArea)
+{
+    return plugin::CallAndReturn<int, 0x43F4B0, CVector2D const&, float, int>(position, range, ignoreArea);
+}

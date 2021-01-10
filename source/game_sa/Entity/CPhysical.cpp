@@ -2219,7 +2219,7 @@ bool CPhysical::ProcessShiftSectorList(int sectorX, int sectorY)
                     && pEntity->m_nScanCode != CWorld::ms_nCurrentScanCode
                     && pEntity->m_bUsesCollision && (!m_bHasHitWall || bProcessEntityCollision))
                 {
-                    if (pEntity->GetIsTouching(&vecBoundCentre, fBoundingSphereRadius))
+                    if (pEntity->GetIsTouching(vecBoundCentre, fBoundingSphereRadius))
                     {
                         bool bCollisionDisabled = false;
                         bool bCollidedEntityCollisionIgnored = false;
@@ -4416,7 +4416,7 @@ bool CPhysical::ProcessCollisionSectorList(int sectorX, int sectorY)
                     continue;
                 }
 
-                if (!pEntity->GetIsTouching(&vecBoundCentre, fBoundingSphereRadius))
+                if (!pEntity->GetIsTouching(vecBoundCentre, fBoundingSphereRadius))
                 {
                     if (m_pEntityIgnoredCollision == pEntity && m_pAttachedTo != pEntity)
                     {
@@ -5160,7 +5160,7 @@ bool CPhysical::ProcessCollisionSectorList_SimpleCar(CRepeatSector* pRepeatSecto
         {
             if (pEntity->m_bUsesCollision)
             {
-                if (pEntity->GetIsTouching(&vecBoundingCentre, fBoundingRadius))
+                if (pEntity->GetIsTouching(vecBoundingCentre, fBoundingRadius))
                 {
                     pEntity->m_nScanCode = CWorld::ms_nCurrentScanCode;
                     totalColPointsToProcess = ProcessEntityCollision(pPhysicalEntity, &colPoints[0]);
