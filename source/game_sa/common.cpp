@@ -107,6 +107,16 @@ void TransformPoint(RwV3d& point, CSimpleTransform const& placement, RwV3d const
     plugin::Call<0x54ECE0, RwV3d&, CSimpleTransform const&, RwV3d const&>(point, placement, vecPos);
 }
 
+void TransformVectors(RwV3d* vecsOut, int numVectors, CMatrix const& matrix, RwV3d const* vecsin)
+{
+    plugin::Call<0x54EEA0, RwV3d*, int, CMatrix const&, RwV3d const*>(vecsOut, numVectors, matrix, vecsin);
+}
+
+void TransformVectors(RwV3d* vecsOut, int numVectors, CSimpleTransform const& transform, RwV3d const* vecsin)
+{
+    plugin::Call<0x54EE30, RwV3d*, int, CSimpleTransform const&, RwV3d const*>(vecsOut, numVectors, transform, vecsin);
+}
+
 CWanted * FindPlayerWanted(int playerId)
 {
     return ((CWanted*(__cdecl *)(int))0x56E230)(playerId);

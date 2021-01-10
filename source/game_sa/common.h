@@ -91,6 +91,8 @@ CVector Multiply3x3(CMatrix* matrix, CVector* vector);
 CVector Multiply3x3(CVector* vector, CMatrix* matrix);
 
 void TransformPoint(RwV3d& point, CSimpleTransform const& placement, RwV3d const& vecPos);
+void TransformVectors(RwV3d* vecsOut, int numVectors, CMatrix const& matrix, RwV3d const* vecsin);
+void TransformVectors(RwV3d* vecsOut, int numVectors, CSimpleTransform const& transform, RwV3d const* vecsin);
 
 
 // returns player wanted

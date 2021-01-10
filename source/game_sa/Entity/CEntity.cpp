@@ -55,6 +55,10 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "RenderEffects", 0x5342B0, &CEntity::RenderEffects);
     ReversibleHooks::Install("CEntity", "GetIsTouching_ent", 0x5343F0, (bool(CEntity::*)(CEntity*)) (&CEntity::GetIsTouching));
     ReversibleHooks::Install("CEntity", "GetIsTouching_vec", 0x5344B0, (bool(CEntity::*)(CVector const&, float)) (&CEntity::GetIsTouching));
+    ReversibleHooks::Install("CEntity", "GetIsOnScreen", 0x534540, &CEntity::GetIsOnScreen);
+    ReversibleHooks::Install("CEntity", "GetIsBoundingBoxOnScreen", 0x5345D0, &CEntity::GetIsBoundingBoxOnScreen);
+    ReversibleHooks::Install("CEntity", "ModifyMatrixForTreeInWind", 0x534E90, &CEntity::ModifyMatrixForTreeInWind);
+    ReversibleHooks::Install("CEntity", "GetColModel", 0x535300, &CEntity::GetColModel);
 
     ReversibleHooks::Install("CEntity", "GetModellingMatrix", 0x46A2D0, &CEntity::GetModellingMatrix);
     ReversibleHooks::Install("CEntity", "UpdateRW", 0x446F90, &CEntity::UpdateRW);
@@ -1373,19 +1377,98 @@ bool CEntity::GetIsTouching(CVector const& centre, float radius)
 // Converted from thiscall bool CEntity::GetIsOnScreen(void) 0x534540
 bool CEntity::GetIsOnScreen()
 {
-    return ((bool(__thiscall *)(CEntity*))0x534540)(this);
+    CVector thisVec;
+    CEntity::GetBoundCentre(thisVec);
+    auto fThisRadius = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel()->GetBoundRadius();
+
+    if (TheCamera.IsSphereVisible(&thisVec, fThisRadius, reinterpret_cast<RwMatrixTag*>(&TheCamera.m_mMatInverse)))
+        return true;
+
+    if (TheCamera.m_bMirrorActive)
+        return TheCamera.IsSphereVisible(&thisVec, fThisRadius, reinterpret_cast<RwMatrixTag*>(&TheCamera.m_mMatMirrorInverse));
+
+    return false;
 }
 
 // Converted from thiscall bool CEntity::GetIsBoundingBoxOnScreen(void) 0x5345D0
 bool CEntity::GetIsBoundingBoxOnScreen()
 {
-    return ((bool(__thiscall *)(CEntity*))0x5345D0)(this);
+    auto pColModel = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel();
+    CVector vecBnd[2]{ pColModel->m_boundBox.m_vecMin, pColModel->m_boundBox.m_vecMax };
+
+    RwV3d vecNormals[2];
+    if (m_matrix) {
+        auto tempMat = CMatrix();
+        Invert(m_matrix, &tempMat);
+        TransformVectors(&vecNormals[0], 2, tempMat, &TheCamera.m_avecFrustumWorldNormals[0]);
+    }
+    else {
+        auto tempTrans = CSimpleTransform();
+        tempTrans.Invert(m_placement);
+        TransformVectors(&vecNormals[0], 2, tempTrans, &TheCamera.m_avecFrustumWorldNormals[0]);
+    }
+
+    for (int32_t i = 0; i < 2; ++i) {
+        CVector vecUsed;
+        vecUsed.x = vecBnd[signbit(vecNormals[i].x)].x;
+        vecUsed.y = vecBnd[signbit(vecNormals[i].y)].y;
+        vecUsed.z = vecBnd[signbit(vecNormals[i].z)].z;
+
+        auto vecWorld = CEntity::TransformFromObjectSpace(vecUsed);
+        if (DotProduct(vecWorld, TheCamera.m_avecFrustumWorldNormals[i]) > TheCamera.m_fFrustumPlaneOffsets[i]
+            && (!TheCamera.m_bMirrorActive
+                || DotProduct(vecWorld, TheCamera.m_avecFrustumWorldNormals_Mirror[i]) > TheCamera.m_fFrustumPlaneOffsets_Mirror[i])) {
+
+            ++numBBFailed;
+            return false;
+        }
+    }
+    return true;
 }
 
 // Converted from thiscall void CEntity::ModifyMatrixForTreeInWind(void) 0x534E90
 void CEntity::ModifyMatrixForTreeInWind()
 {
-    ((void(__thiscall *)(CEntity*))0x534E90)(this);
+    if (CTimer::GetIsPaused())
+        return;
+
+    auto pRwMat = CEntity::GetModellingMatrix();
+    if (!pRwMat)
+        return;
+
+    auto pAt = RwMatrixGetAt(pRwMat);
+
+    float fWindOffset;
+    if (CWeather::Wind >= 0.5F) {
+        auto uiOffset1 = (((m_nRandomSeed + CTimer::m_snTimeInMilliseconds * 8) & 0xFFFF) / 4096) & 0xF;
+        auto uiOffset2 = (uiOffset1 + 1) & 0xF;
+        auto fContrib = static_cast<float>(((m_nRandomSeed + CTimer::m_snTimeInMilliseconds * 8) & 0xFFF)) / 4096.0F;
+
+        fWindOffset = (1.0F - fContrib) * CWeather::saTreeWindOffsets[uiOffset1];
+        fWindOffset += 1.0F + fContrib * CWeather::saTreeWindOffsets[uiOffset2];
+        fWindOffset *= CWeather::Wind;
+        fWindOffset *= 0.015F;
+
+    }
+    else {
+        auto uiTimeOffset = (reinterpret_cast<unsigned int>(this) + CTimer::m_snTimeInMilliseconds) & 0xFFF;
+        
+        fWindOffset = sin(uiTimeOffset * 0.0015332032F) * 0.005F;
+        if (CWeather::Wind >= 0.2F)
+            fWindOffset *= 1.6F;
+    }
+
+    pAt->x = fWindOffset;
+    if (CModelInfo::GetModelInfo(m_nModelIndex)->IsSwayInWind2())
+        pAt->x += CWeather::Wind * 0.03F;
+
+    pAt->y = pAt->x;    
+    pAt->x *= CWeather::WindDir.x;
+    pAt->y *= CWeather::WindDir.y;
+
+    CWindModifiers::FindWindModifier(GetPosition(), &pAt->x, &pAt->y);
+    CEntity::UpdateRwFrame();
+
 }
 
 // Converted from thiscall void CEntity::ModifyMatrixForBannerInWind(void) 0x535040
@@ -1405,7 +1488,10 @@ RwMatrix* CEntity::GetModellingMatrix()
 // Converted from thiscall CColModel* CEntity::GetColModel(void) 0x535300
 CColModel* CEntity::GetColModel()
 {
-    return ((CColModel* (__thiscall *)(CEntity*))0x535300)(this);
+    if (IsVehicle() && static_cast<CVehicle*>(this)->m_nSpecialColModel != 0xFF)
+        return &CVehicle::m_aSpecialColModel[static_cast<CVehicle*>(this)->m_nSpecialColModel];
+    else
+        return CModelInfo::GetModelInfo(m_nModelIndex)->m_pColModel;
 }
 
 // Converted from thiscall void CEntity::CalculateBBProjection(CVector *,CVector *,CVector *,CVector *) 0x535340

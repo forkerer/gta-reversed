@@ -265,6 +265,7 @@
 #include "game_sa\CWeaponEffects.h"
 #include "game_sa\CWeaponInfo.h"
 #include "game_sa\CWeather.h"
+#include "game_sa\CWindModifiers.h"
 #include "game_sa\CWorld.h"
 #include "game_sa\CZone.h"
 #include "game_sa\CZoneInfo.h"
