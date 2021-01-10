@@ -25,6 +25,7 @@ public:
     void Flush();
     CPtrNodeDoubleLink* AddItem(void* item);
     void DeleteItem(void* item);
+    void DeleteNode(CPtrNodeDoubleLink* node); //Most likely inlined in the final exe, this code is used in multiple places
 };
 
 VALIDATE_SIZE(CPtrListDoubleLink, 4);

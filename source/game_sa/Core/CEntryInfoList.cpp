@@ -7,22 +7,24 @@ void CEntryInfoList::InjectHooks()
 
 void CEntryInfoList::Flush()
 {
-    CEntryInfoNode* pCurNode = &m_pNode;
-    if (!pCurNode->m_pDoubleLinkList)
-        return;
-
+    CEntryInfoNode* pCurNode = m_pNode;
     while (pCurNode) {
         auto pNextNode = pCurNode->m_pNext;
-        if (pCurNode->m_pDoubleLinkList == m_pNode.m_pDoubleLinkList)
-            m_pNode.m_pDoubleLinkList = pNextNode->m_pDoubleLinkList;
-
-        if (pCurNode->m_pPrevious)
-            pCurNode->m_pPrevious->m_pNext = pCurNode->m_pNext;
-
-        if (pCurNode->m_pNext)
-            pCurNode->m_pNext->m_pPrevious = pCurNode->m_pPrevious;
-
-        delete pCurNode;
+        CEntryInfoList::DeleteNode(pCurNode);
         pCurNode = pNextNode;
     }
+}
+
+void CEntryInfoList::DeleteNode(CEntryInfoNode* pNode)
+{
+    if(m_pNode == pNode)
+        m_pNode = pNode->m_pNext;
+
+    if (pNode->m_pPrevious)
+        pNode->m_pPrevious->m_pNext = pNode->m_pNext;
+
+    if (pNode->m_pNext)
+        pNode->m_pNext->m_pPrevious = pNode->m_pPrevious;
+
+    delete pNode;
 }
