@@ -610,59 +610,76 @@ void CAutomobile::PlaceOnRoadProperly()
     auto vecFrontCheck = vecPos + GetForward() * fStartY;
     vecFrontCheck.z = vecPos.z;
 
-    bool bInTunnelFront = false;
+    bool bColFoundFront = false;
     CColPoint colPoint;
     CEntity* colEntity;
     float fColZ;
     if (CWorld::ProcessVerticalLine(vecFrontCheck, vecFrontCheck.z + 5.0F, colPoint, colEntity, true, false, false, false, false, false, nullptr)) {
-        m_bTunnel = true;
-        m_bTunnelTransition = true;
+        m_bTunnel = colEntity->m_bTunnel;
+        m_bTunnelTransition = colEntity->m_bTunnelTransition;
 
         fColZ = colPoint.m_vecPoint.z;
         m_pEntityWeAreOn = colEntity;
-        bInTunnelFront = true;
+        bColFoundFront = true;
     }
     if (CWorld::ProcessVerticalLine(vecFrontCheck, vecFrontCheck.z - 5.0F, colPoint, colEntity, true, false, false, false, false, false, nullptr)) {
-        if (!bInTunnelFront || fabs(vecFrontCheck.z - colPoint.m_vecPoint.z) < fabs(vecFrontCheck.z - fColZ)) {
-            m_bTunnel = true;
-            m_bTunnelTransition = true;
+        if (!bColFoundFront || fabs(vecFrontCheck.z - colPoint.m_vecPoint.z) < fabs(vecFrontCheck.z - fColZ)) {
+            m_bTunnel = colEntity->m_bTunnel;
+            m_bTunnelTransition = colEntity->m_bTunnelTransition;
 
             fColZ = colPoint.m_vecPoint.z;
             m_pEntityWeAreOn = colEntity;
+
+            m_FrontCollPoly.m_nLighting = colPoint.m_nLightingB;
+            vecFrontCheck.z = fColZ;
         }
     }
-    else if (bInTunnelFront) {
+    else if (bColFoundFront) {
         m_FrontCollPoly.m_nLighting = colPoint.m_nLightingB;
         vecFrontCheck.z = fColZ;
     }
 
-    bool bInTunnelRear = false;
+    bool bColFoundRear = false;
     colEntity = nullptr;
     if (CWorld::ProcessVerticalLine(vecRearCheck, vecRearCheck.z + 5.0F, colPoint, colEntity, true, false, false, false, false, false, nullptr)) {
-        m_bTunnel = true;
-        m_bTunnelTransition = true;
+        m_bTunnel = colEntity->m_bTunnel;
+        m_bTunnelTransition = colEntity->m_bTunnelTransition;
 
         fColZ = colPoint.m_vecPoint.z;
         m_pEntityWeAreOn = colEntity;
-        bInTunnelRear = true;
+        bColFoundRear = true;
     }
     if (CWorld::ProcessVerticalLine(vecRearCheck, vecRearCheck.z - 5.0F, colPoint, colEntity, true, false, false, false, false, false, nullptr)) {
-        if (!bInTunnelRear || fabs(vecRearCheck.z - colPoint.m_vecPoint.z) < fabs(vecRearCheck.z - fColZ)) {
-            m_bTunnel = true;
-            m_bTunnelTransition = true;
+        if (!bColFoundRear || fabs(vecRearCheck.z - colPoint.m_vecPoint.z) < fabs(vecRearCheck.z - fColZ)) {
+            m_bTunnel = colEntity->m_bTunnel;
+            m_bTunnelTransition = colEntity->m_bTunnelTransition;
 
             fColZ = colPoint.m_vecPoint.z;
             m_pEntityWeAreOn = colEntity;
+
+            m_RearCollPoly.m_nLighting = colPoint.m_nLightingB;
+            vecRearCheck.z = fColZ;
         }
     }
-    else if (bInTunnelRear) {
+    else if (bColFoundRear) {
         m_RearCollPoly.m_nLighting = colPoint.m_nLightingB;
         vecRearCheck.z = fColZ;
     }
 
-    auto fHeightAboveRoad = GetHeightAboveRoad();
-    vecFrontCheck.z += fHeightAboveRoad;
-    vecRearCheck.z += m_fRearHeightAboveRoad;
+    //FIXME: Not originally in this function, we can't spawn skimmer from debug menu cause those 2 values aren't initialized,
+    //       resulting in garbage results further down, either we have a bug somewhere, or it's like that in original SA too
+    if (m_nModelIndex == eModelID::MODEL_SKIMMER) {
+        m_fFrontHeightAboveRoad = 0.0F;
+        m_fRearHeightAboveRoad = 0.0F;
+        vecFrontCheck.z += 4.0F;
+        vecRearCheck.z += 4.0F;
+    }
+    else {
+        auto fHeightAboveRoad = GetHeightAboveRoad();
+        vecFrontCheck.z += fHeightAboveRoad;
+        vecRearCheck.z += m_fRearHeightAboveRoad;
+    }
+
     auto fLength = fEndY + fStartY;
     GetRight().Set((vecFrontCheck.y - vecRearCheck.y) / fLength, -((vecFrontCheck.x - vecRearCheck.x) / fLength), 0.0F);
 
