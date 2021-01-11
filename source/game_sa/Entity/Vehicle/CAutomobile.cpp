@@ -14,6 +14,7 @@ CColPoint* aAutomobileColPoints = (CColPoint*)0xC1BFF8;
 void CAutomobile::InjectHooks()
 {
     ReversibleHooks::Install("CAutomobile", "ProcessBuoyancy", 0x6A8C00, &CAutomobile::ProcessBuoyancy);
+    ReversibleHooks::Install("CAutomobile", "PlaceOnRoadProperly", 0x6AF420, &CAutomobile::PlaceOnRoadProperly);
 }
 
 CAutomobile::CAutomobile(int modelIndex, unsigned char createdBy, bool setupSuspensionLines) : CVehicle(plugin::dummy) {
@@ -597,7 +598,86 @@ void CAutomobile::BlowUpCarsInPath()
 // Converted from thiscall void CAutomobile::PlaceOnRoadProperly(void) 0x6AF420
 void CAutomobile::PlaceOnRoadProperly()
 {
-    ((void(__thiscall*)(CAutomobile*))0x6AF420)(this);
+    auto pColModel = CEntity::GetColModel();
+    auto fStartY = pColModel->m_pColData->m_pLines[0].m_vecStart.y;
+    auto fEndY = -pColModel->m_pColData->m_pLines[3].m_vecStart.y;
+
+    const auto& vecPos = GetPosition();
+
+    auto vecRearCheck = vecPos - GetForward() * fEndY;
+    vecRearCheck.z = vecPos.z;
+
+    auto vecFrontCheck = vecPos + GetForward() * fStartY;
+    vecFrontCheck.z = vecPos.z;
+
+    bool bInTunnelFront = false;
+    CColPoint colPoint;
+    CEntity* colEntity;
+    float fColZ;
+    if (CWorld::ProcessVerticalLine(vecFrontCheck, vecFrontCheck.z + 5.0F, colPoint, colEntity, true, false, false, false, false, false, nullptr)) {
+        m_bTunnel = true;
+        m_bTunnelTransition = true;
+
+        fColZ = colPoint.m_vecPoint.z;
+        m_pEntityWeAreOn = colEntity;
+        bInTunnelFront = true;
+    }
+    if (CWorld::ProcessVerticalLine(vecFrontCheck, vecFrontCheck.z - 5.0F, colPoint, colEntity, true, false, false, false, false, false, nullptr)) {
+        if (!bInTunnelFront || fabs(vecFrontCheck.z - colPoint.m_vecPoint.z) < fabs(vecFrontCheck.z - fColZ)) {
+            m_bTunnel = true;
+            m_bTunnelTransition = true;
+
+            fColZ = colPoint.m_vecPoint.z;
+            m_pEntityWeAreOn = colEntity;
+        }
+    }
+    else if (bInTunnelFront) {
+        m_FrontCollPoly.m_nLighting = colPoint.m_nLightingB;
+        vecFrontCheck.z = fColZ;
+    }
+
+    bool bInTunnelRear = false;
+    colEntity = nullptr;
+    if (CWorld::ProcessVerticalLine(vecRearCheck, vecRearCheck.z + 5.0F, colPoint, colEntity, true, false, false, false, false, false, nullptr)) {
+        m_bTunnel = true;
+        m_bTunnelTransition = true;
+
+        fColZ = colPoint.m_vecPoint.z;
+        m_pEntityWeAreOn = colEntity;
+        bInTunnelRear = true;
+    }
+    if (CWorld::ProcessVerticalLine(vecRearCheck, vecRearCheck.z - 5.0F, colPoint, colEntity, true, false, false, false, false, false, nullptr)) {
+        if (!bInTunnelRear || fabs(vecRearCheck.z - colPoint.m_vecPoint.z) < fabs(vecRearCheck.z - fColZ)) {
+            m_bTunnel = true;
+            m_bTunnelTransition = true;
+
+            fColZ = colPoint.m_vecPoint.z;
+            m_pEntityWeAreOn = colEntity;
+        }
+    }
+    else if (bInTunnelRear) {
+        m_RearCollPoly.m_nLighting = colPoint.m_nLightingB;
+        vecRearCheck.z = fColZ;
+    }
+
+    auto fHeightAboveRoad = GetHeightAboveRoad();
+    vecFrontCheck.z += fHeightAboveRoad;
+    vecRearCheck.z += m_fRearHeightAboveRoad;
+    auto fLength = fEndY + fStartY;
+    GetRight().Set((vecFrontCheck.y - vecRearCheck.y) / fLength, -((vecFrontCheck.x - vecRearCheck.x) / fLength), 0.0F);
+
+    auto vecDiff = vecFrontCheck - vecRearCheck;
+    vecDiff.Normalise();
+    GetForward() = vecDiff;
+
+    auto vecCross = CrossProduct(GetRight(), GetForward());
+    GetUp() = vecCross;
+
+    CVector vecNewPos = (vecFrontCheck * fEndY + vecRearCheck * fStartY) / fLength;
+    SetPosn(vecNewPos);
+
+    if (IsPlane())
+        static_cast<CPlane*>(this)->field_9A4 = CGeneral::GetATanOfXY(GetForward().x, GetForward().y);
 }
 
 // Converted from thiscall void CAutomobile::PopBoot(void) 0x6AF910

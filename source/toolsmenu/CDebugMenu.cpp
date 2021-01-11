@@ -649,19 +649,19 @@ void CDebugMenu::ProcessHooksTool()
             bool treeOpen = ImGui::TreeNodeEx(classHooks.first.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap);
             ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 40);
             if (ImGui::Button("-")) {
-                for (auto& hook : classHooks.second)
+                for (auto hook : classHooks.second)
                     hook->m_bImguiHooked = false;
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Disable all");
 
             ImGui::SameLine();
             if (ImGui::Button("+")) {
-                for (auto& hook : classHooks.second)
+                for (auto hook : classHooks.second)
                     hook->m_bImguiHooked = true;
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable all");
 
-            for (auto& hook : classHooks.second)
+            for (auto hook : classHooks.second)
                 if (hook->m_bIsHooked != hook->m_bImguiHooked)
                     ReversibleHooks::Switch(hook);
 
