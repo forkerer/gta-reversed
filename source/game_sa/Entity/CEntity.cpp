@@ -58,6 +58,7 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "GetIsOnScreen", 0x534540, &CEntity::GetIsOnScreen);
     ReversibleHooks::Install("CEntity", "GetIsBoundingBoxOnScreen", 0x5345D0, &CEntity::GetIsBoundingBoxOnScreen);
     ReversibleHooks::Install("CEntity", "ModifyMatrixForTreeInWind", 0x534E90, &CEntity::ModifyMatrixForTreeInWind);
+    ReversibleHooks::Install("CEntity", "ModifyMatrixForBannerInWind", 0x535040, &CEntity::ModifyMatrixForBannerInWind);
     ReversibleHooks::Install("CEntity", "GetColModel", 0x535300, &CEntity::GetColModel);
     ReversibleHooks::Install("CEntity", "CalculateBBProjection", 0x535340, &CEntity::CalculateBBProjection);
     ReversibleHooks::Install("CEntity", "UpdateAnim", 0x535F00, &CEntity::UpdateAnim);
@@ -1481,7 +1482,42 @@ void CEntity::ModifyMatrixForTreeInWind()
 // Converted from thiscall void CEntity::ModifyMatrixForBannerInWind(void) 0x535040
 void CEntity::ModifyMatrixForBannerInWind()
 {
-    ((void(__thiscall *)(CEntity*))0x535040)(this);
+    if (CTimer::GetIsPaused())
+        return;
+
+    auto vecPos = CVector2D(GetPosition());
+    auto uiOffset = static_cast<uint16_t>(16 * (CTimer::m_snTimeInMilliseconds + (static_cast<uint16_t>(vecPos.x + vecPos.y) * 64)));
+
+    auto fWind = 0.2F;
+    if (CWeather::Wind >= 0.1F) {
+        if (CWeather::Wind < 0.8F)
+            fWind = 0.43F;
+        else
+            fWind = 0.66F;
+    }
+
+    auto fContrib = static_cast<float>(uiOffset & 0x7FF) / 2048.0F;
+    unsigned int uiIndex = uiOffset / 2048;
+    auto fWindOffset = (1.0F - fContrib) * CWeather::saBannerWindOffsets[uiIndex];
+    fWindOffset += fContrib * CWeather::saBannerWindOffsets[(uiIndex + 1) & 0x1F];
+    fWindOffset *= CWeather::Wind;
+
+    auto fZPos = sqrt(1.0F - pow(fWindOffset, 2.0F));
+
+    auto pMat = GetMatrix();
+    auto vecCross = CrossProduct(pMat->GetForward(), pMat->GetUp());
+    vecCross.z = 0.0F;
+    vecCross.Normalise();
+
+    auto vecWind = CVector(vecCross.x * fWindOffset, vecCross.y * fWindOffset, fZPos);
+    auto vecCross2 = CrossProduct(pMat->GetForward(), vecWind);
+
+    pMat->GetRight() = vecCross2;
+    pMat->GetUp() = vecWind;
+
+    CEntity::UpdateRW();
+    CEntity::UpdateRwFrame();
+
 }
 
 RwMatrix* CEntity::GetModellingMatrix()
