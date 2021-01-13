@@ -62,6 +62,8 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "CalculateBBProjection", 0x535340, &CEntity::CalculateBBProjection);
     ReversibleHooks::Install("CEntity", "UpdateAnim", 0x535F00, &CEntity::UpdateAnim);
     ReversibleHooks::Install("CEntity", "IsVisible", 0x536BC0, &CEntity::IsVisible);
+    ReversibleHooks::Install("CEntity", "GetDistanceFromCentreOfMassToBaseOfModel", 0x536BE0, &CEntity::GetDistanceFromCentreOfMassToBaseOfModel);
+    ReversibleHooks::Install("CEntity", "CleanUpOldReference", 0x571A00, &CEntity::CleanUpOldReference);
 
     ReversibleHooks::Install("CEntity", "GetModellingMatrix", 0x46A2D0, &CEntity::GetModellingMatrix);
     ReversibleHooks::Install("CEntity", "UpdateRW", 0x446F90, &CEntity::UpdateRW);
@@ -1654,13 +1656,29 @@ bool CEntity::IsVisible()
 // Converted from thiscall float CEntity::GetDistanceFromCentreOfMassToBaseOfModel(void) 0x536BE0
 float CEntity::GetDistanceFromCentreOfMassToBaseOfModel()
 {
-    return ((float(__thiscall *)(CEntity*))0x536BE0)(this);
+    auto pColModel = CEntity::GetColModel();
+    return -pColModel->m_boundBox.m_vecMin.z;
 }
 
 // Converted from thiscall void CEntity::CleanUpOldReference(CEntity** entity) 0x571A00
 void CEntity::CleanUpOldReference(CEntity** entity)
 {
-    ((void(__thiscall *)(CEntity*, CEntity**))0x571A00)(this, entity);
+    if (!m_pReferences)
+        return;
+
+    auto pRef = m_pReferences;
+    auto ppPrev = &m_pReferences;
+    while (pRef->m_ppEntity != entity) {
+        ppPrev = &pRef->m_pNext;
+        pRef = pRef->m_pNext;
+        if (!pRef)
+            return;
+    }
+
+    *ppPrev = pRef->m_pNext;
+    pRef->m_pNext = CReferences::pEmptyList;
+    pRef->m_ppEntity == nullptr;
+    CReferences::pEmptyList = pRef;
 }
 
 // Converted from thiscall void CEntity::ResolveReferences(void) 0x571A40
