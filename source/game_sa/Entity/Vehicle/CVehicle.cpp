@@ -87,7 +87,7 @@ void CVehicle::Render()
 
 void CVehicle::SetModelIndex(unsigned int index)
 {
-    return CVehicle::SetModelIndex(index);
+    return CVehicle::SetModelIndex_Reversed(index);
 }
 
 void* CVehicle::operator new(unsigned int size) {

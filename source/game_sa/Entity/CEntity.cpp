@@ -59,6 +59,9 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "GetIsBoundingBoxOnScreen", 0x5345D0, &CEntity::GetIsBoundingBoxOnScreen);
     ReversibleHooks::Install("CEntity", "ModifyMatrixForTreeInWind", 0x534E90, &CEntity::ModifyMatrixForTreeInWind);
     ReversibleHooks::Install("CEntity", "GetColModel", 0x535300, &CEntity::GetColModel);
+    ReversibleHooks::Install("CEntity", "CalculateBBProjection", 0x535340, &CEntity::CalculateBBProjection);
+    ReversibleHooks::Install("CEntity", "UpdateAnim", 0x535F00, &CEntity::UpdateAnim);
+    ReversibleHooks::Install("CEntity", "IsVisible", 0x536BC0, &CEntity::IsVisible);
 
     ReversibleHooks::Install("CEntity", "GetModellingMatrix", 0x46A2D0, &CEntity::GetModellingMatrix);
     ReversibleHooks::Install("CEntity", "UpdateRW", 0x446F90, &CEntity::UpdateRW);
@@ -1495,21 +1498,157 @@ CColModel* CEntity::GetColModel()
 }
 
 // Converted from thiscall void CEntity::CalculateBBProjection(CVector *,CVector *,CVector *,CVector *) 0x535340
-void CEntity::CalculateBBProjection(CVector* arg0, CVector* arg1, CVector* arg2, CVector* arg3)
+//https://gamedev.stackexchange.com/a/35948
+//https://gamedev.stackexchange.com/questions/153326/how-to-rotate-directional-billboard-particle-sprites-toward-the-direction-the-pa/153814#153814
+void CEntity::CalculateBBProjection(CVector* pVecCorner1, CVector* pVecCorner2, CVector* pVecCorner3, CVector* pVecCorner4)
 {
-    ((void(__thiscall *)(CEntity*, CVector*, CVector*, CVector*, CVector*))0x535340)(this, arg0, arg1, arg2, arg3);
+    auto pMat = GetMatrix();
+    auto fMagRight = CVector2D(pMat->GetRight()).Magnitude();
+    auto fMagForward = CVector2D(pMat->GetForward()).Magnitude();
+    auto fMagUp = CVector2D(pMat->GetUp()).Magnitude();
+
+    auto pColModel = CModelInfo::GetModelInfo(m_nModelIndex)->m_pColModel;
+    auto fMaxX = std::max(-pColModel->m_boundBox.m_vecMin.x, pColModel->m_boundBox.m_vecMax.x);
+    auto fMaxY = std::max(-pColModel->m_boundBox.m_vecMin.y, pColModel->m_boundBox.m_vecMax.y);
+    auto fMaxZ = std::max(-pColModel->m_boundBox.m_vecMin.z, pColModel->m_boundBox.m_vecMax.z);
+
+    auto fXSize = fMaxX * fMagRight * 2.0F;
+    auto fYSize = fMaxY * fMagForward * 2.0F;
+    auto fZSize = fMaxZ * fMagUp * 2.0F;
+
+    CVector vecDir, vecNormalized, vecTransformed;
+    float fMult1, fMult2, fMult3, fMult4;
+    if (fXSize > fYSize && fXSize > fZSize) {
+        vecDir = pMat->GetRight();
+        vecDir.z = 0.0F;
+
+        vecNormalized = vecDir;
+        vecNormalized.Normalise();
+
+        auto vecScaled = vecDir * fMaxX;
+        vecTransformed = vecScaled + GetPosition();
+
+        auto vecTemp = GetPosition() - vecScaled;
+        vecDir = vecTemp;
+
+        fMult1 = (vecNormalized.x * pMat->GetForward().x + vecNormalized.y * pMat->GetForward().y) * fMaxY;
+        fMult2 = (vecNormalized.x * pMat->GetForward().y - vecNormalized.y * pMat->GetForward().x) * fMaxY;
+        fMult3 = (vecNormalized.x * pMat->GetUp().x + vecNormalized.y * pMat->GetUp().y) * fMaxZ;
+        fMult4 = (vecNormalized.x * pMat->GetUp().y - vecNormalized.y * pMat->GetUp().x) * fMaxZ;
+    }
+    else if (fYSize > fZSize) {
+        vecDir = pMat->GetForward();
+        vecDir.z = 0.0F;
+
+        vecNormalized = vecDir;
+        vecNormalized.Normalise();
+
+        auto vecScaled = vecDir * fMaxY;
+        vecTransformed = vecScaled + GetPosition();
+
+        auto vecTemp = GetPosition() - vecScaled;
+        vecDir = vecTemp;
+
+        fMult1 = (vecNormalized.x * pMat->GetRight().x + vecNormalized.y * pMat->GetRight().y) * fMaxX;
+        fMult2 = (vecNormalized.x * pMat->GetRight().y - vecNormalized.y * pMat->GetRight().x) * fMaxX;
+        fMult3 = (vecNormalized.x * pMat->GetUp().x + vecNormalized.y * pMat->GetUp().y) * fMaxZ;
+        fMult4 = (vecNormalized.x * pMat->GetUp().y - vecNormalized.y * pMat->GetUp().x) * fMaxZ;
+    }
+    else {
+        vecDir = pMat->GetUp();
+        vecDir.z = 0.0F;
+
+        vecNormalized = vecDir;
+        vecNormalized.Normalise();
+
+        auto vecScaled = vecDir * fMaxZ;
+        vecTransformed = vecScaled + GetPosition();
+
+        auto vecTemp = GetPosition() - vecScaled;
+        vecDir = vecTemp;
+
+        fMult1 = (vecNormalized.x * pMat->GetRight().x + vecNormalized.y * pMat->GetRight().y) * fMaxX;
+        fMult2 = (vecNormalized.x * pMat->GetRight().y - vecNormalized.y * pMat->GetRight().x) * fMaxX;
+        fMult3 = (vecNormalized.x * pMat->GetForward().x + vecNormalized.y * pMat->GetForward().y) * fMaxY;
+        fMult4 = (vecNormalized.x * pMat->GetForward().y - vecNormalized.y * pMat->GetForward().x) * fMaxY;
+    }
+
+    auto fNegX = -vecNormalized.x;
+    fMult1 = fabs(fMult1);
+    fMult2 = fabs(fMult2);
+    fMult3 = fabs(fMult3);
+    fMult4 = fabs(fMult4);
+
+    auto fMult13 = fMult1 + fMult3;
+    auto fMult24 = fMult2 + fMult4;
+
+    CVector vecCorner1;
+    vecCorner1.x = vecTransformed.x + (vecNormalized.x * fMult13) - (vecNormalized.y * fMult24);
+    vecCorner1.y = vecTransformed.y + (vecNormalized.y * fMult13) - (-vecNormalized.x * fMult24);
+    vecCorner1.z = vecTransformed.z + (vecNormalized.z * fMult13) - (vecNormalized.z * fMult24);
+    *pVecCorner1 = vecCorner1;
+
+    CVector vecCorner2;
+    vecCorner2.x = vecTransformed.x + (vecNormalized.x * fMult13) + (vecNormalized.y * fMult24);
+    vecCorner2.y = vecTransformed.y + (vecNormalized.y * fMult13) + (-vecNormalized.x * fMult24);
+    vecCorner2.z = vecTransformed.z + (vecNormalized.z * fMult13) + (vecNormalized.z * fMult24);
+    *pVecCorner2 = vecCorner2;
+
+    CVector vecCorner3;
+    vecCorner3.x = vecDir.x - (vecNormalized.x * fMult13) + (vecNormalized.y * fMult24);
+    vecCorner3.y = vecDir.y - (vecNormalized.y * fMult13) + (-vecNormalized.x * fMult24);
+    vecCorner3.z = vecDir.z - (vecNormalized.z * fMult13) + (vecNormalized.z * fMult24);
+    *pVecCorner3 = vecCorner3;
+
+    CVector vecCorner4;
+    vecCorner4.x = vecDir.x - (vecNormalized.x * fMult13) - (vecNormalized.y * fMult24);
+    vecCorner4.y = vecDir.y - (vecNormalized.y * fMult13) - (-vecNormalized.x * fMult24);
+    vecCorner4.z = vecDir.z - (vecNormalized.z * fMult13) - (vecNormalized.z * fMult24);
+    *pVecCorner4 = vecCorner4;
+
+    const auto& vecPos = GetPosition();
+    pVecCorner1->z = vecPos.z;
+    pVecCorner2->z = vecPos.z;
+    pVecCorner3->z = vecPos.z;
+    pVecCorner4->z = vecPos.z;
+
 }
 
 // Converted from thiscall void CEntity::UpdateAnim(void) 0x535F00
 void CEntity::UpdateAnim()
 {
-    ((void(__thiscall *)(CEntity*))0x535F00)(this);
+    m_bDontUpdateHierarchy = false;
+    if (!m_pRwObject || RwObjectGetType(m_pRwObject) != rpCLUMP)
+        return;
+
+    if (!RpAnimBlendClumpGetFirstAssociation(m_pRwClump))
+        return;
+
+
+    bool bOnScreen;
+    float fStep;
+    if (IsObject() && static_cast<CObject*>(this)->m_nObjectType == eObjectCreatedBy::OBJECT_TYPE_CUTSCENE) {
+        bOnScreen = true;
+        fStep = CTimer::ms_fTimeStepNonClipped / 50.0F;
+    }
+    else {
+        if (!m_bOffscreen)
+            m_bOffscreen = !CEntity::GetIsOnScreen();
+
+        bOnScreen = !m_bOffscreen;
+        fStep = CTimer::ms_fTimeStep / 50.0F;
+    }
+
+    RpAnimBlendClumpUpdateAnimations(m_pRwClump, fStep, bOnScreen);
 }
 
 // Converted from thiscall bool CEntity::IsVisible(void) 0x536BC0
 bool CEntity::IsVisible()
 {
-    return ((bool(__thiscall *)(CEntity*))0x536BC0)(this);
+    if (!m_pRwObject || !m_bIsVisible)
+        return false;
+
+    return CEntity::GetIsOnScreen();
 }
 
 // Converted from thiscall float CEntity::GetDistanceFromCentreOfMassToBaseOfModel(void) 0x536BE0

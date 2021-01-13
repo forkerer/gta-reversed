@@ -171,7 +171,7 @@ public:
     void ModifyMatrixForBannerInWind();
     RwMatrix* GetModellingMatrix();
     CColModel* GetColModel();
-    void CalculateBBProjection(CVector* arg0, CVector* arg1, CVector* arg2, CVector* arg3);
+    void CalculateBBProjection(CVector* pVecCorner1, CVector* pVecCorner2, CVector* pVecCorner3, CVector* pVecCorner4);
     void UpdateAnim();
     bool IsVisible();
     float GetDistanceFromCentreOfMassToBaseOfModel();
