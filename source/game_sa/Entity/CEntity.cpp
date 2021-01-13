@@ -64,6 +64,8 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "IsVisible", 0x536BC0, &CEntity::IsVisible);
     ReversibleHooks::Install("CEntity", "GetDistanceFromCentreOfMassToBaseOfModel", 0x536BE0, &CEntity::GetDistanceFromCentreOfMassToBaseOfModel);
     ReversibleHooks::Install("CEntity", "CleanUpOldReference", 0x571A00, &CEntity::CleanUpOldReference);
+    ReversibleHooks::Install("CEntity", "ResolveReferences", 0x571A40, &CEntity::ResolveReferences);
+    ReversibleHooks::Install("CEntity", "PruneReferences", 0x571A90, &CEntity::PruneReferences);
 
     ReversibleHooks::Install("CEntity", "GetModellingMatrix", 0x46A2D0, &CEntity::GetModellingMatrix);
     ReversibleHooks::Install("CEntity", "UpdateRW", 0x446F90, &CEntity::UpdateRW);
@@ -1684,13 +1686,49 @@ void CEntity::CleanUpOldReference(CEntity** entity)
 // Converted from thiscall void CEntity::ResolveReferences(void) 0x571A40
 void CEntity::ResolveReferences()
 {
-    ((void(__thiscall *)(CEntity*))0x571A40)(this);
+    auto pRef = m_pReferences;
+    while (pRef) {
+        if (*pRef->m_ppEntity == this)
+            *pRef->m_ppEntity = nullptr;
+
+        pRef = pRef->m_pNext;
+    }
+
+    pRef = m_pReferences;
+    if (!pRef)
+        return;
+
+    pRef->m_ppEntity = nullptr;
+    while (pRef->m_pNext)
+        pRef = pRef->m_pNext;
+
+    pRef->m_pNext = CReferences::pEmptyList;
+    CReferences::pEmptyList = m_pReferences;
+    m_pReferences = nullptr;
 }
 
 // Converted from thiscall void CEntity::PruneReferences(void) 0x571A90
 void CEntity::PruneReferences()
 {
-    ((void(__thiscall *)(CEntity*))0x571A90)(this);
+    if (!m_pReferences)
+        return;
+
+    auto pRef = m_pReferences;
+    auto ppPrev = &m_pReferences;
+    while (pRef) {
+        if (*pRef->m_ppEntity == this) {
+            ppPrev = &pRef->m_pNext;
+            pRef = pRef->m_pNext;
+        }
+        else {
+            auto pRefTemp = pRef->m_pNext;
+            *ppPrev = pRef->m_pNext;
+            pRef->m_pNext = CReferences::pEmptyList;
+            CReferences::pEmptyList = pRef;
+            pRef->m_ppEntity = nullptr;
+            pRef = pRefTemp;
+        }
+    }
 }
 
 // Converted from thiscall void CEntity::RegisterReference(CEntity** entity) 0x571B70
