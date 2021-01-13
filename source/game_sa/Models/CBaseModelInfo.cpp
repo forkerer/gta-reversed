@@ -74,7 +74,7 @@ RwObject *CBaseModelInfo::CreateInstance(RwMatrix *matrix)
     return ((RwObject *(__thiscall *)(CBaseModelInfo *, RwMatrix *))plugin::GetVMT(this, 10))(this, matrix);
 }
 
-RwObject *CBaseModelInfo::CreateInstance_()
+RwObject *CBaseModelInfo::CreateInstance()
 {
     return plugin::CallVirtualMethodAndReturn<RwObject*, 11, CBaseModelInfo*>(this);
 }

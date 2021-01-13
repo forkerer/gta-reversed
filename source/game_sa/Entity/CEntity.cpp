@@ -273,11 +273,11 @@ void CEntity::CreateRwObject_Reversed()
     auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
     if (m_bRenderDamaged) {
         CDamageAtomicModelInfo::ms_bCreateDamagedVersion = true;
-        m_pRwObject = pModelInfo->CreateInstance_();
+        m_pRwObject = pModelInfo->CreateInstance();
         CDamageAtomicModelInfo::ms_bCreateDamagedVersion = false;
     }
     else {
-        m_pRwObject = pModelInfo->CreateInstance_();
+        m_pRwObject = pModelInfo->CreateInstance();
     }
 
     if (!m_pRwObject)
