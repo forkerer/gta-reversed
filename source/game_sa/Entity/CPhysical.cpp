@@ -30,7 +30,7 @@ void CPhysical::InjectHooks()
     ReversibleHooks::Install("CPhysical", "SetDamagedPieceRecord", 0x5428C0, &CPhysical::SetDamagedPieceRecord);
     ReversibleHooks::Install("CPhysical", "RemoveFromMovingList", 0x542860, &CPhysical::RemoveFromMovingList);
     ReversibleHooks::Install("CPhysical", "AddToMovingList", 0x542800, &CPhysical::AddToMovingList);
-    ReversibleHooks::Install("CPhysical", "Add__Reversed", 0x544A30, &CPhysical::Add__Reversed);
+    ReversibleHooks::Install("CPhysical", "Add_Reversed", 0x544A30, &CPhysical::Add_Reversed);
     ReversibleHooks::Install("CPhysical", "Remove_Reversed", 0x5424C0, &CPhysical::Remove_Reversed); 
     ReversibleHooks::Install("CPhysical", "GetBoundRect_Reversed", 0x5449B0, &CPhysical::GetBoundRect_Reversed);
     ReversibleHooks::Install("CPhysical", "ProcessControl_Reversed", 0x5485E0, &CPhysical::ProcessControl_Reversed);
@@ -76,20 +76,20 @@ void CPhysical::InjectHooks()
     ReversibleHooks::Install("CPhysical", "PositionAttachedEntity", 0x546FF0, &CPhysical::PositionAttachedEntity);
 }
 
-void CPhysical::Add_()
+void CPhysical::Add()
 {
 #ifdef USE_DEFAULT_FUNCTIONS
     plugin::CallMethod<0x544A30, CPhysical*>(this);
 #else
-    CPhysical::Add__Reversed();
+    CPhysical::Add_Reversed();
 #endif
 }
 
-void CPhysical::Add__Reversed()
+void CPhysical::Add_Reversed()
 {
     if (m_bIsBIGBuilding)
     {
-        CEntity::Add_();
+        CEntity::Add();
     }
     else
     {
@@ -603,7 +603,7 @@ void CPhysical::RemoveAndAdd()
     if (m_bIsBIGBuilding)
     {
         CEntity::Remove();
-        CEntity::Add_();
+        CEntity::Add();
     }
     else
     {

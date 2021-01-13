@@ -10,8 +10,8 @@ Do not delete this comment block. Respect others' work!
 void CEntity::InjectHooks()
 {
 //Virtual
-    ReversibleHooks::Install("CEntity", "Add", 0x5347D0, &CEntity::Add_Reversed);
-    ReversibleHooks::Install("CEntity", "Add_", 0x533020, &CEntity::Add__Reversed);
+    ReversibleHooks::Install("CEntity", "Add", 0x533020, (void(CEntity::*)())(&CEntity::Add_Reversed));
+    ReversibleHooks::Install("CEntity", "Add_rect", 0x5347D0, (void(CEntity::*)(const CRect&))(&CEntity::Add_Reversed));
     ReversibleHooks::Install("CEntity", "Remove", 0x534AE0, &CEntity::Remove_Reversed);
     ReversibleHooks::Install("CEntity", "SetIsStatic", 0x403E20, &CEntity::SetIsStatic_Reversed);
     ReversibleHooks::Install("CEntity", "SetModelIndexNoCreate", 0x533700, &CEntity::SetModelIndexNoCreate_Reversed);
@@ -71,6 +71,17 @@ void CEntity::InjectHooks()
 //Statics
     ReversibleHooks::Install("CEntity", "MaterialUpdateUVAnimCB", 0x532D70, &MaterialUpdateUVAnimCB);
     ReversibleHooks::Install("CEntity", "IsEntityPointerValid", 0x533310, &IsEntityPointerValid);
+}
+
+void CEntity::Add()
+{
+    CEntity::Add_Reversed();
+}
+void CEntity::Add_Reversed()
+{
+    auto rect = CRect();
+    GetBoundRect(&rect);
+    Add(rect);
 }
 
 void CEntity::Add(CRect const& rect)
@@ -140,17 +151,6 @@ void CEntity::Add_Reversed(CRect const& rect)
             }
         }
     }
-}
-
-void CEntity::Add_()
-{
-    CEntity::Add__Reversed();
-}
-void CEntity::Add__Reversed()
-{
-    auto rect = CRect();
-    GetBoundRect(&rect);
-    Add(rect);
 }
 
 void CEntity::Remove()

@@ -162,7 +162,7 @@ public:
     static void InjectHooks();
 
     // originally virtual functions
-    void Add_() override;
+    void Add() override;
     void Remove() override;
     CRect* GetBoundRect(CRect* pRect) override;
     void ProcessControl() override;
@@ -171,7 +171,7 @@ public:
     bool TestCollision(bool bApplySpeed) override;
     virtual int ProcessEntityCollision(CPhysical* entity, CColPoint* colpoint);
 private:
-    void Add__Reversed();
+    void Add_Reversed();
     void Remove_Reversed();
     CRect* GetBoundRect_Reversed(CRect* pRect);
     void ProcessControl_Reversed();
