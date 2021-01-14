@@ -167,6 +167,7 @@ void InjectHooksMain(void)
     CCheat::InjectHooks();
     CBirds::InjectHooks();
     C2dEffect::InjectHooks();
+    COcclusion::InjectHooks();
 
     CAEAudioUtility::InjectHooks();
     CAEDataStream::InjectHooks();
