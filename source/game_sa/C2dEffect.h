@@ -35,14 +35,49 @@ enum ePedAttractorType {
     PED_ATTRACTOR_STEP           = 9  // Ped sits on steps
 };
 
+// From https://gtamods.com/wiki/2d_Effect_(RW_Section)
+enum e2dCoronaFlashType {
+    FLASH_DEFAULT         = 0,
+    FLASH_RANDOM          = 1,
+    FLASH_RANDOM_WHEN_WET = 2,
+    FLASH_ANIM_SPEED_4X   = 3,
+    FLASH_ANIM_SPEED_2X   = 4,
+    FLASH_ANIM_SPEED_1X   = 5,
+    FLASH_UNKN            = 6,
+    FLASH_TRAFFICLIGHT    = 7,
+    FLASH_TRAINCROSSING   = 8,
+    FLASH_UNUSED          = 9,
+    FLASH_ONLY_RAIN       = 10,
+    FLASH_5ON_5OFF        = 11,
+    FLASH_6ON_4OFF        = 12,
+    FLASH_4ON_6OFF        = 13,
+};
+
 struct tEffectLight {
     RwRGBA m_color;
     float m_fCoronaFarClip;
     float m_fPointlightRange;
     float m_fCoronaSize;
     float m_fShadowSize;
-    unsigned short m_nFlags;
-    unsigned char m_nCoronaFlashType;
+    union {
+        unsigned short m_nFlags;
+        struct {
+            unsigned short m_bCheckObstacles : 1;
+            unsigned short m_nFogType : 2;
+            unsigned short m_bWithoutCorona : 1;
+            unsigned short m_bOnlyLongDistance : 1;
+            unsigned short m_bAtDay : 1;
+            unsigned short m_bAtNight : 1;
+            unsigned short m_bBlinking1 : 1;
+
+            unsigned short m_bOnlyFromBelow : 1;
+            unsigned short m_bBlinking2 : 1;
+            unsigned short m_bUpdateHeightAboveGround : 1;
+            unsigned short m_bCheckDirection : 1;
+            unsigned short m_bBlinking3 : 1;
+        };
+    };
+    unsigned char m_nCoronaFlashType; // see e2dCoronaFlashType
     bool m_bCoronaEnableReflection;
     unsigned char m_nCoronaFlareType;
     unsigned char m_nShadowColorMultiplier;

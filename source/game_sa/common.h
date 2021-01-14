@@ -205,6 +205,7 @@ void StoreAndSetLightsForInfraredVisionHeatObjects();
 void RestoreLightsForInfraredVisionHeatObjects();
 void SetLightsForInfraredVisionDefaultObjects();
 void SetLightsForNightVision();
+float GetDayNightBalance();
 
 // 'data' is unused
 RpAtomic* RemoveRefsCB(RpAtomic* atomic, void* _IGNORED_ data);

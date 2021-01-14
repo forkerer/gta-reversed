@@ -434,6 +434,11 @@ void SetLightsForNightVision() {
     ((void(__cdecl *)())0x735F70)();
 }
 
+float GetDayNightBalance()
+{
+    return plugin::CallAndReturn<float, 0x6FAB30>();
+}
+
 // Converted from cdecl RpAtomic* RemoveRefsCB(RpAtomic *atomic, void *data) 0x7226D0
 RpAtomic* RemoveRefsCB(RpAtomic* atomic, void* _IGNORED_ data) {
     return plugin::CallAndReturn<RpAtomic*, 0x7226D0, RpAtomic*, void*>(atomic, data);

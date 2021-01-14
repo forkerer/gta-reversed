@@ -68,6 +68,7 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "ResolveReferences", 0x571A40, &CEntity::ResolveReferences);
     ReversibleHooks::Install("CEntity", "PruneReferences", 0x571A90, &CEntity::PruneReferences);
     ReversibleHooks::Install("CEntity", "RegisterReference", 0x571B70, &CEntity::RegisterReference);
+    ReversibleHooks::Install("CEntity", "ProcessLightsForEntity", 0x6FC7A0, &CEntity::ProcessLightsForEntity);
 
     ReversibleHooks::Install("CEntity", "GetModellingMatrix", 0x46A2D0, &CEntity::GetModellingMatrix);
     ReversibleHooks::Install("CEntity", "UpdateRW", 0x446F90, &CEntity::UpdateRW);
@@ -1832,7 +1833,441 @@ void CEntity::RegisterReference(CEntity** entity)
 // Converted from thiscall void CEntity::ProcessLightsForEntity(void) 0x6FC7A0
 void CEntity::ProcessLightsForEntity()
 {
-    ((void(__thiscall *)(CEntity*))0x6FC7A0)(this);
+    auto fBalance = GetDayNightBalance();
+    if (m_bRenderDamaged || !m_bIsVisible)
+        return;
+
+    if (IsVehicle()) {
+        if (static_cast<CVehicle*>(this)->physicalFlags.bDestroyed)
+            return;
+    }
+    else {
+        if (m_matrix && m_matrix->GetUp().z < 0.96F)
+            return;
+    }
+
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    if (!pModelInfo->m_n2dfxCount)
+        return;
+
+    for (int32_t iFxInd = 0; iFxInd < pModelInfo->m_n2dfxCount; ++iFxInd) {
+        auto pEffect = pModelInfo->Get2dEffect(iFxInd);
+        auto fIntensity = 1.0F;
+        auto uiRand = m_nRandomSeed ^ CCoronas::ms_aEntityLightsOffsets[iFxInd & 0x7];
+
+        if (pEffect->m_nType == e2dEffectType::EFFECT_SUN_GLARE && CWeather::SunGlare >= 0.0F) {
+            auto vecEffPos = CEntity::TransformFromObjectSpace(pEffect->m_vecPosn);
+
+            auto vecDir = vecEffPos - GetPosition();
+            vecDir.Normalise();
+
+            auto vecCamDir = TheCamera.GetPosition() - vecEffPos;
+            auto fCamDist = vecCamDir.Magnitude();
+            auto fScale = 2.0F / fCamDist;
+            auto vecScaledCam = (vecCamDir * fScale);
+            vecDir += vecScaledCam;
+            vecDir.Normalise();
+
+            auto fDot = -DotProduct(vecDir, CTimeCycle::m_VectorToSun[CTimeCycle::m_CurrentStoredValue]);
+            if (fDot <= 0.0F)
+                continue;
+
+            auto fGlare = sqrt(fDot) * CWeather::SunGlare;
+            auto fRadius = sqrt(fCamDist) * CWeather::SunGlare * 0.5F;
+            vecEffPos += vecScaledCam;
+
+            auto ucRed = static_cast<unsigned char>((CTimeCycle::m_CurrentColours.m_nSunCoreRed + 510) * fGlare / 3.0F);
+            auto ucGreen = static_cast<unsigned char>((CTimeCycle::m_CurrentColours.m_nSunCoreGreen + 510) * fGlare / 3.0F);
+            auto ucBlue = static_cast<unsigned char>((CTimeCycle::m_CurrentColours.m_nSunCoreBlue + 510) * fGlare / 3.0F);
+            CCoronas::RegisterCorona(m_nRandomSeed + iFxInd + 1,
+                                     nullptr,
+                                     ucRed,
+                                     ucGreen,
+                                     ucBlue,
+                                     255,
+                                     vecEffPos,
+                                     fRadius,
+                                     120.0F,
+                                     gpCoronaTexture[0],
+                                     eCoronaFlareType::FLARETYPE_NONE,
+                                     false,
+                                     false,
+                                     0,
+                                     0.0F,
+                                     false,
+                                     1.5F,
+                                     0,
+                                     15.0F,
+                                     false,
+                                     false);
+
+            continue;
+        }
+
+        if (pEffect->m_nType != e2dEffectType::EFFECT_LIGHT)
+            continue;
+
+        auto vecEffPos = CEntity::TransformFromObjectSpace(pEffect->m_vecPosn);
+        auto bUnkn1 = false, bUnkn3 = false;
+        auto bCoronaVisible = false;
+        bool bUpdateCoronaCoors = false;
+        auto fDayNight = 1.0F;
+        if (pEffect->light.m_bAtDay && pEffect->light.m_bAtNight) {
+            bCoronaVisible = true;
+        }
+        else if (pEffect->light.m_bAtDay && fBalance < 1.0F) {
+            bCoronaVisible = true;
+            fDayNight = 1.0F - fBalance;
+        }
+        else if (pEffect->light.m_bAtNight && fBalance > 0.0F) {
+            bCoronaVisible = true;
+            fDayNight = fBalance;
+        }
+
+        const auto& vecPos = GetPosition();
+        auto iFlashType = pEffect->light.m_nCoronaFlashType;
+        float fBalance;
+        unsigned int uiMode, uiOffset;
+        if (iFlashType == e2dCoronaFlashType::FLASH_RANDOM_WHEN_WET && CWeather::WetRoads > 0.5F || bCoronaVisible) {
+            switch (iFlashType) {
+            case e2dCoronaFlashType::FLASH_DEFAULT:
+                bUnkn1 = true;
+                break;
+
+            case e2dCoronaFlashType::FLASH_RANDOM:
+            case e2dCoronaFlashType::FLASH_RANDOM_WHEN_WET:
+                if ((CTimer::m_snTimeInMilliseconds ^ uiRand) & 0x60)
+                    bUnkn1 = true;
+                else
+                    bUnkn3 = true;
+
+                if ((uiRand ^ (CTimer::m_snTimeInMilliseconds / 4096)) & 0x3)
+                    bUnkn1 = true;
+
+                break;
+
+            case e2dCoronaFlashType::FLASH_ANIM_SPEED_4X:
+                if (((CTimer::m_snTimeInMilliseconds + iFxInd * 256) & 0x200) == 0)
+                    bUpdateCoronaCoors = true;
+                else
+                    bUnkn1 = 1;
+
+                break;
+
+            case e2dCoronaFlashType::FLASH_ANIM_SPEED_2X:
+                if (((CTimer::m_snTimeInMilliseconds + iFxInd * 512) & 0x400) == 0)
+                    bUpdateCoronaCoors = true;
+                else
+                    bUnkn1 = 1;
+
+                break;
+
+            case e2dCoronaFlashType::FLASH_ANIM_SPEED_1X:
+                if (((CTimer::m_snTimeInMilliseconds + iFxInd * 1024) & 0x800) == 0)
+                    bUpdateCoronaCoors = true;
+                else
+                    bUnkn1 = 1;
+
+                break;
+
+            case e2dCoronaFlashType::FLASH_UNKN:
+                if (static_cast<unsigned char>(uiRand) > 0x10) {
+                    bUnkn1 = true;
+                    break;
+                }
+
+                if ((CTimer::m_snTimeInMilliseconds ^ (uiRand * 8)) & 0x60)
+                    bUnkn1 = true;
+                else
+                    bUnkn3 = true;
+
+                if ((uiRand ^ (CTimer::m_snTimeInMilliseconds / 4096)) & 0x3)
+                    bUnkn1 = true;
+
+                break;
+
+            case e2dCoronaFlashType::FLASH_TRAINCROSSING:
+                if (IsObject() && static_cast<CObject*>(this)->objectFlags.bTrainCrossEnabled) {
+                    if (CTimer::m_snTimeInMilliseconds & 0x400)
+                        bUnkn1 = true;
+
+                    if (iFxInd & 1)
+                        bUnkn1 = !bUnkn1;
+                }
+
+                if (iFxInd >= 4)
+                    bUnkn1 = false;
+
+                break;
+
+            case e2dCoronaFlashType::FLASH_UNUSED:
+                if (false && (CTimer::m_snTimeInMilliseconds & 0x1FF) < 0x3C)
+                    bUnkn1 = true;
+
+                break;
+
+            case e2dCoronaFlashType::FLASH_ONLY_RAIN:
+                if (CWeather::Rain > 0.0001F) {
+                    fIntensity = CWeather::Rain;
+                    bUnkn1 = 1;
+                }
+                break;
+
+            case e2dCoronaFlashType::FLASH_5ON_5OFF:
+            case e2dCoronaFlashType::FLASH_6ON_4OFF:
+            case e2dCoronaFlashType::FLASH_4ON_6OFF:
+
+                bUnkn1 = true;
+
+                uiOffset = CTimer::m_snTimeInMilliseconds + 3333 * (iFlashType - 11);
+                uiOffset += static_cast<unsigned int>(vecPos.x * 20.0F);
+                uiOffset += static_cast<unsigned int>(vecPos.y * 10.0F);
+
+                uiMode = 9 * ((uiOffset % 10000) / 10000);
+                fBalance = ((uiOffset % 10000) - (1111 * uiMode)) * 0.0009;
+                switch (uiMode) {
+                case 0:
+                    fIntensity = fBalance;
+                    break;
+                case 1:
+                case 2:
+                    fIntensity = 1.0F;
+                    break;
+                case 3:
+                    fIntensity = 1.0F - fBalance;
+                    break;
+                default:
+                    bUnkn1 = false;
+                }
+
+                break;
+
+            default:
+                break;
+            }
+        }
+
+
+
+        if (CGameLogic::LaRiotsActiveHere() || bUnkn3) {
+            if (bUnkn3
+                || (bUnkn1
+                    && (!IsVehicle()
+                        && ((uiRand & 3) == 0
+                            || (uiRand & 3) == 1
+                            && (CTimer::m_snTimeInMilliseconds ^ (uiRand * 8)) & 0x60 )))) {
+
+                bUnkn1 = false;
+                bUnkn3 = true;
+
+                CCoronas::RegisterCorona(reinterpret_cast<unsigned int>(this) + iFxInd,
+                                         nullptr,
+                                         0,
+                                         0,
+                                         0,
+                                         255,
+                                         vecEffPos,
+                                         pEffect->light.m_fCoronaSize,
+                                         pEffect->light.m_fCoronaFarClip,
+                                         pEffect->light.m_pCoronaTex,
+                                         static_cast<eCoronaFlareType>(pEffect->light.m_nCoronaFlareType),
+                                         pEffect->light.m_bCoronaEnableReflection,
+                                         pEffect->light.m_bCheckObstacles,
+                                         0,
+                                         0.0F,
+                                         pEffect->light.m_bOnlyLongDistance,
+                                         1.5F,
+                                         0,
+                                         15.0F,
+                                         false,
+                                         false);
+            }
+        }
+
+        if (bUnkn1) {
+            auto bCanCreateLight = true;
+            if (pEffect->light.m_bCheckDirection) {
+                const auto& camPos = TheCamera.GetPosition();
+                auto vecLightPos = Multiply3x3(GetMatrix(), &CVector(pEffect->light.offsetX, pEffect->light.offsetY, pEffect->light.offsetZ));
+
+                auto fDot = DotProduct(vecLightPos, (camPos - vecEffPos));
+                bCanCreateLight = fDot >= 0.0F;
+            }
+
+            if (bCanCreateLight) {
+                auto fBrightness = fIntensity;
+                if (pEffect->light.m_bBlinking1)
+                    fBrightness = (1.0F - (rand() & 0x1F) * 0.012F) * fIntensity;
+
+                if (pEffect->light.m_bBlinking2 && (CTimer::m_FrameCounter + uiRand) & 3)
+                    fBrightness = 0.0F;
+
+                if (pEffect->light.m_bBlinking3 && (CTimer::m_FrameCounter + uiRand) & 0x3F) {
+                    if (((CTimer::m_FrameCounter + uiRand) & 0x3F) == 1)
+                        fBrightness *= 0.5F;
+                    else
+                        fBrightness = 0.0F;
+                }
+
+                auto fSizeMult = 1.0F;
+                if (m_nModelIndex == eModelID::MODEL_RCBARON) {
+                    fBrightness *= 1.9F;
+                    fSizeMult = 2.0F;
+                }
+
+                fIntensity = CTimeCycle::m_CurrentColours.m_fSpriteBrightness * fBrightness * 0.1F;
+                auto fSize = pEffect->light.m_fCoronaSize * fSizeMult;
+
+                auto ucRed = static_cast<unsigned char>(pEffect->light.m_color.red * fIntensity);
+                auto ucGreen = static_cast<unsigned char>(pEffect->light.m_color.green * fIntensity);
+                auto ucBlue = static_cast<unsigned char>(pEffect->light.m_color.blue * fIntensity);
+
+                CCoronas::RegisterCorona(reinterpret_cast<unsigned int>(this) + iFxInd,
+                                         nullptr,
+                                         ucRed,
+                                         ucGreen,
+                                         ucBlue,
+                                         static_cast<unsigned char>(fDayNight * 255.0F),
+                                         vecEffPos,
+                                         fSize,
+                                         pEffect->light.m_fCoronaFarClip,
+                                         pEffect->light.m_pCoronaTex,
+                                         static_cast<eCoronaFlareType>(pEffect->light.m_nCoronaFlareType),
+                                         pEffect->light.m_bCoronaEnableReflection,
+                                         pEffect->light.m_bCheckObstacles,
+                                         0,
+                                         0.0F,
+                                         pEffect->light.m_bOnlyLongDistance,
+                                         0.8F,
+                                         0,
+                                         15.0F,
+                                         pEffect->light.m_bOnlyFromBelow,
+                                         pEffect->light.m_bUpdateHeightAboveGround);
+
+                bUpdateCoronaCoors = false;
+            }
+            else {
+                bUnkn1 = false;
+                bUpdateCoronaCoors = true;
+            }
+        }
+
+        if (bUpdateCoronaCoors) {
+            CCoronas::UpdateCoronaCoors(reinterpret_cast<unsigned int>(this) + iFxInd, vecEffPos, pEffect->light.m_fCoronaFarClip, 0.0F);
+        }
+
+        if (pEffect->light.m_fPointlightRange != 0.0F && bUnkn1) {
+            auto color = pEffect->light.m_color;
+            if (color.red || color.green || color.blue) {
+                auto fColorMult = fDayNight * fIntensity / 256.0F;
+                color.red *= fColorMult;
+                color.blue *= fColorMult;
+                color.green *= fColorMult;
+
+                CPointLights::AddLight(ePointLightType::PLTYPE_POINTLIGHT,
+                                       vecEffPos,
+                                       CVector(0.0F, 0.0F, 0.0F),
+                                       pEffect->light.m_fPointlightRange,
+                                       color.red,
+                                       color.green,
+                                       color.blue,
+                                       pEffect->light.m_nFogType,
+                                       true,
+                                       nullptr);
+            }
+            else {
+                CPointLights::AddLight(ePointLightType::PLTYPE_DARKLIGHT,
+                                       vecEffPos,
+                                       CVector(0.0F, 0.0F, 0.0F),
+                                       pEffect->light.m_fPointlightRange,
+                                       0.0F,
+                                       0.0F,
+                                       0.0F,
+                                       RwFogType::rwFOGTYPELINEAR,
+                                       true,
+                                       nullptr);
+            }
+        }
+
+        if (pEffect->light.m_nFogType & 2) {
+            auto color = pEffect->light.m_color;
+            CPointLights::AddLight((ePointLightType)3u, //Enum doesn't contain all types?
+                                    vecEffPos,
+                                    CVector(0.0F, 0.0F, 0.0F),
+                                    0.0F,
+                                    color.red / 256.0F,
+                                    color.green / 256.0F,
+                                    color.blue / 256.0F,
+                                    RwFogType::rwFOGTYPEEXPONENTIAL,
+                                    true,
+                                    nullptr);
+        }
+        else if (!(pEffect->light.m_nFogType & 1) && bUnkn1 && pEffect->light.m_fPointlightRange == 0.0F) {
+            auto color = pEffect->light.m_color;
+            CPointLights::AddLight((ePointLightType)3u, //Enum doesn't contain all types?
+                                    vecEffPos,
+                                    CVector(0.0F, 0.0F, 0.0F),
+                                    0.0F,
+                                    color.red / 256.0F,
+                                    color.green / 256.0F,
+                                    color.blue / 256.0F,
+                                    RwFogType::rwFOGTYPELINEAR,
+                                    true,
+                                    nullptr);
+        }
+
+        if (pEffect->light.m_fShadowSize != 0.0F) {
+            auto fDist = 15.0F;
+            if (pEffect->light.m_nShadowZDistance)
+                fDist = static_cast<float>(pEffect->light.m_nShadowZDistance);
+
+            if (bUnkn1) {
+                auto color = pEffect->light.m_color;
+                auto fColorMult = pEffect->light.m_nShadowColorMultiplier * fIntensity / 256.0F;
+                color.red *= fColorMult;
+                color.blue *= fColorMult;
+                color.green *= fColorMult;
+
+                CShadows::StoreStaticShadow(reinterpret_cast<unsigned int>(this) + iFxInd,
+                                            eShadowType::SHADOW_ADDITIVE,
+                                            pEffect->light.m_pShadowTex,
+                                            &vecEffPos,
+                                            pEffect->light.m_fShadowSize,
+                                            0.0F,
+                                            0.0F,
+                                            -pEffect->light.m_fShadowSize,
+                                            128,
+                                            color.red,
+                                            color.green,
+                                            color.blue,
+                                            fDist,
+                                            1.0F,
+                                            40.0F,
+                                            false,
+                                            0.0F);
+            }
+            else if (bUnkn3) {
+                CShadows::StoreStaticShadow(reinterpret_cast<unsigned int>(this) + iFxInd,
+                                            eShadowType::SHADOW_ADDITIVE,
+                                            pEffect->light.m_pShadowTex,
+                                            &vecEffPos,
+                                            pEffect->light.m_fShadowSize,
+                                            0.0F,
+                                            0.0F,
+                                            -pEffect->light.m_fShadowSize,
+                                            128,
+                                            0,
+                                            0,
+                                            0,
+                                            fDist,
+                                            1.0F,
+                                            40.0F,
+                                            false,
+                                            0.0F);
+            }
+        }
+
+    }
 }
 
 // Converted from thiscall void CEntity::RemoveEscalatorsForEntity(void) 0x717900

@@ -652,7 +652,7 @@ void CDebugMenu::ProcessHooksTool()
             std::string disabledStr = classHooks.first + "_disabled";
             ImGui::PushID(disabledStr.c_str());
             if (ImGui::Button("-")) {
-                for (auto hook : classHooks.second)
+                for (auto& hook : classHooks.second)
                     hook->m_bImguiHooked = false;
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Disable all");
@@ -662,13 +662,13 @@ void CDebugMenu::ProcessHooksTool()
             std::string enableStr = classHooks.first + "_enabled";
             ImGui::PushID(enableStr.c_str());
             if (ImGui::Button("+")) {
-                for (auto hook : classHooks.second)
+                for (auto& hook : classHooks.second)
                     hook->m_bImguiHooked = true;
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable all");
             ImGui::PopID();
 
-            for (auto hook : classHooks.second)
+            for (auto& hook : classHooks.second)
                 if (hook->m_bIsHooked != hook->m_bImguiHooked)
                     ReversibleHooks::Switch(hook);
 
