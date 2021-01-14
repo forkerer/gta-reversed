@@ -67,6 +67,7 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "CleanUpOldReference", 0x571A00, &CEntity::CleanUpOldReference);
     ReversibleHooks::Install("CEntity", "ResolveReferences", 0x571A40, &CEntity::ResolveReferences);
     ReversibleHooks::Install("CEntity", "PruneReferences", 0x571A90, &CEntity::PruneReferences);
+    ReversibleHooks::Install("CEntity", "RegisterReference", 0x571B70, &CEntity::RegisterReference);
 
     ReversibleHooks::Install("CEntity", "GetModellingMatrix", 0x46A2D0, &CEntity::GetModellingMatrix);
     ReversibleHooks::Install("CEntity", "UpdateRW", 0x446F90, &CEntity::UpdateRW);
@@ -1770,7 +1771,62 @@ void CEntity::PruneReferences()
 // Converted from thiscall void CEntity::RegisterReference(CEntity** entity) 0x571B70
 void CEntity::RegisterReference(CEntity** entity)
 {
-    ((void(__thiscall *)(CEntity*, CEntity**))0x571B70)(this, entity);
+    if (IsBuilding() && !m_bIsTempBuilding && !m_bIsProcObject && !m_nIplIndex)
+        return;
+
+    auto pRef = m_pReferences;
+    while (pRef) {
+        if (pRef->m_ppEntity == entity) {
+            return;
+        }
+        pRef = pRef->m_pNext;
+    }
+
+    if (!m_pReferences && !CReferences::pEmptyList) {
+        auto iPedsSize = CPools::ms_pPedPool->GetSize();
+        for (int32_t i = 0; i < iPedsSize; ++i) {
+            auto pPed = CPools::ms_pPedPool->GetAt(i);
+            if (pPed) {
+                pPed->PruneReferences();
+                if (CReferences::pEmptyList)
+                    break;
+            }
+
+        }
+
+        if (!CReferences::pEmptyList) {
+            auto iVehsSize = CPools::ms_pVehiclePool->GetSize();
+            for (int32_t i = 0; i < iVehsSize; ++i) {
+                auto pVeh = CPools::ms_pVehiclePool->GetAt(i);
+                if (pVeh) {
+                    pVeh->PruneReferences();
+                    if (CReferences::pEmptyList)
+                        break;
+                }
+
+            }
+        }
+
+        if (!CReferences::pEmptyList) {
+            auto iObjectsSize = CPools::ms_pObjectPool->GetSize();
+            for (int32_t i = 0; i < iObjectsSize; ++i) {
+                auto pObj = CPools::ms_pObjectPool->GetAt(i);
+                if (pObj) {
+                    pObj->PruneReferences();
+                    if (CReferences::pEmptyList)
+                        break;
+                }
+            }
+        }
+    }
+
+    if (CReferences::pEmptyList) {
+        auto pEmptyRef = CReferences::pEmptyList;
+        CReferences::pEmptyList = pEmptyRef->m_pNext;
+        pEmptyRef->m_pNext = m_pReferences;
+        m_pReferences = pEmptyRef;
+        pEmptyRef->m_ppEntity = entity;
+    }
 }
 
 // Converted from thiscall void CEntity::ProcessLightsForEntity(void) 0x6FC7A0
