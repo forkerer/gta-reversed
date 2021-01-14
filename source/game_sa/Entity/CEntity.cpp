@@ -2318,6 +2318,102 @@ void CEntity::RemoveEscalatorsForEntity()
 bool CEntity::IsEntityOccluded()
 {
     return ((bool(__thiscall *)(CEntity*))0x71FAE0)(this);
+
+    CVector vecCenter;
+    CEntity::GetBoundCentre(vecCenter);
+
+    CVector vecScreenPos;
+    float fScreenX, fScreenY;
+    if (!COcclusion::NumActiveOccluders || !CalcScreenCoors(vecCenter, &vecScreenPos, &fScreenX, &fScreenY))
+        return false;
+
+    auto pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    auto fLongEdge = std::max(fScreenX, fScreenY);
+    auto fBoundRadius = pModelInfo->GetColModel()->GetBoundRadius();
+    auto fUsedRadius = fBoundRadius * fLongEdge * 0.9F;
+    if (COcclusion::NumActiveOccluders <= 0)
+        return false;
+
+    for (int32_t iOccInd = 0; iOccInd < COcclusion::NumActiveOccluders; ++iOccInd) {
+        auto& pActiveOccluder = COcclusion::aActiveOccluders[iOccInd];
+        auto fDepth = vecScreenPos.z - fBoundRadius;
+        if (static_cast<float>(pActiveOccluder.m_iLinesCount) >= fDepth)
+            continue;
+
+        if (pActiveOccluder.IsPointWithinOcclusionArea(vecScreenPos.x, vecScreenPos.y, fUsedRadius)) {
+            if (pActiveOccluder.IsPointBehindOccluder(vecCenter, fBoundRadius)) {
+                return true;
+            }
+        }
+
+        if (pActiveOccluder.IsPointWithinOcclusionArea(vecScreenPos.x, vecScreenPos.y, 0.0F)) {
+            auto bOccluded = false;
+            const auto& pBounding = pModelInfo->GetColModel()->GetBoundingBox();
+            CVector vecScreen;
+
+            auto vecMin = *CEntity::GetMatrix() * pBounding.m_vecMin;
+            if (CalcScreenCoors(vecMin, &vecScreen)
+                && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
+                && pActiveOccluder.IsPointBehindOccluder(vecMin, 0.0F)) {
+
+                bOccluded = true;
+            }
+
+            auto vecMax = *CEntity::GetMatrix() * pBounding.m_vecMax;
+            if (!bOccluded
+                && CalcScreenCoors(vecMax, &vecScreen)
+                && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
+                && pActiveOccluder.IsPointBehindOccluder(vecMax, 0.0F)) {
+
+                bOccluded = true;
+            }
+
+            auto vecDiag1 = *CEntity::GetMatrix() * CVector(pBounding.m_vecMin.x, pBounding.m_vecMax.y, pBounding.m_vecMax.z);
+            if (!bOccluded
+                && CalcScreenCoors(vecDiag1, &vecScreen)
+                && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
+                && pActiveOccluder.IsPointBehindOccluder(vecDiag1, 0.0F)) {
+
+                bOccluded = true;
+            }
+
+            auto vecDiag2 = *CEntity::GetMatrix() * CVector(pBounding.m_vecMax.x, pBounding.m_vecMin.y, pBounding.m_vecMin.z);
+            if (!bOccluded
+                && CalcScreenCoors(vecDiag2, &vecScreen)
+                && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
+                && pActiveOccluder.IsPointBehindOccluder(vecDiag2, 0.0F)) {
+
+                if (pBounding.m_vecMax.x - pBounding.m_vecMin.x <= 60.0F)
+                    return true;
+
+                if (pBounding.m_vecMax.y - pBounding.m_vecMin.y <= 60.0F)
+                    return true;
+
+                if (pBounding.m_vecMax.z - pBounding.m_vecMin.z <= 30.0F)
+                    return true;
+
+                auto vecDiag3 = *CEntity::GetMatrix() * CVector(pBounding.m_vecMin.x, pBounding.m_vecMin.y, pBounding.m_vecMax.z);
+                if (!bOccluded
+                    && CalcScreenCoors(vecDiag3, &vecScreen)
+                    && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
+                    && pActiveOccluder.IsPointBehindOccluder(vecDiag3, 0.0F)) {
+
+                    bOccluded = true;
+                }
+
+                auto vecDiag4 = *CEntity::GetMatrix() * CVector(pBounding.m_vecMax.x, pBounding.m_vecMin.y, pBounding.m_vecMax.z);
+                if (!bOccluded
+                    && CalcScreenCoors(vecDiag4, &vecScreen)
+                    && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
+                    && pActiveOccluder.IsPointBehindOccluder(vecDiag4, 0.0F)) {
+
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
 }
 
 bool CEntity::IsCurrentAreaOrBarberShopInterior()

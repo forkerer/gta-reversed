@@ -256,6 +256,8 @@ void AsciiToGxtChar(char const *src, char *dst);
 */
 void Render2dStuff();
 void WriteRaster(RwRaster * pRaster, char const * pszPath);
+bool CalcScreenCoors(CVector const& vecPoint, CVector* pVecOutPos, float* pScreenX, float* pScreenY);
+bool CalcScreenCoors(CVector const& vecPoint, CVector* pVecOutPos);
 
 void LittleTest();
 
