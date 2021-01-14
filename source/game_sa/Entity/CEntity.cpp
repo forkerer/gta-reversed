@@ -69,6 +69,7 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "PruneReferences", 0x571A90, &CEntity::PruneReferences);
     ReversibleHooks::Install("CEntity", "RegisterReference", 0x571B70, &CEntity::RegisterReference);
     ReversibleHooks::Install("CEntity", "ProcessLightsForEntity", 0x6FC7A0, &CEntity::ProcessLightsForEntity);
+    ReversibleHooks::Install("CEntity", "RemoveEscalatorsForEntity", 0x717900, &CEntity::RemoveEscalatorsForEntity);
 
     ReversibleHooks::Install("CEntity", "GetModellingMatrix", 0x46A2D0, &CEntity::GetModellingMatrix);
     ReversibleHooks::Install("CEntity", "UpdateRW", 0x446F90, &CEntity::UpdateRW);
@@ -2301,7 +2302,16 @@ void CEntity::ProcessLightsForEntity()
 // Converted from thiscall void CEntity::RemoveEscalatorsForEntity(void) 0x717900
 void CEntity::RemoveEscalatorsForEntity()
 {
-    ((void(__thiscall *)(CEntity*))0x717900)(this);
+    for (auto& pEscalator : CEscalators::aEscalators) {
+        if (!pEscalator.m_bExist)
+            continue;
+
+        if (pEscalator.m_pEntity != this)
+            continue;
+
+        pEscalator.SwitchOff();
+        pEscalator.m_bExist = false;
+    }
 }
 
 // Converted from thiscall bool CEntity::IsEntityOccluded(void) 0x71FAE0
