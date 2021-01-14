@@ -650,7 +650,7 @@ void WriteRaster(RwRaster * pRaster, char const * pszPath) {
 
 bool CalcScreenCoors(CVector const& vecPoint, CVector* pVecOutPos, float* pScreenX, float* pScreenY)
 {
-    plugin::CallAndReturn<bool, 0x71DA00, CVector const&, CVector*, float*, float*>(vecPoint, pVecOutPos, pScreenX, pScreenY);
+    return plugin::CallAndReturn<bool, 0x71DA00, CVector const&, CVector*, float*, float*>(vecPoint, pVecOutPos, pScreenX, pScreenY);
 }
 
 bool CalcScreenCoors(CVector const& vecPoint, CVector* pVecOutPos)

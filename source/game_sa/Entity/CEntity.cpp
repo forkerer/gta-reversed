@@ -70,7 +70,7 @@ void CEntity::InjectHooks()
     ReversibleHooks::Install("CEntity", "RegisterReference", 0x571B70, &CEntity::RegisterReference);
     ReversibleHooks::Install("CEntity", "ProcessLightsForEntity", 0x6FC7A0, &CEntity::ProcessLightsForEntity);
     ReversibleHooks::Install("CEntity", "RemoveEscalatorsForEntity", 0x717900, &CEntity::RemoveEscalatorsForEntity);
-
+    ReversibleHooks::Install("CEntity", "IsEntityOccluded", 0x71FAE0, &CEntity::IsEntityOccluded);
     ReversibleHooks::Install("CEntity", "GetModellingMatrix", 0x46A2D0, &CEntity::GetModellingMatrix);
     ReversibleHooks::Install("CEntity", "UpdateRW", 0x446F90, &CEntity::UpdateRW);
     ReversibleHooks::Install("CEntity", "SetAtomicAlphaCB", 0x533290, &CEntity::SetAtomicAlphaCB);
@@ -2317,8 +2317,6 @@ void CEntity::RemoveEscalatorsForEntity()
 // Converted from thiscall bool CEntity::IsEntityOccluded(void) 0x71FAE0
 bool CEntity::IsEntityOccluded()
 {
-    return ((bool(__thiscall *)(CEntity*))0x71FAE0)(this);
-
     CVector vecCenter;
     CEntity::GetBoundCentre(vecCenter);
 
@@ -2337,7 +2335,7 @@ bool CEntity::IsEntityOccluded()
     for (int32_t iOccInd = 0; iOccInd < COcclusion::NumActiveOccluders; ++iOccInd) {
         auto& pActiveOccluder = COcclusion::aActiveOccluders[iOccInd];
         auto fDepth = vecScreenPos.z - fBoundRadius;
-        if (static_cast<float>(pActiveOccluder.m_iLinesCount) >= fDepth)
+        if (static_cast<float>(pActiveOccluder.m_wDepth) >= fDepth)
             continue;
 
         if (pActiveOccluder.IsPointWithinOcclusionArea(vecScreenPos.x, vecScreenPos.y, fUsedRadius)) {
