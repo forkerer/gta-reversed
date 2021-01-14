@@ -1908,7 +1908,8 @@ void CEntity::ProcessLightsForEntity()
             continue;
 
         auto vecEffPos = CEntity::TransformFromObjectSpace(pEffect->m_vecPosn);
-        auto bUnkn1 = false, bUnkn3 = false;
+        auto bDoColorLight = false;
+        auto bDoNoColorLight = false;
         auto bCoronaVisible = false;
         bool bUpdateCoronaCoors = false;
         auto fDayNight = 1.0F;
@@ -1931,18 +1932,18 @@ void CEntity::ProcessLightsForEntity()
         if (iFlashType == e2dCoronaFlashType::FLASH_RANDOM_WHEN_WET && CWeather::WetRoads > 0.5F || bCoronaVisible) {
             switch (iFlashType) {
             case e2dCoronaFlashType::FLASH_DEFAULT:
-                bUnkn1 = true;
+                bDoColorLight = true;
                 break;
 
             case e2dCoronaFlashType::FLASH_RANDOM:
             case e2dCoronaFlashType::FLASH_RANDOM_WHEN_WET:
                 if ((CTimer::m_snTimeInMilliseconds ^ uiRand) & 0x60)
-                    bUnkn1 = true;
+                    bDoColorLight = true;
                 else
-                    bUnkn3 = true;
+                    bDoNoColorLight = true;
 
                 if ((uiRand ^ (CTimer::m_snTimeInMilliseconds / 4096)) & 0x3)
-                    bUnkn1 = true;
+                    bDoColorLight = true;
 
                 break;
 
@@ -1950,7 +1951,7 @@ void CEntity::ProcessLightsForEntity()
                 if (((CTimer::m_snTimeInMilliseconds + iFxInd * 256) & 0x200) == 0)
                     bUpdateCoronaCoors = true;
                 else
-                    bUnkn1 = 1;
+                    bDoColorLight = 1;
 
                 break;
 
@@ -1958,7 +1959,7 @@ void CEntity::ProcessLightsForEntity()
                 if (((CTimer::m_snTimeInMilliseconds + iFxInd * 512) & 0x400) == 0)
                     bUpdateCoronaCoors = true;
                 else
-                    bUnkn1 = 1;
+                    bDoColorLight = 1;
 
                 break;
 
@@ -1966,50 +1967,50 @@ void CEntity::ProcessLightsForEntity()
                 if (((CTimer::m_snTimeInMilliseconds + iFxInd * 1024) & 0x800) == 0)
                     bUpdateCoronaCoors = true;
                 else
-                    bUnkn1 = 1;
+                    bDoColorLight = 1;
 
                 break;
 
             case e2dCoronaFlashType::FLASH_UNKN:
                 if (static_cast<unsigned char>(uiRand) > 0x10) {
-                    bUnkn1 = true;
+                    bDoColorLight = true;
                     break;
                 }
 
                 if ((CTimer::m_snTimeInMilliseconds ^ (uiRand * 8)) & 0x60)
-                    bUnkn1 = true;
+                    bDoColorLight = true;
                 else
-                    bUnkn3 = true;
+                    bDoNoColorLight = true;
 
                 if ((uiRand ^ (CTimer::m_snTimeInMilliseconds / 4096)) & 0x3)
-                    bUnkn1 = true;
+                    bDoColorLight = true;
 
                 break;
 
             case e2dCoronaFlashType::FLASH_TRAINCROSSING:
                 if (IsObject() && static_cast<CObject*>(this)->objectFlags.bTrainCrossEnabled) {
                     if (CTimer::m_snTimeInMilliseconds & 0x400)
-                        bUnkn1 = true;
+                        bDoColorLight = true;
 
                     if (iFxInd & 1)
-                        bUnkn1 = !bUnkn1;
+                        bDoColorLight = !bDoColorLight;
                 }
 
                 if (iFxInd >= 4)
-                    bUnkn1 = false;
+                    bDoColorLight = false;
 
                 break;
 
             case e2dCoronaFlashType::FLASH_UNUSED:
                 if (false && (CTimer::m_snTimeInMilliseconds & 0x1FF) < 0x3C)
-                    bUnkn1 = true;
+                    bDoColorLight = true;
 
                 break;
 
             case e2dCoronaFlashType::FLASH_ONLY_RAIN:
                 if (CWeather::Rain > 0.0001F) {
                     fIntensity = CWeather::Rain;
-                    bUnkn1 = 1;
+                    bDoColorLight = 1;
                 }
                 break;
 
@@ -2017,7 +2018,7 @@ void CEntity::ProcessLightsForEntity()
             case e2dCoronaFlashType::FLASH_6ON_4OFF:
             case e2dCoronaFlashType::FLASH_4ON_6OFF:
 
-                bUnkn1 = true;
+                bDoColorLight = true;
 
                 uiOffset = CTimer::m_snTimeInMilliseconds + 3333 * (iFlashType - 11);
                 uiOffset += static_cast<unsigned int>(vecPos.x * 20.0F);
@@ -2037,7 +2038,7 @@ void CEntity::ProcessLightsForEntity()
                     fIntensity = 1.0F - fBalance;
                     break;
                 default:
-                    bUnkn1 = false;
+                    bDoColorLight = false;
                 }
 
                 break;
@@ -2047,18 +2048,17 @@ void CEntity::ProcessLightsForEntity()
             }
         }
 
+// CORONAS
+        auto bSkipCoronaChecks = false;
+        if (CGameLogic::LaRiotsActiveHere()) {
+            bool bLightsOn = bDoColorLight;
+            bLightsOn &= !IsVehicle();
+            bLightsOn &= ((uiRand & 3) == 0 || (uiRand & 3) == 1 && (CTimer::m_snTimeInMilliseconds ^ (uiRand * 8)) & 0x60);
 
-
-        if (CGameLogic::LaRiotsActiveHere() || bUnkn3) {
-            if (bUnkn3
-                || (bUnkn1
-                    && (!IsVehicle()
-                        && ((uiRand & 3) == 0
-                            || (uiRand & 3) == 1
-                            && (CTimer::m_snTimeInMilliseconds ^ (uiRand * 8)) & 0x60 )))) {
-
-                bUnkn1 = false;
-                bUnkn3 = true;
+            if (bLightsOn) {
+                bDoColorLight = false;
+                bDoNoColorLight = true;
+                bSkipCoronaChecks = true;
 
                 CCoronas::RegisterCorona(reinterpret_cast<unsigned int>(this) + iFxInd,
                                          nullptr,
@@ -2084,7 +2084,7 @@ void CEntity::ProcessLightsForEntity()
             }
         }
 
-        if (bUnkn1) {
+        if (!bSkipCoronaChecks && bDoColorLight) {
             auto bCanCreateLight = true;
             if (pEffect->light.m_bCheckDirection) {
                 const auto& camPos = TheCamera.GetPosition();
@@ -2095,6 +2095,7 @@ void CEntity::ProcessLightsForEntity()
             }
 
             if (bCanCreateLight) {
+                bSkipCoronaChecks = true;
                 auto fBrightness = fIntensity;
                 if (pEffect->light.m_bBlinking1)
                     fBrightness = (1.0F - (rand() & 0x1F) * 0.012F) * fIntensity;
@@ -2118,9 +2119,9 @@ void CEntity::ProcessLightsForEntity()
                 fIntensity = CTimeCycle::m_CurrentColours.m_fSpriteBrightness * fBrightness * 0.1F;
                 auto fSize = pEffect->light.m_fCoronaSize * fSizeMult;
 
-                auto ucRed = static_cast<unsigned char>(pEffect->light.m_color.red * fIntensity);
-                auto ucGreen = static_cast<unsigned char>(pEffect->light.m_color.green * fIntensity);
-                auto ucBlue = static_cast<unsigned char>(pEffect->light.m_color.blue * fIntensity);
+                auto ucRed = static_cast<unsigned char>(static_cast<float>(pEffect->light.m_color.red) * fIntensity);
+                auto ucGreen = static_cast<unsigned char>(static_cast<float>(pEffect->light.m_color.green) * fIntensity);
+                auto ucBlue = static_cast<unsigned char>(static_cast<float>(pEffect->light.m_color.blue) * fIntensity);
 
                 CCoronas::RegisterCorona(reinterpret_cast<unsigned int>(this) + iFxInd,
                                          nullptr,
@@ -2144,33 +2145,57 @@ void CEntity::ProcessLightsForEntity()
                                          pEffect->light.m_bOnlyFromBelow,
                                          pEffect->light.m_bUpdateHeightAboveGround);
 
-                bUpdateCoronaCoors = false;
             }
             else {
-                bUnkn1 = false;
+                bDoColorLight = false;
                 bUpdateCoronaCoors = true;
             }
         }
 
-        if (bUpdateCoronaCoors) {
+        if (!bSkipCoronaChecks && bDoNoColorLight) {
+            bSkipCoronaChecks = true;
+            CCoronas::RegisterCorona(reinterpret_cast<unsigned int>(this) + iFxInd,
+                                        nullptr,
+                                        0,
+                                        0,
+                                        0,
+                                        255,
+                                        vecEffPos,
+                                        pEffect->light.m_fCoronaSize,
+                                        pEffect->light.m_fCoronaFarClip,
+                                        pEffect->light.m_pCoronaTex,
+                                        static_cast<eCoronaFlareType>(pEffect->light.m_nCoronaFlareType),
+                                        pEffect->light.m_bCoronaEnableReflection,
+                                        pEffect->light.m_bCheckObstacles,
+                                        0,
+                                        0.0F,
+                                        pEffect->light.m_bOnlyLongDistance,
+                                        1.5F,
+                                        0,
+                                        15.0F,
+                                        false,
+                                        false);
+        }
+
+        if (!bSkipCoronaChecks && bUpdateCoronaCoors) {
             CCoronas::UpdateCoronaCoors(reinterpret_cast<unsigned int>(this) + iFxInd, vecEffPos, pEffect->light.m_fCoronaFarClip, 0.0F);
         }
 
-        if (pEffect->light.m_fPointlightRange != 0.0F && bUnkn1) {
+// POINT LIGHTS
+        bool bSkipLights = false;
+        if (pEffect->light.m_fPointlightRange != 0.0F && bDoColorLight) {
             auto color = pEffect->light.m_color;
             if (color.red || color.green || color.blue) {
                 auto fColorMult = fDayNight * fIntensity / 256.0F;
-                color.red *= fColorMult;
-                color.blue *= fColorMult;
-                color.green *= fColorMult;
 
+                bSkipLights = true;
                 CPointLights::AddLight(ePointLightType::PLTYPE_POINTLIGHT,
                                        vecEffPos,
                                        CVector(0.0F, 0.0F, 0.0F),
                                        pEffect->light.m_fPointlightRange,
-                                       color.red,
-                                       color.green,
-                                       color.blue,
+                                       static_cast<float>(color.red) * fColorMult,
+                                       static_cast<float>(color.green) * fColorMult,
+                                       static_cast<float>(color.blue) * fColorMult,
                                        pEffect->light.m_nFogType,
                                        true,
                                        nullptr);
@@ -2183,50 +2208,53 @@ void CEntity::ProcessLightsForEntity()
                                        0.0F,
                                        0.0F,
                                        0.0F,
-                                       RwFogType::rwFOGTYPELINEAR,
+                                       RwFogType::rwFOGTYPENAFOGTYPE,
                                        true,
                                        nullptr);
             }
         }
 
-        if (pEffect->light.m_nFogType & 2) {
-            auto color = pEffect->light.m_color;
-            CPointLights::AddLight((ePointLightType)3u, //Enum doesn't contain all types?
-                                    vecEffPos,
-                                    CVector(0.0F, 0.0F, 0.0F),
-                                    0.0F,
-                                    color.red / 256.0F,
-                                    color.green / 256.0F,
-                                    color.blue / 256.0F,
-                                    RwFogType::rwFOGTYPEEXPONENTIAL,
-                                    true,
-                                    nullptr);
-        }
-        else if (!(pEffect->light.m_nFogType & 1) && bUnkn1 && pEffect->light.m_fPointlightRange == 0.0F) {
-            auto color = pEffect->light.m_color;
-            CPointLights::AddLight((ePointLightType)3u, //Enum doesn't contain all types?
-                                    vecEffPos,
-                                    CVector(0.0F, 0.0F, 0.0F),
-                                    0.0F,
-                                    color.red / 256.0F,
-                                    color.green / 256.0F,
-                                    color.blue / 256.0F,
-                                    RwFogType::rwFOGTYPELINEAR,
-                                    true,
-                                    nullptr);
+        if (!bSkipLights) {
+            if (pEffect->light.m_nFogType & RwFogType::rwFOGTYPEEXPONENTIAL) {
+                auto color = pEffect->light.m_color;
+                CPointLights::AddLight((ePointLightType)3u, //Enum doesn't contain all types?
+                                        vecEffPos,
+                                        CVector(0.0F, 0.0F, 0.0F),
+                                        0.0F,
+                                        color.red / 256.0F,
+                                        color.green / 256.0F,
+                                        color.blue / 256.0F,
+                                        RwFogType::rwFOGTYPEEXPONENTIAL,
+                                        true,
+                                        nullptr);
+            }
+            else if (pEffect->light.m_nFogType & RwFogType::rwFOGTYPELINEAR && bDoColorLight && pEffect->light.m_fPointlightRange == 0.0F) {
+                auto color = pEffect->light.m_color;
+                CPointLights::AddLight((ePointLightType)4u, //Enum doesn't contain all types?
+                                        vecEffPos,
+                                        CVector(0.0F, 0.0F, 0.0F),
+                                        0.0F,
+                                        color.red / 256.0F,
+                                        color.green / 256.0F,
+                                        color.blue / 256.0F,
+                                        RwFogType::rwFOGTYPELINEAR,
+                                        true,
+                                        nullptr);
+            }
         }
 
+// SHADOWS
         if (pEffect->light.m_fShadowSize != 0.0F) {
-            auto fDist = 15.0F;
+            auto fShadowZ = 15.0F;
             if (pEffect->light.m_nShadowZDistance)
-                fDist = static_cast<float>(pEffect->light.m_nShadowZDistance);
+                fShadowZ = static_cast<float>(pEffect->light.m_nShadowZDistance);
 
-            if (bUnkn1) {
+            if (bDoColorLight) {
                 auto color = pEffect->light.m_color;
                 auto fColorMult = pEffect->light.m_nShadowColorMultiplier * fIntensity / 256.0F;
-                color.red *= fColorMult;
-                color.blue *= fColorMult;
-                color.green *= fColorMult;
+                color.red    = static_cast<unsigned char>(static_cast<float>(color.red) * fColorMult);
+                color.green  = static_cast<unsigned char>(static_cast<float>(color.green) * fColorMult);
+                color.blue   = static_cast<unsigned char>(static_cast<float>(color.blue) * fColorMult);
 
                 CShadows::StoreStaticShadow(reinterpret_cast<unsigned int>(this) + iFxInd,
                                             eShadowType::SHADOW_ADDITIVE,
@@ -2240,13 +2268,13 @@ void CEntity::ProcessLightsForEntity()
                                             color.red,
                                             color.green,
                                             color.blue,
-                                            fDist,
+                                            fShadowZ,
                                             1.0F,
                                             40.0F,
                                             false,
                                             0.0F);
             }
-            else if (bUnkn3) {
+            else if (bDoNoColorLight) {
                 CShadows::StoreStaticShadow(reinterpret_cast<unsigned int>(this) + iFxInd,
                                             eShadowType::SHADOW_ADDITIVE,
                                             pEffect->light.m_pShadowTex,
@@ -2255,11 +2283,11 @@ void CEntity::ProcessLightsForEntity()
                                             0.0F,
                                             0.0F,
                                             -pEffect->light.m_fShadowSize,
-                                            128,
                                             0,
                                             0,
                                             0,
-                                            fDist,
+                                            0,
+                                            fShadowZ,
                                             1.0F,
                                             40.0F,
                                             false,
