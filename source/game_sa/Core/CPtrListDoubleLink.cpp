@@ -36,7 +36,7 @@ void CPtrListDoubleLink::DeleteItem(void* item)
 
 void CPtrListDoubleLink::DeleteNode(CPtrNodeDoubleLink* node)
 {
-    if (node == GetNode())
+    if (GetNode() == node)
         pNode = pNode->pNext;
 
     if (node->pPrev)

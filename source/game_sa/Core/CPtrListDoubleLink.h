@@ -19,6 +19,8 @@ public:
         Flush();
     }
 
+    inline CPtrListDoubleLink() { pNode->pItem = nullptr; }
+
 public:
     static void InjectHooks();
 

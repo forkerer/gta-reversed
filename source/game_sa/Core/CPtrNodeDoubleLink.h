@@ -19,7 +19,7 @@ public:
 
     static void* operator new(unsigned int size);
     static void operator delete(void* ptr, size_t sz);
-    inline CPtrNodeDoubleLink(void *item) : pItem(item) {}
+    inline CPtrNodeDoubleLink(void* item) { pItem = item; }
 
 
     void AddToList(class CPtrListDoubleLink* list);

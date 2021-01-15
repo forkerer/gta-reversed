@@ -636,27 +636,27 @@ void CPhysical::RemoveAndAdd()
                     CPtrNodeDoubleLink* pDoubleLink = pEntryInfoNode->m_pDoubleLink;
                     if (pEntryInfoNode->m_pDoubleLinkList->pNode == (CPtrNode*)pDoubleLink)
                         pEntryInfoNode->m_pDoubleLinkList->pNode = (CPtrNode*)pDoubleLink->pNext;
+
                     CPtrNodeDoubleLink* pDoubleLinkPrevious = pDoubleLink->pPrev;
                     if (pDoubleLinkPrevious)
                         pDoubleLinkPrevious->pNext = pDoubleLink->pNext;
+
                     CPtrNodeDoubleLink* pDoubleLinkNext = pDoubleLink->pNext;
                     if (pDoubleLinkNext)
                         pDoubleLinkNext->pPrev = pDoubleLink->pPrev;
-                    pDoubleLink->pPrev = nullptr;
-                    pDoubleLink->pNext = (CPtrNodeDoubleLink*)pDoubleLinkList->pNode;
-                    if (pDoubleLink->pNext)
-                        pDoubleLink->pNext->pPrev = pDoubleLink;
-                    pDoubleLinkList->pNode = (CPtrNode*)pDoubleLink;
+
+                    pDoubleLink->AddToList(pDoubleLinkList);
+
                     pEntryInfoNode->m_pRepeatSector = pRepeatSector;
                     pEntryInfoNode->m_pDoubleLinkList = pDoubleLinkList;
                     pEntryInfoNode = pEntryInfoNode->m_pNext;
                 }
                 else
                 {
+                    auto pNewDoubleLink = pDoubleLinkList->AddItem(this);
                     auto pNewEntityInfoNode = new CEntryInfoNode();
                     if (pNewEntityInfoNode)
                     {
-                        auto pNewDoubleLink = pDoubleLinkList->AddItem(this);
                         pNewEntityInfoNode->m_pDoubleLink = pNewDoubleLink;
                         pNewEntityInfoNode->m_pRepeatSector = pRepeatSector;
                         pNewEntityInfoNode->m_pDoubleLinkList = pDoubleLinkList;
@@ -2183,13 +2183,13 @@ bool CPhysical::ProcessShiftSectorList(int sectorX, int sectorY)
             pDoubleLinkList = &pSector->m_buildings;
             break;
         case 1:
-            pDoubleLinkList = &pRepeatSector->m_lists[0];
+            pDoubleLinkList = &pRepeatSector->m_lists[eRepeatSectorList::REPEATSECTOR_VEHICLES];
             break;
         case 2:
-            pDoubleLinkList = &pRepeatSector->m_lists[1];
+            pDoubleLinkList = &pRepeatSector->m_lists[eRepeatSectorList::REPEATSECTOR_PEDS];
             break;
         case 3:
-            pDoubleLinkList = &pRepeatSector->m_lists[2];
+            pDoubleLinkList = &pRepeatSector->m_lists[eRepeatSectorList::REPEATSECTOR_OBJECTS];
             break;
         }
         CPtrNodeDoubleLink* pNode = pDoubleLinkList->GetNode();
@@ -4371,13 +4371,13 @@ bool CPhysical::ProcessCollisionSectorList(int sectorX, int sectorY)
         switch (scanListIndex)
         {
         case 0:
-            pDoubleLinkList = &pRepeatSector->m_lists[1];
+            pDoubleLinkList = &pRepeatSector->m_lists[eRepeatSectorList::REPEATSECTOR_PEDS];
             break;
         case 1:
-            pDoubleLinkList = &pRepeatSector->m_lists[2];
+            pDoubleLinkList = &pRepeatSector->m_lists[eRepeatSectorList::REPEATSECTOR_OBJECTS];
             break;
         case 2:
-            pDoubleLinkList = &pRepeatSector->m_lists[0];
+            pDoubleLinkList = &pRepeatSector->m_lists[eRepeatSectorList::REPEATSECTOR_VEHICLES];
             break;
         case 3:
             pDoubleLinkList = &pSector->m_buildings;
@@ -5105,10 +5105,10 @@ bool CPhysical::ProcessCollisionSectorList_SimpleCar(CRepeatSector* pRepeatSecto
         switch (--scanListIndex)
         {
         case 0:
-            pDoubleLinkList = &pRepeatSector->m_lists[0];
+            pDoubleLinkList = &pRepeatSector->m_lists[eRepeatSectorList::REPEATSECTOR_VEHICLES];
             break;
         case 1:
-            pDoubleLinkList = &pRepeatSector->m_lists[2];
+            pDoubleLinkList = &pRepeatSector->m_lists[eRepeatSectorList::REPEATSECTOR_OBJECTS];
             break;
         }
 

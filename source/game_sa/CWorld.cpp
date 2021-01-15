@@ -182,11 +182,11 @@ void CWorld::ClearForRestart() {
             auto pVeh = reinterpret_cast<CVehicle*>(pVehNode->pItem);
             pVehNode = pVehNode->pNext;
 
-            pVeh->Remove();
+            pVeh->Remove(); //FIXME: Unknown crash randomly happens here, pVeh contains CPlaceable vtable instead of it's own one, find out why
             if (pVeh->m_nType > eEntityType::ENTITY_TYPE_BUILDING && pVeh->m_nType < eEntityType::ENTITY_TYPE_DUMMY)
                 pVeh->RemoveFromMovingList();
 
-            if (pVeh) //FIXME: Unknown crash randomly happens here, pVeh points to CPlaceable vtable instead of entity one, find out why
+            if (pVeh)
                 pVeh->DeletingDestructor(1); //TODO: Replace with delete once ready
         }
     }
