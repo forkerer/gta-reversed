@@ -1269,8 +1269,8 @@ void CVisibilityPlugins::SetupVehicleVariables(RpClump* pRpClump) {
     RwV3dSub(&distance1, &transformMatrix->pos, ms_pCameraPosn);
     gVehicleDistanceFromCamera = distance1.SquaredMagnitude();
     CVector2D distance2;
-    RwV2dSub(&distance2, ms_pCameraPosn, &frame->modelling.pos);
-    gVehicleAngleToCamera = atan2(ms_pCameraPosn->z - frame->modelling.pos.z, distance2.Magnitude());
+    RwV2dSub(&distance2, ms_pCameraPosn, RwMatrixGetPos(RwFrameGetMatrix(frame)));
+    gVehicleAngleToCamera = atan2(ms_pCameraPosn->z - RwMatrixGetPos(RwFrameGetMatrix(frame))->z, distance2.Magnitude());
 #endif
 }
 

@@ -984,7 +984,7 @@ void CBoat::BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion)
     memcpy(RwFrameGetMatrix(pNewRwFrame), pMovingCompMatrix, sizeof(RwMatrix));
     RpAtomicSetFrame(pMovingCompAtomicClone, pNewRwFrame);
     CVisibilityPlugins::SetAtomicRenderCallback(pMovingCompAtomicClone, nullptr);
-    pObject->AttachToRwObject(&pMovingCompAtomicClone->object.object, true);
+    pObject->AttachToRwObject((RwObject*)pMovingCompAtomicClone, true);
 
     ++CObject::nNoTempObjects;
     pObject->m_bDontStream = true;

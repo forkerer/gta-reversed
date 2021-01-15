@@ -348,9 +348,9 @@ void CEntity::DeleteRwObject_Reversed()
         return;
 
     if (RwObjectGetType(m_pRwObject) == rpATOMIC) {
-        auto pParent = static_cast<RwFrame*>(rwObjectGetParent(m_pRwAtomic));
+        auto pFrame = RpAtomicGetFrame(m_pRwAtomic);
         RpAtomicDestroy(m_pRwAtomic);
-        RwFrameDestroy(pParent);
+        RwFrameDestroy(pFrame);
     }
     else if (RwObjectGetType(m_pRwObject) == rpCLUMP) {
         auto pFirstAtomic = GetFirstAtomic(m_pRwClump);
