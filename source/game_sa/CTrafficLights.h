@@ -39,10 +39,10 @@ public:
     static unsigned char LightForPeds();
 
 private:
-    static unsigned char LightForCars1(); //Are red lights on
-    static unsigned char LightForCars2(); //Are orangle lights on
-    static unsigned char LightForCars1_Visual(); // Switch lights to tellow
-    static unsigned char LightForCars2_Visual(); // Switch lights to green
+    static unsigned char LightForCars1();
+    static unsigned char LightForCars2();
+    static unsigned char LightForCars1_Visual();
+    static unsigned char LightForCars2_Visual();
     static int FindTrafficLightType(CEntity* pEntity);
     static float FindOrientationForTrafficLightType(CEntity* pEntity);
     static int FindTrafficLightTypeFromOrientation(float fOrientation);
