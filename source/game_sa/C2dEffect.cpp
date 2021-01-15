@@ -9,17 +9,20 @@ void C2dEffect::InjectHooks()
 
 int C2dEffect::Roadsign_GetNumLinesFromFlags(CRoadsignAttrFlags flags)
 {
-    if (!flags.m_nNumOfLines)
-        return 4;
+    switch (flags.m_nNumOfLines) {
+    case 1:
+        return 1;
+    case 2:
+        return 2;
+    case 3:
+        return 3;
+    }
 
-    return flags.m_nNumOfLines;
+    return 4;
 }
 
 int C2dEffect::Roadsign_GetNumLettersFromFlags(CRoadsignAttrFlags flags)
 {
-    if (!flags.m_nSymbolsPerLine)
-        return 16;
-
     switch (flags.m_nSymbolsPerLine) {
     case 1:
         return 2;
@@ -28,9 +31,21 @@ int C2dEffect::Roadsign_GetNumLettersFromFlags(CRoadsignAttrFlags flags)
     case 3:
         return 8;
     }
+
+    return 16;
 }
 
 int C2dEffect::Roadsign_GetPaletteIDFromFlags(CRoadsignAttrFlags flags)
 {
-    return flags.m_nTextColor;
+
+    switch (flags.m_nTextColor) {
+    case 1:
+        return 1;
+    case 2:
+        return 2;
+    case 3:
+        return 3;
+    }
+
+    return 0;
 }

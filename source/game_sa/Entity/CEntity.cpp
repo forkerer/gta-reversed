@@ -559,9 +559,9 @@ void CEntity::PreRender_Reversed()
                                                   0.0F,
                                                   -8.0F,
                                                   255,
-                                                  fRand * 200.0F,
-                                                  fRand * 160.0F,
-                                                  fRand * 120.0F,
+                                                  static_cast<unsigned char>(fRand * 200.0F),
+                                                  static_cast<unsigned char>(fRand * 160.0F),
+                                                  static_cast<unsigned char>(fRand * 120.0F),
                                                   20.0F,
                                                   false,
                                                   1.0F,
@@ -581,9 +581,9 @@ void CEntity::PreRender_Reversed()
 
                 CCoronas::RegisterCorona(reinterpret_cast<unsigned int>(this),
                                          nullptr,
-                                         fRand * 255.0F,
-                                         fRand * 220.0F,
-                                          fRand * 190.0F,
+                                         static_cast<unsigned char>(fRand * 255.0F),
+                                         static_cast<unsigned char>(fRand * 220.0F),
+                                         static_cast<unsigned char>(fRand * 190.0F),
                                          255,
                                          vecPos,
                                          fRand * 6.0F,
@@ -636,9 +636,9 @@ void CEntity::PreRender_Reversed()
 
             CCoronas::RegisterCorona(reinterpret_cast<unsigned int>(this),
                                      nullptr,
-                                     fRand * 255.0F,
-                                     fRand * 255.0F,
-                                     fRand * 255.0F,
+                                     static_cast<unsigned char>(fRand * 255.0F),
+                                     static_cast<unsigned char>(fRand * 255.0F),
+                                     static_cast<unsigned char>(fRand * 255.0F),
                                      255,
                                      vecPos,
                                      fRand * 6.0F,
@@ -699,6 +699,7 @@ void CEntity::PreRender_Reversed()
         }
         else if (m_nModelIndex == ModelIndices::MI_BEACHBALL) {
             if (DistanceBetweenPoints(GetPosition(), TheCamera.GetPosition()) < 50.0F) {
+                auto ucShadowStrength = static_cast<unsigned char>(CTimeCycle::m_CurrentColours.m_nShadowStrength);
                 CShadows::StoreShadowToBeRendered(eShadowType::SHADOW_DEFAULT,
                                                   gpShadowPedTex,
                                                   &GetPosition(),
@@ -706,10 +707,10 @@ void CEntity::PreRender_Reversed()
                                                   0.0F,
                                                   0.0F,
                                                   -0.4F,
-                                                  CTimeCycle::m_CurrentColours.m_nShadowStrength,
-                                                  CTimeCycle::m_CurrentColours.m_nShadowStrength,
-                                                  CTimeCycle::m_CurrentColours.m_nShadowStrength,
-                                                  CTimeCycle::m_CurrentColours.m_nShadowStrength,
+                                                  ucShadowStrength,
+                                                  ucShadowStrength,
+                                                  ucShadowStrength,
+                                                  ucShadowStrength,
                                                   20.0F,
                                                   false,
                                                   1.0F,
@@ -833,7 +834,7 @@ bool CEntity::SetupLighting_Reversed()
 
     ActivateDirectional();
     const auto& vecPos = GetPosition();
-    auto fLight = CPointLights::GenerateLightsAffectingObject(&vecPos, nullptr, this) * 0.5;
+    auto fLight = CPointLights::GenerateLightsAffectingObject(&vecPos, nullptr, this) * 0.5F;
     SetLightColoursForPedsCarsAndObjects(fLight);
 
     return true;
@@ -1177,7 +1178,7 @@ void CEntity::CreateEffects()
                                                      vecWorldExit.z,
                                                      fExitRot,
                                                      pEffect->enEx.m_nInteriorId,
-                                                     pEffect->enEx.m_nFlags1 + pEffect->enEx.m_nFlags2 << 8,
+                                                     pEffect->enEx.m_nFlags1 + (pEffect->enEx.m_nFlags2 << 8),
                                                      pEffect->enEx.m_nSkyColor,
                                                      pEffect->enEx.m_nTimeOn,
                                                      pEffect->enEx.m_nTimeOff,
@@ -1718,7 +1719,7 @@ void CEntity::CleanUpOldReference(CEntity** entity)
 
     *ppPrev = pRef->m_pNext;
     pRef->m_pNext = CReferences::pEmptyList;
-    pRef->m_ppEntity == nullptr;
+    pRef->m_ppEntity = nullptr;
     CReferences::pEmptyList = pRef;
 }
 
@@ -2026,7 +2027,7 @@ void CEntity::ProcessLightsForEntity()
                 uiOffset += static_cast<unsigned int>(vecPos.y * 10.0F);
 
                 uiMode = 9 * ((uiOffset % 10000) / 10000);
-                fBalance = ((uiOffset % 10000) - (1111 * uiMode)) * 0.0009;
+                fBalance = ((uiOffset % 10000) - (1111 * uiMode)) * 0.0009F;
                 switch (uiMode) {
                 case 0:
                     fIntensity = fBalance;
