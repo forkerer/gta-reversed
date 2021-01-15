@@ -2345,38 +2345,38 @@ bool CEntity::IsEntityOccluded()
         }
 
         if (pActiveOccluder.IsPointWithinOcclusionArea(vecScreenPos.x, vecScreenPos.y, 0.0F)) {
-            auto bOccluded = false;
+            auto bInView = false;
             const auto& pBounding = pModelInfo->GetColModel()->GetBoundingBox();
             CVector vecScreen;
 
             auto vecMin = *CEntity::GetMatrix() * pBounding.m_vecMin;
-            if (CalcScreenCoors(vecMin, &vecScreen)
-                && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
-                && pActiveOccluder.IsPointBehindOccluder(vecMin, 0.0F)) {
+            if (!CalcScreenCoors(vecMin, &vecScreen)
+                || !pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
+                || !pActiveOccluder.IsPointBehindOccluder(vecMin, 0.0F)) {
 
-                bOccluded = true;
+                bInView = true;
             }
 
             auto vecMax = *CEntity::GetMatrix() * pBounding.m_vecMax;
-            if (!bOccluded
-                && CalcScreenCoors(vecMax, &vecScreen)
-                && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
-                && pActiveOccluder.IsPointBehindOccluder(vecMax, 0.0F)) {
+            if (bInView
+                || !CalcScreenCoors(vecMax, &vecScreen)
+                || !pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
+                || !pActiveOccluder.IsPointBehindOccluder(vecMax, 0.0F)) {
 
-                bOccluded = true;
+                bInView = true;
             }
 
             auto vecDiag1 = *CEntity::GetMatrix() * CVector(pBounding.m_vecMin.x, pBounding.m_vecMax.y, pBounding.m_vecMax.z);
-            if (!bOccluded
-                && CalcScreenCoors(vecDiag1, &vecScreen)
-                && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
-                && pActiveOccluder.IsPointBehindOccluder(vecDiag1, 0.0F)) {
+            if (bInView
+                || !CalcScreenCoors(vecDiag1, &vecScreen)
+                || !pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
+                || !pActiveOccluder.IsPointBehindOccluder(vecDiag1, 0.0F)) {
 
-                bOccluded = true;
+                bInView = true;
             }
 
             auto vecDiag2 = *CEntity::GetMatrix() * CVector(pBounding.m_vecMax.x, pBounding.m_vecMin.y, pBounding.m_vecMin.z);
-            if (!bOccluded
+            if (!bInView
                 && CalcScreenCoors(vecDiag2, &vecScreen)
                 && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
                 && pActiveOccluder.IsPointBehindOccluder(vecDiag2, 0.0F)) {
@@ -2391,16 +2391,15 @@ bool CEntity::IsEntityOccluded()
                     return true;
 
                 auto vecDiag3 = *CEntity::GetMatrix() * CVector(pBounding.m_vecMin.x, pBounding.m_vecMin.y, pBounding.m_vecMax.z);
-                if (!bOccluded
-                    && CalcScreenCoors(vecDiag3, &vecScreen)
-                    && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
-                    && pActiveOccluder.IsPointBehindOccluder(vecDiag3, 0.0F)) {
+                if (!CalcScreenCoors(vecDiag3, &vecScreen)
+                    || !pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
+                    || !pActiveOccluder.IsPointBehindOccluder(vecDiag3, 0.0F)) {
 
-                    bOccluded = true;
+                    bInView = true;
                 }
 
                 auto vecDiag4 = *CEntity::GetMatrix() * CVector(pBounding.m_vecMax.x, pBounding.m_vecMin.y, pBounding.m_vecMax.z);
-                if (!bOccluded
+                if (!bInView
                     && CalcScreenCoors(vecDiag4, &vecScreen)
                     && pActiveOccluder.IsPointWithinOcclusionArea(vecScreen.x, vecScreen.y, 0.0F)
                     && pActiveOccluder.IsPointBehindOccluder(vecDiag4, 0.0F)) {
