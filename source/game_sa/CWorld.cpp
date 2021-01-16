@@ -351,10 +351,10 @@ void CWorld::RemoveFallenCars() {
             if (pathNodeAddress.m_wAreaId != -1)
             {
                 const auto pathNodePos = ThePaths.GetPathNode(pathNodeAddress)->GetNodeCoors();
-                pVeh->Teleport(pathNodePos + CVector(0, 0, 3), false);
+                pVeh->Teleport(pathNodePos + CVector(0, 0, 3), true);
             }
             else
-                pVeh->Teleport(CVector(vecPos.x, vecPos.y, 0), false);
+                pVeh->Teleport(CVector(vecPos.x, vecPos.y, 0), true);
             pVeh->ResetMoveSpeed();
         }
         else
@@ -362,7 +362,7 @@ void CWorld::RemoveFallenCars() {
             if (!pVeh->IsCreatedBy(eVehicleCreatedBy::RANDOM_VEHICLE))
                 if (!pVeh->IsCreatedBy(eVehicleCreatedBy::PARKED_VEHICLE))
                     continue;
-
+            pVeh->Remove();
             if (pVeh->IsPhysical())
                 pVeh->RemoveFromMovingList();
 
