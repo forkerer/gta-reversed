@@ -10,10 +10,19 @@
 
 class  CAtomicModelInfo : public CBaseModelInfo {
 public:
-	// vtable
+	// vtable overrides
+    CAtomicModelInfo* AsAtomicModelInfoPtr() override;
+    ModelInfoType GetModelType() override;
+    void Init() override;
+    void DeleteRwObject() override;
+    unsigned int GetRwModelType() override;
+    RwObject* CreateInstance() override;
+    RwObject* CreateInstance(RwMatrix* matrix) override;
 
-	void SetAtomic(struct RpAtomic *atomic);
+    // vtable added methods
+	virtual void SetAtomic(struct RpAtomic *atomic);
 
+    // class methods
 	struct RpAtomic *GetAtomicFromDistance(float distance);
 };
 

@@ -21,8 +21,19 @@ public:
 		unsigned int m_dwAnimFileIndex;
 	};
 
-	// vtable
+    // Overriden vtable methods
+    ModelInfoType GetModelType() override;
+    void Init() override;
+    void Shutdown() override;
+    void DeleteRwObject() override;
+    unsigned int GetRwModelType() override;
+    RwObject* CreateInstance() override;
+    RwObject* CreateInstance(RwMatrix* matrix) override;
+    void SetAnimFile(char const* filename) override;
+    void ConvertAnimFileIndex() override;
+    signed int GetAnimFileIndex() override;
 
+	// Added vtable methods
     virtual CBox *GetBoundingBox();
     virtual void SetClump(RpClump *clump);
 

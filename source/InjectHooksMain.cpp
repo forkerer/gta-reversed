@@ -28,6 +28,7 @@ void InjectHooksMain(void)
     InjectCdStreamHooks();
     CReferences::InjectHooks();
     CModelInfo::InjectHooks();
+    CModelInfoAccelerator::InjectHooks();
     CBaseModelInfo::InjectHooks();
     CVehicleModelInfo::InjectHooks();
     SurfaceInfos_c::InjectHooks();
@@ -43,6 +44,7 @@ void InjectHooksMain(void)
     CTrain::InjectHooks();
     CColSphere::InjectHooks();
     CColLine::InjectHooks();
+    CColModel::InjectHooks();
     CAnimBlendAssociation::InjectHooks();
     CTrafficLights::InjectHooks();
     CMotionBlurStreaks::InjectHooks();
