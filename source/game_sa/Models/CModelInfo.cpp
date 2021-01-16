@@ -24,6 +24,7 @@ void CModelInfo::InjectHooks()
 {
     ReversibleHooks::Install("CModelInfo", "Initialise", 0x4C6810, &CModelInfo::Initialise);
     ReversibleHooks::Install("CModelInfo", "ShutDown", 0x4C63E0, &CModelInfo::ShutDown);
+    ReversibleHooks::Install("CModelInfo", "ReInit2dEffects", 0x4C63B0, &CModelInfo::ReInit2dEffects);
 
     ReversibleHooks::Install("CModelInfo", "AddAtomicModel", 0x4C6620, &CModelInfo::AddAtomicModel);
     ReversibleHooks::Install("CModelInfo", "AddDamageAtomicModel", 0x4C6650, &CModelInfo::AddDamageAtomicModel);
@@ -34,12 +35,27 @@ void CModelInfo::InjectHooks()
     ReversibleHooks::Install("CModelInfo", "AddClumpModel", 0x4C6740, &CModelInfo::AddClumpModel);
     ReversibleHooks::Install("CModelInfo", "AddVehicleModel", 0x4C6770, &CModelInfo::AddVehicleModel);
     ReversibleHooks::Install("CModelInfo", "AddPedModel", 0x4C67A0, &CModelInfo::AddPedModel);
+
+    ReversibleHooks::Install("CModelInfo", "IsBoatModel", 0x4C5A70, &CModelInfo::IsBoatModel);
+    ReversibleHooks::Install("CModelInfo", "IsCarModel", 0x4C5AA0, &CModelInfo::IsCarModel);
+    ReversibleHooks::Install("CModelInfo", "IsTrainModel", 0x4C5AD0, &CModelInfo::IsTrainModel);
+    ReversibleHooks::Install("CModelInfo", "IsHeliModel", 0x4C5B00, &CModelInfo::IsHeliModel);
+    ReversibleHooks::Install("CModelInfo", "IsPlaneModel", 0x4C5B30, &CModelInfo::IsPlaneModel);
+    ReversibleHooks::Install("CModelInfo", "IsBikeModel", 0x4C5B60, &CModelInfo::IsBikeModel);
+    ReversibleHooks::Install("CModelInfo", "IsFakePlaneModel", 0x4C5B90, &CModelInfo::IsFakePlaneModel);
+    ReversibleHooks::Install("CModelInfo", "IsMonsterTruckModel", 0x4C5BC0, &CModelInfo::IsMonsterTruckModel);
+    ReversibleHooks::Install("CModelInfo", "IsQuadBikeModel", 0x4C5BF0, &CModelInfo::IsQuadBikeModel);
+    ReversibleHooks::Install("CModelInfo", "IsBmxModel", 0x4C5C20, &CModelInfo::IsBmxModel);
+    ReversibleHooks::Install("CModelInfo", "IsTrailerModel", 0x4C5C50, &CModelInfo::IsTrailerModel);
+    ReversibleHooks::Install("CModelInfo", "IsVehicleModelType", 0x4C5C80, &CModelInfo::IsVehicleModelType);
 }
 
 // Converted from stdcall void CModelInfo::ReInit2dEffects(void) 0x4C63B0
 void CModelInfo::ReInit2dEffects()
 {
-    ((void(__cdecl *)())0x4C63B0)();
+    ms_2dFXInfoStore.m_nCount = 0;
+    for (int32_t i = 0; i < NUM_MODEL_INFOS; ++i)
+        CModelInfo::GetModelInfo(i)->Init2dEffects();
 }
 
 // Converted from stdcall void CModelInfo::ShutDown(void) 0x4C63E0
@@ -285,71 +301,158 @@ void* CModelInfo::Get2dEffectStore()
 // Converted from stdcall bool CModelInfo::IsBoatModel(int index) 0x4C5A70
 bool CModelInfo::IsBoatModel(int index)
 {
-    return ((bool(__cdecl *)(int))0x4C5A70)(index);
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return false;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return false;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType == eVehicleType::VEHICLE_BOAT;
 }
 
 // Converted from stdcall bool CModelInfo::IsCarModel(int index) 0x4C5AA0
 bool CModelInfo::IsCarModel(int index)
 {
-    return ((bool(__cdecl *)(int))0x4C5AA0)(index);
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return false;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return false;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType == eVehicleType::VEHICLE_AUTOMOBILE;
 }
 
 // Converted from stdcall bool CModelInfo::IsTrainModel(int index) 0x4C5AD0
 bool CModelInfo::IsTrainModel(int index)
 {
-    return ((bool(__cdecl *)(int))0x4C5AD0)(index);
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return false;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return false;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType == eVehicleType::VEHICLE_TRAIN;
 }
 
 // Converted from stdcall bool CModelInfo::IsHeliModel(int index) 0x4C5B00
 bool CModelInfo::IsHeliModel(int index)
 {
-    return ((bool(__cdecl *)(int))0x4C5B00)(index);
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return false;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return false;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType == eVehicleType::VEHICLE_HELI;
 }
 
 // Converted from stdcall bool CModelInfo::IsPlaneModel(int index) 0x4C5B30
 bool CModelInfo::IsPlaneModel(int index)
 {
-    return ((bool(__cdecl *)(int))0x4C5B30)(index);
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return false;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return false;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType == eVehicleType::VEHICLE_PLANE;
 }
 
 // Converted from stdcall bool CModelInfo::IsBikeModel(int index) 0x4C5B60
 bool CModelInfo::IsBikeModel(int index)
 {
-    return ((bool(__cdecl *)(int))0x4C5B60)(index);
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return false;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return false;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType == eVehicleType::VEHICLE_BIKE;
 }
 
 // Converted from stdcall bool CModelInfo::IsFakePlaneModel(int index) 0x4C5B90
 bool CModelInfo::IsFakePlaneModel(int index)
 {
-    return ((bool(__cdecl *)(int))0x4C5B90)(index);
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return false;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return false;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType == eVehicleType::VEHICLE_FPLANE;
 }
 
 // Converted from stdcall bool CModelInfo::IsMonsterTruckModel(int index) 0x4C5BC0
 bool CModelInfo::IsMonsterTruckModel(int index)
 {
-    return ((bool(__cdecl *)(int))0x4C5BC0)(index);
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return false;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return false;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType == eVehicleType::VEHICLE_MTRUCK;
 }
 
 // Converted from stdcall bool CModelInfo::IsQuadBikeModel(int index) 0x4C5BF0
 bool CModelInfo::IsQuadBikeModel(int index)
 {
-    return ((bool(__cdecl *)(int))0x4C5BF0)(index);
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return false;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return false;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType == eVehicleType::VEHICLE_QUAD;
 }
 
 // Converted from stdcall bool CModelInfo::IsBmxModel(int index) 0x4C5C20
 bool CModelInfo::IsBmxModel(int index)
 {
-    return ((bool(__cdecl *)(int))0x4C5C20)(index);
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return false;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return false;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType == eVehicleType::VEHICLE_BMX;
 }
 
 // Converted from stdcall bool CModelInfo::IsTrailerModel(int index) 0x4C5C50
 bool CModelInfo::IsTrailerModel(int index)
 {
-    return ((bool(__cdecl *)(int))0x4C5C50)(index);
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return false;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return false;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType == eVehicleType::VEHICLE_TRAILER;
 }
 
 // Converted from stdcall int CModelInfo::IsVehicleModelType(int index) 0x4C5C80
 int CModelInfo::IsVehicleModelType(int index)
 {
-    return ((int(__cdecl *)(int))0x4C5C80)(index);
+    if (index >= NUM_MODEL_INFOS)
+        return -1;
+
+    auto pInfo = CModelInfo::GetModelInfo(index);
+    if (!pInfo)
+        return -1;
+
+    if (pInfo->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
+        return -1;
+
+    return pInfo->AsVehicleModelInfoPtr()->m_nVehicleType;
 }
