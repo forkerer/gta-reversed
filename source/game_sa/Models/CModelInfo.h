@@ -34,6 +34,7 @@ public:
 	//static CBaseModelInfo *ms_modelInfoPtrs[20000]; Use GetModelInfo(int index) to get model info by id
     static constexpr int NUM_MODEL_INFOS = 20000;
 	static CBaseModelInfo* (&ms_modelInfoPtrs)[NUM_MODEL_INFOS];
+    static int& ms_lastPositionSearched;
 
     static constexpr int NUM_ATOMIC_MODEL_INFOS = 14000;
     static CStore<CAtomicModelInfo, NUM_ATOMIC_MODEL_INFOS>& ms_atomicModelInfoStore;
@@ -83,9 +84,9 @@ public:
 	static void Initialise();
 	static CBaseModelInfo* GetModelInfo(char const* name, int* index);
 	static CBaseModelInfo* GetModelInfoFromHashKey(unsigned int arg0, int* index);
-	static CBaseModelInfo* GetModelInfouint16_t(char const* name, unsigned short* int16index);
+	static CBaseModelInfo* GetModelInfouint16_t(char const* name, unsigned short* pOutIndex);
 	// get model in range (search for model only in range (min;max))
-	static CBaseModelInfo* GetModelInfo(char const* name, int minIndex, int maxInedx);
+	static CBaseModelInfo* GetModelInfo(char const* name, int minIndex, int maxIndex);
 	static void* Get2dEffectStore();
 	static bool IsBoatModel(int index);
 	static bool IsCarModel(int index);

@@ -8,6 +8,7 @@ Do not delete this comment block. Respect others' work!
 #include "StdInc.h"
 
 CBaseModelInfo *(&CModelInfo::ms_modelInfoPtrs)[NUM_MODEL_INFOS] = *(CBaseModelInfo*(*)[NUM_MODEL_INFOS])0xA9B0C8;
+int& CModelInfo::ms_lastPositionSearched = *(int*)0xAAE948;
 
 CStore<CAtomicModelInfo, CModelInfo::NUM_ATOMIC_MODEL_INFOS>& CModelInfo::ms_atomicModelInfoStore = *(CStore<CAtomicModelInfo, NUM_ATOMIC_MODEL_INFOS>*)0xAAE950;
 CStore<CDamageAtomicModelInfo, CModelInfo::NUM_DAMAGE_ATOMIC_MODEL_INFOS>& CModelInfo::ms_damageAtomicModelInfoStore = *(CStore<CDamageAtomicModelInfo, NUM_DAMAGE_ATOMIC_MODEL_INFOS>*)0xB1BF58;
@@ -25,6 +26,10 @@ void CModelInfo::InjectHooks()
     ReversibleHooks::Install("CModelInfo", "Initialise", 0x4C6810, &CModelInfo::Initialise);
     ReversibleHooks::Install("CModelInfo", "ShutDown", 0x4C63E0, &CModelInfo::ShutDown);
     ReversibleHooks::Install("CModelInfo", "ReInit2dEffects", 0x4C63B0, &CModelInfo::ReInit2dEffects);
+
+    ReversibleHooks::Install("CModelInfo", "GetModelInfouint16_t", 0x4C59F0, &CModelInfo::GetModelInfouint16_t);
+    ReversibleHooks::Install("CModelInfo", "GetModelInfo_full", 0x4C5940, (CBaseModelInfo * (*)(char const*, int*)) & CModelInfo::GetModelInfo);
+    ReversibleHooks::Install("CModelInfo", "GetModelInfo_minmax", 0x4C5A20, (CBaseModelInfo*(*)(char const*, int, int))&CModelInfo::GetModelInfo);
 
     ReversibleHooks::Install("CModelInfo", "AddAtomicModel", 0x4C6620, &CModelInfo::AddAtomicModel);
     ReversibleHooks::Install("CModelInfo", "AddDamageAtomicModel", 0x4C6650, &CModelInfo::AddDamageAtomicModel);
@@ -271,7 +276,40 @@ void CModelInfo::Initialise()
 // Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfo(char* name,int *index) 0x4C5940
 CBaseModelInfo* CModelInfo::GetModelInfo(char const* name, int* index)
 {
-    return ((CBaseModelInfo* (__cdecl *)(char const*, int*))0x4C5940)(name, index);
+    auto iKey = CKeyGen::GetUppercaseKey(name);
+    auto iCurInd = CModelInfo::ms_lastPositionSearched;
+
+    while (iCurInd < NUM_MODEL_INFOS) {
+        auto pInfo = CModelInfo::GetModelInfo(iCurInd);
+        if (pInfo && pInfo->m_nKey == iKey) {
+            CModelInfo::ms_lastPositionSearched = iCurInd;
+            if (index)
+                *index = iCurInd;
+
+            return pInfo;
+        }
+
+        ++iCurInd;
+    }
+
+    iCurInd = CModelInfo::ms_lastPositionSearched;
+    if (iCurInd < 0)
+        return nullptr;
+
+    while (iCurInd >= 0) {
+        auto pInfo = CModelInfo::GetModelInfo(iCurInd);
+        if (pInfo && pInfo->m_nKey == iKey) {
+            CModelInfo::ms_lastPositionSearched = iCurInd;
+            if (index)
+                *index = iCurInd;
+
+            return pInfo;
+        }
+
+        --iCurInd;
+    }
+
+    return nullptr;
 }
 
 // Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfoFromHashKey(uint,int *index) 0x4C59B0
@@ -280,16 +318,31 @@ CBaseModelInfo* CModelInfo::GetModelInfoFromHashKey(unsigned int arg0, int* inde
     return ((CBaseModelInfo* (__cdecl *)(unsigned int, int*))0x4C59B0)(arg0, index);
 }
 
-// Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfouint16_t(char *name,ushort *int16index) 0x4C59F0
-CBaseModelInfo* CModelInfo::GetModelInfouint16_t(char const* name, unsigned short* int16index)
+// Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfouint16_t(char *name,ushort *pOutIndex) 0x4C59F0
+CBaseModelInfo* CModelInfo::GetModelInfouint16_t(char const* name, unsigned short* pOutIndex)
 {
-    return ((CBaseModelInfo* (__cdecl *)(char const*, unsigned short*))0x4C59F0)(name, int16index);
+    int modelId = 0;
+    auto result = CModelInfo::GetModelInfo(name, &modelId);
+    if (pOutIndex)
+        *pOutIndex = modelId;
+
+    return result;
 }
 
 // Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfo(char* name,int minIndex,int maxInedx) 0x4C5A20
-CBaseModelInfo* CModelInfo::GetModelInfo(char const* name, int minIndex, int maxInedx)
+CBaseModelInfo* CModelInfo::GetModelInfo(char const* name, int minIndex, int maxIndex)
 {
-    return ((CBaseModelInfo* (__cdecl *)(char const*, int, int))0x4C5A20)(name, minIndex, maxInedx);
+    auto iKey = CKeyGen::GetUppercaseKey(name);
+    if (minIndex > maxIndex)
+        return nullptr;
+
+    for (int32_t i = minIndex; i <= maxIndex; ++i) {
+        auto pInfo = CModelInfo::GetModelInfo(i);
+        if (pInfo && pInfo->m_nKey == iKey)
+            return pInfo;
+    }
+
+    return nullptr;
 }
 
 // Converted from stdcall void* CModelInfo::Get2dEffectStore(void) 0x4C5A60
