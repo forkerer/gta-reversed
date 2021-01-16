@@ -20,6 +20,19 @@ CStore<CVehicleModelInfo, CModelInfo::NUM_VEHICLE_MODEL_INFOS>& CModelInfo::ms_v
 CStore<CPedModelInfo, CModelInfo::NUM_PED_MODEL_INFOS>& CModelInfo::ms_pedModelInfoStore = *(CStore<CPedModelInfo, NUM_PED_MODEL_INFOS>*)0xB478F8;
 CStore<C2dEffect, CModelInfo::NUM_2DFX_INFOS>& CModelInfo::ms_2dFXInfoStore = *(CStore<C2dEffect, NUM_2DFX_INFOS>*)0xB4C2D8;
 
+void CModelInfo::InjectHooks()
+{
+    ReversibleHooks::Install("CModelInfo", "AddAtomicModel", 0x4C6620, &CModelInfo::AddAtomicModel);
+    ReversibleHooks::Install("CModelInfo", "AddDamageAtomicModel", 0x4C6650, &CModelInfo::AddDamageAtomicModel);
+    ReversibleHooks::Install("CModelInfo", "AddLodAtomicModel", 0x4C6680, &CModelInfo::AddLodAtomicModel);
+    ReversibleHooks::Install("CModelInfo", "AddTimeModel", 0x4C66B0, &CModelInfo::AddTimeModel);
+    ReversibleHooks::Install("CModelInfo", "AddLodTimeModel", 0x4C66E0, &CModelInfo::AddLodTimeModel);
+    ReversibleHooks::Install("CModelInfo", "AddWeaponModel", 0x4C6710, &CModelInfo::AddWeaponModel);
+    ReversibleHooks::Install("CModelInfo", "AddClumpModel", 0x4C6740, &CModelInfo::AddClumpModel);
+    ReversibleHooks::Install("CModelInfo", "AddVehicleModel", 0x4C6770, &CModelInfo::AddVehicleModel);
+    ReversibleHooks::Install("CModelInfo", "AddPedModel", 0x4C67A0, &CModelInfo::AddPedModel);
+}
+
 // Converted from stdcall void CModelInfo::ReInit2dEffects(void) 0x4C63B0
 void CModelInfo::ReInit2dEffects()
 {
@@ -35,55 +48,82 @@ void CModelInfo::ShutDown()
 // Converted from stdcall CAtomicModelInfo* CModelInfo::AddAtomicModel(int index) 0x4C6620
 CAtomicModelInfo* CModelInfo::AddAtomicModel(int index)
 {
-    return ((CAtomicModelInfo* (__cdecl *)(int))0x4C6620)(index);
+    auto& pInfo = ms_atomicModelInfoStore.AddItem();
+    pInfo.Init();
+    CModelInfo::SetModelInfo(index, &pInfo);
+    return &pInfo;
 }
 
 // Converted from stdcall CDamageAtomicModelInfo* CModelInfo::AddDamageAtomicModel(int index) 0x4C6650
 CDamageAtomicModelInfo* CModelInfo::AddDamageAtomicModel(int index)
 {
-    return ((CDamageAtomicModelInfo* (__cdecl *)(int))0x4C6650)(index);
+    auto& pInfo = ms_damageAtomicModelInfoStore.AddItem();
+    pInfo.Init();
+    CModelInfo::SetModelInfo(index, &pInfo);
+    return &pInfo;
 }
 
 // Converted from stdcall CLodAtomicModelInfo* CModelInfo::AddLodAtomicModel(int index) 0x4C6680
 CLodAtomicModelInfo* CModelInfo::AddLodAtomicModel(int index)
 {
-    return ((CLodAtomicModelInfo* (__cdecl *)(int))0x4C6680)(index);
+    auto& pInfo =  ms_lodAtomicModelInfoStore.AddItem();
+    pInfo.Init();
+    CModelInfo::SetModelInfo(index, &pInfo);
+    return &pInfo;
 }
 
 // Converted from stdcall CTimeModelInfo* CModelInfo::AddTimeModel(int index) 0x4C66B0
 CTimeModelInfo* CModelInfo::AddTimeModel(int index)
 {
-    return ((CTimeModelInfo* (__cdecl *)(int))0x4C66B0)(index);
+    auto& pInfo = ms_timeModelInfoStore.AddItem();
+    pInfo.Init();
+    CModelInfo::SetModelInfo(index, &pInfo);
+    return &pInfo;
 }
 
 // Converted from stdcall CLodTimeModelInfo* CModelInfo::AddLodTimeModel(int index) 0x4C66E0
 CLodTimeModelInfo* CModelInfo::AddLodTimeModel(int index)
 {
-    return ((CLodTimeModelInfo* (__cdecl *)(int))0x4C66E0)(index);
+    auto& pInfo = ms_lodTimeModelInfoStore.AddItem();
+    pInfo.Init();
+    CModelInfo::SetModelInfo(index, &pInfo);
+    return &pInfo;
 }
 
 // Converted from stdcall CWeaponModelInfo* CModelInfo::AddWeaponModel(int index) 0x4C6710
 CWeaponModelInfo* CModelInfo::AddWeaponModel(int index)
 {
-    return ((CWeaponModelInfo* (__cdecl *)(int))0x4C6710)(index);
+    auto& pInfo = ms_weaponModelInfoStore.AddItem();
+    pInfo.Init();
+    CModelInfo::SetModelInfo(index, &pInfo);
+    return &pInfo;
 }
 
 // Converted from stdcall CClumpModelInfo* CModelInfo::AddClumpModel(int) index 0x4C6740
 CClumpModelInfo* CModelInfo::AddClumpModel(int index)
 {
-    return ((CClumpModelInfo* (__cdecl *)(int))0x4C6740)(index);
+    auto& pInfo = ms_clumpModelInfoStore.AddItem();
+    pInfo.Init();
+    CModelInfo::SetModelInfo(index, &pInfo);
+    return &pInfo;
 }
 
 // Converted from stdcall CVehicleModelInfo* CModelInfo::AddVehicleModel(int index) 0x4C6770
 CVehicleModelInfo* CModelInfo::AddVehicleModel(int index)
 {
-    return ((CVehicleModelInfo* (__cdecl *)(int))0x4C6770)(index);
+    auto& pInfo = ms_vehicleModelInfoStore.AddItem();
+    pInfo.Init();
+    CModelInfo::SetModelInfo(index, &pInfo);
+    return &pInfo;
 }
 
 // Converted from stdcall CPedModelInfo* CModelInfo::AddPedModel(int index) 0x4C67A0
 CPedModelInfo* CModelInfo::AddPedModel(int index)
 {
-    return ((CPedModelInfo* (__cdecl *)(int))0x4C67A0)(index);
+    auto& pInfo = ms_pedModelInfoStore.AddItem();
+    pInfo.Init();
+    CModelInfo::SetModelInfo(index, &pInfo);
+    return &pInfo;
 }
 
 // Converted from stdcall void CModelInfo::Initialise(void) 0x4C6810

@@ -1,7 +1,7 @@
 #pragma once
 #include "CAtomicModelInfo.h"
 
-class CDamageAtomicModelInfo : CAtomicModelInfo
+class CDamageAtomicModelInfo : public CAtomicModelInfo
 {
 public:
     RpAtomic* m_pDamagedAtomic;

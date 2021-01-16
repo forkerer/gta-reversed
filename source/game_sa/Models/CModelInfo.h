@@ -8,9 +8,13 @@
 #include "PluginBase.h"
 #include "CBaseModelInfo.h"
 #include "CAtomicModelInfo.h"
+#include "CDamageAtomicModelInfo.h"
+#include "CLodAtomicModelInfo.h"
 #include "CVehicleModelInfo.h"
 #include "CWeaponModelInfo.h"
 #include "CTimeModelInfo.h"
+#include "CLodTimeModelInfo.h"
+#include "CPedModelInfo.h"
 
 enum eModelInfoType : unsigned char
 {
@@ -61,12 +65,15 @@ public:
     static constexpr int NUM_2DFX_INFOS = 100;
     static CStore<C2dEffect, NUM_2DFX_INFOS>& ms_2dFXInfoStore;
 
+public:
+    static void InjectHooks();
+
 	// functions
 	static void ReInit2dEffects();
 	static void ShutDown();
 	static CAtomicModelInfo* AddAtomicModel(int index);
-	static class CDamageAtomicModelInfo* AddDamageAtomicModel(int index);
-	static class CLodAtomicModelInfo* AddLodAtomicModel(int index);
+	static CDamageAtomicModelInfo* AddDamageAtomicModel(int index);
+	static CLodAtomicModelInfo* AddLodAtomicModel(int index);
 	static CTimeModelInfo* AddTimeModel(int index);
 	static class CLodTimeModelInfo* AddLodTimeModel(int index);
 	static CWeaponModelInfo* AddWeaponModel(int index);
@@ -95,5 +102,6 @@ public:
 	static int IsVehicleModelType(int index);
 
     static CBaseModelInfo *GetModelInfo(int index) { return ms_modelInfoPtrs[index]; }
+    static void SetModelInfo(int index, CBaseModelInfo* pInfo) { ms_modelInfoPtrs[index] = pInfo; }
 
 };

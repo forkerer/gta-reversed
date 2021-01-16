@@ -27,6 +27,7 @@ void InjectHooksMain(void)
     CStreaming::InjectHooks();
     InjectCdStreamHooks();
     CReferences::InjectHooks();
+    CModelInfo::InjectHooks();
     CBaseModelInfo::InjectHooks();
     CVehicleModelInfo::InjectHooks();
     SurfaceInfos_c::InjectHooks();
