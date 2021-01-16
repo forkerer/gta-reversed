@@ -170,11 +170,11 @@ void CWorld::ClearForRestart() {
             pPedNode = pPedNode->pNext;
 
             pPed->Remove();
-            if (pPed->m_nType > eEntityType::ENTITY_TYPE_BUILDING && pPed->m_nType < eEntityType::ENTITY_TYPE_DUMMY)
+            if (pPed->IsPhysical())
                 pPed->RemoveFromMovingList();
 
             if (pPed)
-                pPed->DeletingDestructor(1); //TODO: Replace with delete once ready
+                delete pPed;
         }
 
         auto pVehNode = pSector.m_lists[eRepeatSectorList::REPEATSECTOR_VEHICLES].pNode;
@@ -182,12 +182,12 @@ void CWorld::ClearForRestart() {
             auto pVeh = reinterpret_cast<CVehicle*>(pVehNode->pItem);
             pVehNode = pVehNode->pNext;
 
-            pVeh->Remove(); //FIXME: Unknown crash randomly happens here, pVeh contains CPlaceable vtable instead of it's own one, find out why
-            if (pVeh->m_nType > eEntityType::ENTITY_TYPE_BUILDING && pVeh->m_nType < eEntityType::ENTITY_TYPE_DUMMY)
+            pVeh->Remove();
+            if (pVeh->IsPhysical())
                 pVeh->RemoveFromMovingList();
 
             if (pVeh)
-                pVeh->DeletingDestructor(1); //TODO: Replace with delete once ready
+                delete pVeh;
         }
     }
 

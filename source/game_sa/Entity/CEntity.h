@@ -195,9 +195,7 @@ public:
 
     inline bool IsPhysical()
     {
-        return m_nType == eEntityType::ENTITY_TYPE_VEHICLE ||
-               m_nType == eEntityType::ENTITY_TYPE_PED ||
-               m_nType == eEntityType::ENTITY_TYPE_OBJECT;
+        return m_nType > eEntityType::ENTITY_TYPE_BUILDING && m_nType < eEntityType::ENTITY_TYPE_DUMMY;
     }
     bool IsVehicle() { return m_nType == ENTITY_TYPE_VEHICLE; }
     bool IsPed() { return m_nType == ENTITY_TYPE_PED; }
