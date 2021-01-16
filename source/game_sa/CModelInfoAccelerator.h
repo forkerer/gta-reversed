@@ -17,6 +17,9 @@ public:
     char field_1A;
     bool m_bFileRead;
 
+public:
+    static void InjectHooks();
+
     void Init();
     void AddModelInfoId(unsigned short modelId);
     unsigned short GetNextModelInfoId();

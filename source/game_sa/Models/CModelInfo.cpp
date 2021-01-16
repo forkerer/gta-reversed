@@ -28,6 +28,7 @@ void CModelInfo::InjectHooks()
     ReversibleHooks::Install("CModelInfo", "ReInit2dEffects", 0x4C63B0, &CModelInfo::ReInit2dEffects);
 
     ReversibleHooks::Install("CModelInfo", "GetModelInfouint16_t", 0x4C59F0, &CModelInfo::GetModelInfouint16_t);
+    ReversibleHooks::Install("CModelInfo", "GetModelInfoFromHashKey", 0x4C59B0, &CModelInfo::GetModelInfoFromHashKey);
     ReversibleHooks::Install("CModelInfo", "GetModelInfo_full", 0x4C5940, (CBaseModelInfo * (*)(char const*, int*)) & CModelInfo::GetModelInfo);
     ReversibleHooks::Install("CModelInfo", "GetModelInfo_minmax", 0x4C5A20, (CBaseModelInfo*(*)(char const*, int, int))&CModelInfo::GetModelInfo);
 
@@ -313,9 +314,19 @@ CBaseModelInfo* CModelInfo::GetModelInfo(char const* name, int* index)
 }
 
 // Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfoFromHashKey(uint,int *index) 0x4C59B0
-CBaseModelInfo* CModelInfo::GetModelInfoFromHashKey(unsigned int arg0, int* index)
+CBaseModelInfo* CModelInfo::GetModelInfoFromHashKey(unsigned int uiHash, int* index)
 {
-    return ((CBaseModelInfo* (__cdecl *)(unsigned int, int*))0x4C59B0)(arg0, index);
+    for (int32_t i = 0; i < NUM_MODEL_INFOS; ++i) {
+        auto pInfo = CModelInfo::GetModelInfo(i);
+        if (pInfo && pInfo->m_nKey == uiHash) {
+            if (index)
+                *index = i;
+
+            return pInfo;
+        }
+    }
+
+    return nullptr;
 }
 
 // Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfouint16_t(char *name,ushort *pOutIndex) 0x4C59F0

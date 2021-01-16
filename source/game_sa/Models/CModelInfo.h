@@ -83,7 +83,7 @@ public:
 	static class CPedModelInfo* AddPedModel(int index);
 	static void Initialise();
 	static CBaseModelInfo* GetModelInfo(char const* name, int* index);
-	static CBaseModelInfo* GetModelInfoFromHashKey(unsigned int arg0, int* index);
+	static CBaseModelInfo* GetModelInfoFromHashKey(unsigned int uiHash, int* index);
 	static CBaseModelInfo* GetModelInfouint16_t(char const* name, unsigned short* pOutIndex);
 	// get model in range (search for model only in range (min;max))
 	static CBaseModelInfo* GetModelInfo(char const* name, int minIndex, int maxIndex);
