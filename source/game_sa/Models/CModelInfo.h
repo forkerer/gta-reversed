@@ -31,6 +31,36 @@ public:
     static constexpr int NUM_MODEL_INFOS = 20000;
 	static CBaseModelInfo* (&ms_modelInfoPtrs)[NUM_MODEL_INFOS];
 
+    static constexpr int NUM_ATOMIC_MODEL_INFOS = 14000;
+    static CStore<CAtomicModelInfo, NUM_ATOMIC_MODEL_INFOS>& ms_atomicModelInfoStore;
+
+    static constexpr int NUM_DAMAGE_ATOMIC_MODEL_INFOS = 70;
+    static CStore<CDamageAtomicModelInfo, NUM_DAMAGE_ATOMIC_MODEL_INFOS>& ms_damageAtomicModelInfoStore;
+
+    static constexpr int NUM_LOD_ATOMIC_MODEL_INFOS = 1;
+    static CStore<CLodAtomicModelInfo, NUM_LOD_ATOMIC_MODEL_INFOS>& ms_lodAtomicModelInfoStore;
+
+    static constexpr int NUM_TIME_MODEL_INFOS = 169;
+    static CStore<CTimeModelInfo, NUM_TIME_MODEL_INFOS>& ms_timeModelInfoStore;
+
+    static constexpr int NUM_LOD_TIME_MODEL_INFOS = 1;
+    static CStore<CLodTimeModelInfo, NUM_LOD_TIME_MODEL_INFOS>& ms_lodTimeModelInfoStore;
+
+    static constexpr int NUM_WEAPON_MODEL_INFOS = 51;
+    static CStore<CWeaponModelInfo, NUM_WEAPON_MODEL_INFOS>& ms_weaponModelInfoStore;
+
+    static constexpr int NUM_CLUMP_MODEL_INFOS = 92;
+    static CStore<CClumpModelInfo, NUM_CLUMP_MODEL_INFOS>& ms_clumpModelInfoStore;
+
+    static constexpr int NUM_VEHICLE_MODEL_INFOS = 212;
+    static CStore<CVehicleModelInfo, NUM_VEHICLE_MODEL_INFOS>& ms_vehicleModelInfoStore;
+
+    static constexpr int NUM_PED_MODEL_INFOS = 278;
+    static CStore<CPedModelInfo, NUM_PED_MODEL_INFOS>& ms_pedModelInfoStore;
+
+    static constexpr int NUM_2DFX_INFOS = 100;
+    static CStore<C2dEffect, NUM_2DFX_INFOS>& ms_2dFXInfoStore;
+
 	// functions
 	static void ReInit2dEffects();
 	static void ShutDown();
@@ -44,11 +74,11 @@ public:
 	static CVehicleModelInfo* AddVehicleModel(int index);
 	static class CPedModelInfo* AddPedModel(int index);
 	static void Initialise();
-	static CBaseModelInfo* GetModelInfo(char* name, int* index);
+	static CBaseModelInfo* GetModelInfo(char const* name, int* index);
 	static CBaseModelInfo* GetModelInfoFromHashKey(unsigned int arg0, int* index);
-	static CBaseModelInfo* GetModelInfouint16_t(char* name, unsigned short* int16index);
+	static CBaseModelInfo* GetModelInfouint16_t(char const* name, unsigned short* int16index);
 	// get model in range (search for model only in range (min;max))
-	static CBaseModelInfo* GetModelInfo(char* name, int minIndex, int maxInedx);
+	static CBaseModelInfo* GetModelInfo(char const* name, int minIndex, int maxInedx);
 	static void* Get2dEffectStore();
 	static bool IsBoatModel(int index);
 	static bool IsCarModel(int index);

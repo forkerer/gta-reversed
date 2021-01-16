@@ -9,6 +9,17 @@ Do not delete this comment block. Respect others' work!
 
 CBaseModelInfo *(&CModelInfo::ms_modelInfoPtrs)[NUM_MODEL_INFOS] = *(CBaseModelInfo*(*)[NUM_MODEL_INFOS])0xA9B0C8;
 
+CStore<CAtomicModelInfo, CModelInfo::NUM_ATOMIC_MODEL_INFOS>& CModelInfo::ms_atomicModelInfoStore = *(CStore<CAtomicModelInfo, NUM_ATOMIC_MODEL_INFOS>*)0xAAE950;
+CStore<CDamageAtomicModelInfo, CModelInfo::NUM_DAMAGE_ATOMIC_MODEL_INFOS>& CModelInfo::ms_damageAtomicModelInfoStore = *(CStore<CDamageAtomicModelInfo, NUM_DAMAGE_ATOMIC_MODEL_INFOS>*)0xB1BF58;
+CStore<CLodAtomicModelInfo, CModelInfo::NUM_LOD_ATOMIC_MODEL_INFOS>& CModelInfo::ms_lodAtomicModelInfoStore = *(CStore<CLodAtomicModelInfo, NUM_LOD_ATOMIC_MODEL_INFOS>*)0xB1C934;
+CStore<CTimeModelInfo, CModelInfo::NUM_TIME_MODEL_INFOS>& CModelInfo::ms_timeModelInfoStore = *(CStore<CTimeModelInfo, NUM_TIME_MODEL_INFOS>*)0xB1C960;
+CStore<CLodTimeModelInfo, CModelInfo::NUM_LOD_TIME_MODEL_INFOS>& CModelInfo::ms_lodTimeModelInfoStore = *(CStore<CLodTimeModelInfo, NUM_LOD_TIME_MODEL_INFOS>*)0xB1E128;
+CStore<CWeaponModelInfo, CModelInfo::NUM_WEAPON_MODEL_INFOS>& CModelInfo::ms_weaponModelInfoStore = *(CStore<CWeaponModelInfo, NUM_WEAPON_MODEL_INFOS>*)0xB1E158;
+CStore<CClumpModelInfo, CModelInfo::NUM_CLUMP_MODEL_INFOS>& CModelInfo::ms_clumpModelInfoStore = *(CStore<CClumpModelInfo, NUM_CLUMP_MODEL_INFOS>*)0xB1E958;
+CStore<CVehicleModelInfo, CModelInfo::NUM_VEHICLE_MODEL_INFOS>& CModelInfo::ms_vehicleModelInfoStore = *(CStore<CVehicleModelInfo, NUM_VEHICLE_MODEL_INFOS>*)0xB1F650;
+CStore<CPedModelInfo, CModelInfo::NUM_PED_MODEL_INFOS>& CModelInfo::ms_pedModelInfoStore = *(CStore<CPedModelInfo, NUM_PED_MODEL_INFOS>*)0xB478F8;
+CStore<C2dEffect, CModelInfo::NUM_2DFX_INFOS>& CModelInfo::ms_2dFXInfoStore = *(CStore<C2dEffect, NUM_2DFX_INFOS>*)0xB4C2D8;
+
 // Converted from stdcall void CModelInfo::ReInit2dEffects(void) 0x4C63B0
 void CModelInfo::ReInit2dEffects()
 {
@@ -82,9 +93,9 @@ void CModelInfo::Initialise()
 }
 
 // Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfo(char* name,int *index) 0x4C5940
-CBaseModelInfo* CModelInfo::GetModelInfo(char* name, int* index)
+CBaseModelInfo* CModelInfo::GetModelInfo(char const* name, int* index)
 {
-    return ((CBaseModelInfo* (__cdecl *)(char*, int*))0x4C5940)(name, index);
+    return ((CBaseModelInfo* (__cdecl *)(char const*, int*))0x4C5940)(name, index);
 }
 
 // Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfoFromHashKey(uint,int *index) 0x4C59B0
@@ -94,15 +105,15 @@ CBaseModelInfo* CModelInfo::GetModelInfoFromHashKey(unsigned int arg0, int* inde
 }
 
 // Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfouint16_t(char *name,ushort *int16index) 0x4C59F0
-CBaseModelInfo* CModelInfo::GetModelInfouint16_t(char* name, unsigned short* int16index)
+CBaseModelInfo* CModelInfo::GetModelInfouint16_t(char const* name, unsigned short* int16index)
 {
-    return ((CBaseModelInfo* (__cdecl *)(char*, unsigned short*))0x4C59F0)(name, int16index);
+    return ((CBaseModelInfo* (__cdecl *)(char const*, unsigned short*))0x4C59F0)(name, int16index);
 }
 
 // Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfo(char* name,int minIndex,int maxInedx) 0x4C5A20
-CBaseModelInfo* CModelInfo::GetModelInfo(char* name, int minIndex, int maxInedx)
+CBaseModelInfo* CModelInfo::GetModelInfo(char const* name, int minIndex, int maxInedx)
 {
-    return ((CBaseModelInfo* (__cdecl *)(char*, int, int))0x4C5A20)(name, minIndex, maxInedx);
+    return ((CBaseModelInfo* (__cdecl *)(char const*, int, int))0x4C5A20)(name, minIndex, maxInedx);
 }
 
 // Converted from stdcall void* CModelInfo::Get2dEffectStore(void) 0x4C5A60
