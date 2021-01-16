@@ -22,6 +22,9 @@ CStore<C2dEffect, CModelInfo::NUM_2DFX_INFOS>& CModelInfo::ms_2dFXInfoStore = *(
 
 void CModelInfo::InjectHooks()
 {
+    ReversibleHooks::Install("CModelInfo", "Initialise", 0x4C6810, &CModelInfo::Initialise);
+    ReversibleHooks::Install("CModelInfo", "ShutDown", 0x4C63E0, &CModelInfo::ShutDown);
+
     ReversibleHooks::Install("CModelInfo", "AddAtomicModel", 0x4C6620, &CModelInfo::AddAtomicModel);
     ReversibleHooks::Install("CModelInfo", "AddDamageAtomicModel", 0x4C6650, &CModelInfo::AddDamageAtomicModel);
     ReversibleHooks::Install("CModelInfo", "AddLodAtomicModel", 0x4C6680, &CModelInfo::AddLodAtomicModel);
@@ -42,7 +45,74 @@ void CModelInfo::ReInit2dEffects()
 // Converted from stdcall void CModelInfo::ShutDown(void) 0x4C63E0
 void CModelInfo::ShutDown()
 {
-    ((void(__cdecl *)())0x4C63E0)();
+    for (int32_t i = 0; i < ms_atomicModelInfoStore.m_nCount; ++i)
+        ms_atomicModelInfoStore.GetItemAtIndex(i).Shutdown();
+
+    for (int32_t i = 0; i < ms_damageAtomicModelInfoStore.m_nCount; ++i)
+        ms_damageAtomicModelInfoStore.GetItemAtIndex(i).Shutdown();
+
+    for (int32_t i = 0; i < ms_lodAtomicModelInfoStore.m_nCount; ++i)
+        ms_lodAtomicModelInfoStore.GetItemAtIndex(i).Shutdown();
+
+    for (int32_t i = 0; i < ms_timeModelInfoStore.m_nCount; ++i)
+        ms_timeModelInfoStore.GetItemAtIndex(i).Shutdown();
+
+    for (int32_t i = 0; i < ms_lodTimeModelInfoStore.m_nCount; ++i)
+        ms_lodTimeModelInfoStore.GetItemAtIndex(i).Shutdown();
+
+    for (int32_t i = 0; i < ms_weaponModelInfoStore.m_nCount; ++i)
+        ms_weaponModelInfoStore.GetItemAtIndex(i).Shutdown();
+
+    for (int32_t i = 0; i < ms_clumpModelInfoStore.m_nCount; ++i)
+        ms_clumpModelInfoStore.GetItemAtIndex(i).Shutdown();
+
+    for (int32_t i = 0; i < ms_vehicleModelInfoStore.m_nCount; ++i)
+        ms_vehicleModelInfoStore.GetItemAtIndex(i).Shutdown();
+
+    for (int32_t i = 0; i < ms_pedModelInfoStore.m_nCount; ++i)
+        ms_pedModelInfoStore.GetItemAtIndex(i).Shutdown();
+
+    for (int32_t i = 0; i < ms_2dFXInfoStore.m_nCount; ++i) {
+        auto& pEffect = ms_2dFXInfoStore.GetItemAtIndex(i);
+        if (pEffect.m_nType == e2dEffectType::EFFECT_ROADSIGN) {
+            if (pEffect.roadsign.m_pText) {
+                CMemoryMgr::Free(pEffect.roadsign.m_pText);
+                pEffect.roadsign.m_pText = nullptr;
+            }
+
+            if (pEffect.roadsign.m_pAtomic) {
+                auto pFrame = RpAtomicGetFrame(pEffect.roadsign.m_pAtomic);
+                if (pFrame) {
+                    RpAtomicSetFrame(pEffect.roadsign.m_pAtomic, nullptr);
+                    RwFrameDestroy(pFrame);
+                }
+                RpAtomicDestroy(pEffect.roadsign.m_pAtomic);
+                pEffect.roadsign.m_pAtomic = nullptr;
+            }
+        }
+        else if (pEffect.m_nType == e2dEffectType::EFFECT_LIGHT) {
+            if (pEffect.light.m_pCoronaTex) {
+                RwTextureDestroy(pEffect.light.m_pCoronaTex);
+                pEffect.light.m_pCoronaTex = nullptr;
+            }
+
+            if (pEffect.light.m_pShadowTex) {
+                RwTextureDestroy(pEffect.light.m_pShadowTex);
+                pEffect.light.m_pShadowTex = nullptr;
+            }
+        }
+    }
+
+    ms_atomicModelInfoStore.m_nCount = 0;
+    ms_damageAtomicModelInfoStore.m_nCount = 0;
+    ms_lodAtomicModelInfoStore.m_nCount = 0;
+    ms_timeModelInfoStore.m_nCount = 0;
+    ms_lodTimeModelInfoStore.m_nCount = 0;
+    ms_weaponModelInfoStore.m_nCount = 0;
+    ms_clumpModelInfoStore.m_nCount = 0;
+    ms_vehicleModelInfoStore.m_nCount = 0;
+    ms_pedModelInfoStore.m_nCount = 0;
+    ms_2dFXInfoStore.m_nCount = 0;
 }
 
 // Converted from stdcall CAtomicModelInfo* CModelInfo::AddAtomicModel(int index) 0x4C6620
@@ -129,7 +199,57 @@ CPedModelInfo* CModelInfo::AddPedModel(int index)
 // Converted from stdcall void CModelInfo::Initialise(void) 0x4C6810
 void CModelInfo::Initialise()
 {
-    ((void(__cdecl *)())0x4C6810)();
+    memset(ms_modelInfoPtrs, 0, sizeof(ms_modelInfoPtrs));
+    ms_damageAtomicModelInfoStore.m_nCount = 0;
+    ms_lodAtomicModelInfoStore.m_nCount = 0;
+    ms_timeModelInfoStore.m_nCount = 0;
+    ms_lodTimeModelInfoStore.m_nCount = 0;
+    ms_weaponModelInfoStore.m_nCount = 0;
+    ms_clumpModelInfoStore.m_nCount = 0;
+    ms_vehicleModelInfoStore.m_nCount = 0;
+    ms_pedModelInfoStore.m_nCount = 0;
+    ms_2dFXInfoStore.m_nCount = 0;
+    ms_atomicModelInfoStore.m_nCount = 0;
+
+    auto pDoor1 = CModelInfo::AddAtomicModel(eModelID::MODEL_TEMPCOL_DOOR1);
+    pDoor1->SetColModel(&CTempColModels::ms_colModelDoor1, false);
+    pDoor1->SetTexDictionary("generic");
+    pDoor1->m_fDrawDistance = 80.0F;
+
+    auto pBumper1 = CModelInfo::AddAtomicModel(eModelID::MODEL_TEMPCOL_BUMPER1);
+    pBumper1->SetColModel(&CTempColModels::ms_colModelBumper1, false);
+    pBumper1->SetTexDictionary("generic");
+    pBumper1->m_fDrawDistance = 80.0F;
+
+    auto pModelPanel1 = CModelInfo::AddAtomicModel(eModelID::MODEL_TEMPCOL_PANEL1);
+    pModelPanel1->SetColModel(&CTempColModels::ms_colModelPanel1, false);
+    pModelPanel1->SetTexDictionary("generic");
+    pModelPanel1->m_fDrawDistance = 80.0F;
+
+    auto pBonnet1 = CModelInfo::AddAtomicModel(eModelID::MODEL_TEMPCOL_BONNET1);
+    pBonnet1->SetColModel(&CTempColModels::ms_colModelBonnet1, false);
+    pBonnet1->SetTexDictionary("generic");
+    pBonnet1->m_fDrawDistance = 80.0F;
+
+    auto pBoot1 = CModelInfo::AddAtomicModel(eModelID::MODEL_TEMPCOL_BOOT1);
+    pBoot1->SetColModel(&CTempColModels::ms_colModelBoot1, false);
+    pBoot1->SetTexDictionary("generic");
+    pBoot1->m_fDrawDistance = 80.0F;
+
+    auto pWheel1 = CModelInfo::AddAtomicModel(eModelID::MODEL_TEMPCOL_WHEEL1);
+    pWheel1->SetColModel(&CTempColModels::ms_colModelWheel1, false);
+    pWheel1->SetTexDictionary("generic");
+    pWheel1->m_fDrawDistance = 80.0F;
+
+    auto pBodyPart1 = CModelInfo::AddAtomicModel(eModelID::MODEL_TEMPCOL_BODYPART1);
+    pBodyPart1->SetColModel(&CTempColModels::ms_colModelBodyPart1, false);
+    pBodyPart1->SetTexDictionary("generic");
+    pBodyPart1->m_fDrawDistance = 80.0F;
+
+    auto pBodyPart2 = CModelInfo::AddAtomicModel(eModelID::MODEL_TEMPCOL_BODYPART2);
+    pBodyPart2->SetColModel(&CTempColModels::ms_colModelBodyPart2, false);
+    pBodyPart2->SetTexDictionary("generic");
+    pBodyPart2->m_fDrawDistance = 80.0F;
 }
 
 // Converted from stdcall CBaseModelInfo* CModelInfo::GetModelInfo(char* name,int *index) 0x4C5940

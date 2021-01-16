@@ -327,6 +327,7 @@
 #include "game_sa\Collision\CColTriangle.h"
 #include "game_sa\Collision\CColTrianglePlane.h"
 #include "game_sa\Collision\CSphere.h"
+#include "game_sa\Collision\CTempColModels.h"
 #include "game_sa\Core\CEntryInfoNode.h"
 #include "game_sa\Core\CEntryInfoList.h"
 #include "game_sa\Core\CKeyGen.h"

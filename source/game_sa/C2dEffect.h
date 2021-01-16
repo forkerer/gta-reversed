@@ -144,9 +144,10 @@ struct tEffectRoadsign {
 private:
     char _pad26[2];
 public:
-    char (&m_pText)[64];
+    char (*m_pText)[64];
     RpAtomic *m_pAtomic;
 };
+VALIDATE_SIZE(tEffectRoadsign, 0x20);
 
 struct tEffectCoverPoint {
     RwV2d m_vecDirection;
