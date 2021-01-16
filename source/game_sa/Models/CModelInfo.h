@@ -76,7 +76,7 @@ public:
 	static CDamageAtomicModelInfo* AddDamageAtomicModel(int index);
 	static CLodAtomicModelInfo* AddLodAtomicModel(int index);
 	static CTimeModelInfo* AddTimeModel(int index);
-	static class CLodTimeModelInfo* AddLodTimeModel(int index);
+	static CLodTimeModelInfo* AddLodTimeModel(int index);
 	static CWeaponModelInfo* AddWeaponModel(int index);
 	static CClumpModelInfo* AddClumpModel(int index);
 	static CVehicleModelInfo* AddVehicleModel(int index);

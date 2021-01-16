@@ -102,20 +102,31 @@ public:
 
 	// vtable
     virtual ~CBaseModelInfo() { assert(0); }
-	virtual class CAtomicModelInfo*AsAtomicModelInfoPtr();
-    virtual class CDamagableModelInfo*AsDamageAtomicModelInfoPtr();
-    virtual class CBaseModelInfo *AsLodAtomicModelInfoPtr();
-    virtual ModelInfoType GetModelType();//=0
+	virtual class CAtomicModelInfo *AsAtomicModelInfoPtr();
+    virtual class CDamagableModelInfo *AsDamageAtomicModelInfoPtr();
+    virtual class CLodAtomicModelInfo*AsLodAtomicModelInfoPtr();
+    virtual ModelInfoType GetModelType() = 0;
     virtual tTimeInfo *GetTimeInfo();
     virtual void Init();
     virtual void Shutdown();
-    virtual void DeleteRwObject();//=0
-    virtual unsigned int GetRwModelType();//=0
-    virtual struct RwObject *CreateInstance();//=0
-    virtual struct RwObject *CreateInstance(RwMatrix *matrix);//=0
-    virtual void SetAnimFile(char *filename);
+    virtual void DeleteRwObject() = 0;
+    virtual unsigned int GetRwModelType() = 0;
+    virtual struct RwObject *CreateInstance() = 0;
+    virtual struct RwObject *CreateInstance(RwMatrix *matrix) = 0;
+    virtual void SetAnimFile(char const* filename);
     virtual void ConvertAnimFileIndex();
     virtual signed int GetAnimFileIndex();
+
+    // vtable methods implementations
+    class CAtomicModelInfo* AsAtomicModelInfoPtr_Reversed();
+    class CDamagableModelInfo* AsDamageAtomicModelInfoPtr_Reversed();
+    class CLodAtomicModelInfo* AsLodAtomicModelInfoPtr_Reversed();
+    tTimeInfo* GetTimeInfo_Reversed();
+    void Init_Reversed();
+    void Shutdown_Reversed();
+    void SetAnimFile_Reversed(char const* filename);
+    void ConvertAnimFileIndex_Reversed();
+    signed int GetAnimFileIndex_Reversed();
 
 	//
 	void SetTexDictionary(const char* txdName);
@@ -132,6 +143,7 @@ public:
 	C2dEffect *Get2dEffect(int index);
 	void Add2dEffect(C2dEffect *effect);
 
+    // Those further ones are completely inlined in final version, not present at all in android version;
 	bool GetIsDrawLast();
 	bool HasBeenPreRendered();
 	bool HasComplexHierarchy();
