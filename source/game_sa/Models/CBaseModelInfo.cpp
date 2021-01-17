@@ -220,7 +220,7 @@ C2dEffect *CBaseModelInfo::Get2dEffect(int index)
             }
         }
 
-        if (pGeometry && RpGeometryHas2Fx(pGeometry))
+        if (pGeometry)
             uiStoredEffectsCount -= RpGeometryGet2dFxCount(pGeometry);
     }
 
