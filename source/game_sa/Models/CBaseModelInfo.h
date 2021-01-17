@@ -34,6 +34,7 @@ enum eModelInfoSpecialType : unsigned char {
     GLASS_TYPE_1 = 4,
     GLASS_TYPE_2 = 5,
     TAG = 6,
+    GARAGE_DOOR = 6,
     CRANE = 9,
     BREAKABLE_STATUE = 11,
 };
@@ -87,9 +88,10 @@ public:
 					unsigned char bWetRoadReflection : 1;
 				};
 				struct{
-					unsigned char : 2;
+                    unsigned char bUsesVehDummy: 1;
+					unsigned char : 1;
 					unsigned char nCarmodId : 5;
-					unsigned char : 1; // bUseCommonVehicleDictionary
+					unsigned char bUseCommonVehicleDictionary : 1;
 				};
                 struct {
                     unsigned char : 7;
@@ -180,6 +182,7 @@ public:
     inline bool IsGlassType2() { return nSpecialType == eModelInfoSpecialType::GLASS_TYPE_2; }       //0x2800
     inline bool IsGlass() { return IsGlassType1() || IsGlassType2(); }        
 	inline bool IsTagModel() { return nSpecialType == eModelInfoSpecialType::TAG; } //0x3000
+    inline bool IsGarageDoor() { return nSpecialType == eModelInfoSpecialType::GARAGE_DOOR; } //0x3800
     inline bool IsBreakableStatuePart() { return nSpecialType == eModelInfoSpecialType::BREAKABLE_STATUE; }
     inline bool IsCrane() { return nSpecialType == eModelInfoSpecialType::CRANE; }            //0x4800
 };

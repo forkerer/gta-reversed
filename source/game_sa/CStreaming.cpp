@@ -1585,10 +1585,9 @@ void CStreaming::RequestModelStream(int channelId)
         else
         {
             CBaseModelInfo* pBaseModelInfo = CModelInfo::ms_modelInfoPtrs[modelId];
-            ModelInfoType modelType = pBaseModelInfo->GetModelType();
-            if (isPreviousModelPed && modelType == MODEL_INFO_PED)
+            if (isPreviousModelPed && pBaseModelInfo->GetModelType() == MODEL_INFO_PED)
                 break;
-            if (isPreviousModelBig && modelType == MODEL_INFO_VEHICLE)
+            if (isPreviousModelBig && pBaseModelInfo->GetModelType() == MODEL_INFO_VEHICLE)
                 break;
             unsigned char loadState = ms_aInfoForModel[pBaseModelInfo->m_nTxdIndex + RESOURCE_ID_TXD].m_nLoadState;
             if (loadState != LOADSTATE_LOADED && loadState != LOADSTATE_CHANNELED)
@@ -1611,7 +1610,7 @@ void CStreaming::RequestModelStream(int channelId)
             sectorCountSum -= sectorcount;
             break;
         }
-        CBaseModelInfo* pBaseModelInfo = CModelInfo::ms_modelInfoPtrs[modelId];
+        CBaseModelInfo* pBaseModelInfo = CModelInfo::GetModelInfo(modelId);
         if (modelId >= RESOURCE_ID_TXD) {
             if (sectorcount > 200)
                 isPreviousModelBig = true;

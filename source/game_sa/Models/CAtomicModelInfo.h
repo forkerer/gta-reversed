@@ -8,8 +8,18 @@
 #include "PluginBase.h"
 #include "CBaseModelInfo.h"
 
+struct tVehicleComponentFlag {
+    char const* m_ucName;
+    unsigned int m_nFlag;
+};
+
 class  CAtomicModelInfo : public CBaseModelInfo {
 public:
+    CAtomicModelInfo() : CBaseModelInfo() {}
+
+public:
+    static void InjectHooks();
+
 	// vtable overrides
     CAtomicModelInfo* AsAtomicModelInfoPtr() override;
     ModelInfoType GetModelType() override;
@@ -20,10 +30,21 @@ public:
     RwObject* CreateInstance(RwMatrix* matrix) override;
 
     // vtable added methods
-	virtual void SetAtomic(struct RpAtomic *atomic);
+	virtual void SetAtomic(RpAtomic *atomic);
+
+    // vtable implementations;
+    CAtomicModelInfo* AsAtomicModelInfoPtr_Reversed();
+    ModelInfoType GetModelType_Reversed();
+    void Init_Reversed();
+    void DeleteRwObject_Reversed();
+    unsigned int GetRwModelType_Reversed();
+    RwObject* CreateInstance_Reversed();
+    RwObject* CreateInstance_Reversed(RwMatrix* matrix);
+    void SetAtomic_Reversed(RpAtomic* atomic);
 
     // class methods
 	struct RpAtomic *GetAtomicFromDistance(float distance);
+    void SetupVehicleUpgradeFlags(char const* name);
 };
 
 VALIDATE_SIZE(CAtomicModelInfo, 0x20);
