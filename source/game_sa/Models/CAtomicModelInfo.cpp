@@ -164,7 +164,7 @@ void CAtomicModelInfo::SetupVehicleUpgradeFlags(char const* name)
     if (bUseCommonVehicleDictionary)
         return;
 
-    tVehicleComponentFlag aDummyComps[] = {
+    const tVehicleComponentFlag aDummyComps[] = {
         {"chss_",   0x1},
         {"wheel_",  0x2},
         {"exh_",    0x13},
@@ -175,7 +175,7 @@ void CAtomicModelInfo::SetupVehicleUpgradeFlags(char const* name)
         {"misc_c_", 0x16}
     };
 
-    tVehicleComponentFlag aChassisComps[] = {
+    const tVehicleComponentFlag aChassisComps[] = {
         {"bnt_",      0x0},
         {"bntl_",     0x1},
         {"bntr_",     0x2},
