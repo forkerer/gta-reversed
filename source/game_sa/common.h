@@ -102,6 +102,9 @@ const unsigned int rwVENDORID_ROCKSTAR = 0x0253F2;
 extern unsigned int &ClumpOffset;
 
 #define RpClumpGetAnimBlendClumpData(clump) (*(CAnimBlendClumpData **)(((unsigned int)(clump) + ClumpOffset)))
+#define RpGeometryGet2dFxAtIndex(geometry, geometryIndex) ((C2dEffect*)(*(uint32_t*)(C2dEffect::g2dEffectPluginOffset + (uint32_t)(geometry)) + 4 + (geometryIndex) * sizeof(C2dEffect)))
+#define RpGeometryGet2dFxCount(geometry) **(uint32_t**)(C2dEffect::g2dEffectPluginOffset + (uint32_t)(geometry))
+#define RpGeometryHas2Fx(geometry) *(uint32_t**)(C2dEffect::g2dEffectPluginOffset + (uint32_t)(geometry))
 
 constexpr float TWO_PI = 6.28318530718f;
 constexpr float PI = 3.14159265358979323846f;

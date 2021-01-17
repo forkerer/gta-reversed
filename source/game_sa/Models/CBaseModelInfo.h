@@ -129,14 +129,14 @@ public:
     signed int GetAnimFileIndex_Reversed();
 
 	//
-	void SetTexDictionary(const char* txdName);
+	void SetTexDictionary(char const* txdName);
 	void ClearTexDictionary();
 	void AddTexDictionaryRef();
 	void RemoveTexDictionaryRef();
 	void AddRef();
 	void RemoveRef();
 	// initPairedModel defines if we need to set col model for time model
-	void SetColModel(CColModel *colModel, bool initPairedModel);
+	void SetColModel(CColModel *colModel, bool bIsLodModel);
 	void Init2dEffects();
 	void DeleteCollisionModel();
 	// index is a number of effect (max number is (m_n2dfxCount - 1))

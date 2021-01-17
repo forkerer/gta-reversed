@@ -357,9 +357,9 @@ CBaseModelInfo* CModelInfo::GetModelInfo(char const* name, int minIndex, int max
 }
 
 // Converted from stdcall void* CModelInfo::Get2dEffectStore(void) 0x4C5A60
-void* CModelInfo::Get2dEffectStore()
+CStore<C2dEffect, CModelInfo::NUM_2DFX_INFOS>* CModelInfo::Get2dEffectStore()
 {
-    return ((void* (__cdecl *)())0x4C5A60)();
+    return ((CStore<C2dEffect, NUM_2DFX_INFOS>* (__cdecl *)())0x4C5A60)();
 }
 
 // Converted from stdcall bool CModelInfo::IsBoatModel(int index) 0x4C5A70

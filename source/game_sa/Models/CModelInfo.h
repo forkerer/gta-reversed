@@ -87,7 +87,7 @@ public:
 	static CBaseModelInfo* GetModelInfouint16_t(char const* name, unsigned short* pOutIndex);
 	// get model in range (search for model only in range (min;max))
 	static CBaseModelInfo* GetModelInfo(char const* name, int minIndex, int maxIndex);
-	static void* Get2dEffectStore();
+	static CStore<C2dEffect, NUM_2DFX_INFOS>* Get2dEffectStore();
 	static bool IsBoatModel(int index);
 	static bool IsCarModel(int index);
 	static bool IsTrainModel(int index);

@@ -1,5 +1,7 @@
 #include "StdInc.h"
 
+unsigned int& C2dEffect::g2dEffectPluginOffset = *(unsigned int*)0xC3A1E0;
+
 void C2dEffect::InjectHooks()
 {
     ReversibleHooks::Install("C2dEffect", "Roadsign_GetNumLinesFromFlags", 0x6FA640, &C2dEffect::Roadsign_GetNumLinesFromFlags);

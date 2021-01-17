@@ -19,6 +19,18 @@ void CBaseModelInfo::InjectHooks()
     ReversibleHooks::Install("CBaseModelInfo", "ConvertAnimFileIndex", 0x4C4AD0, &CBaseModelInfo::ConvertAnimFileIndex_Reversed);
     ReversibleHooks::Install("CBaseModelInfo", "GetAnimFileIndex", 0x4C4AE0, &CBaseModelInfo::GetAnimFileIndex_Reversed);
 
+// Class methods
+    ReversibleHooks::Install("CBaseModelInfo", "SetTexDictionary", 0x4C4B40, &CBaseModelInfo::SetTexDictionary);
+    ReversibleHooks::Install("CBaseModelInfo", "ClearTexDictionary", 0x4C4B70, &CBaseModelInfo::ClearTexDictionary);
+    ReversibleHooks::Install("CBaseModelInfo", "AddTexDictionaryRef", 0x4C4B80, &CBaseModelInfo::AddTexDictionaryRef);
+    ReversibleHooks::Install("CBaseModelInfo", "RemoveTexDictionaryRef", 0x4C4B90, &CBaseModelInfo::RemoveTexDictionaryRef);
+    ReversibleHooks::Install("CBaseModelInfo", "AddRef", 0x4C4BA0, &CBaseModelInfo::AddRef);
+    ReversibleHooks::Install("CBaseModelInfo", "RemoveRef", 0x4C4BB0, &CBaseModelInfo::RemoveRef);
+    ReversibleHooks::Install("CBaseModelInfo", "SetColModel", 0x4C4BC0, &CBaseModelInfo::SetColModel);
+    ReversibleHooks::Install("CBaseModelInfo", "Init2dEffects", 0x4C4C20, &CBaseModelInfo::Init2dEffects);
+    ReversibleHooks::Install("CBaseModelInfo", "DeleteCollisionModel", 0x4C4C40, &CBaseModelInfo::DeleteCollisionModel);
+    ReversibleHooks::Install("CBaseModelInfo", "Get2dEffect", 0x4C4C70, &CBaseModelInfo::Get2dEffect);
+
 // Helpers
     ReversibleHooks::Install("CBaseModelInfo", "IsBackfaceCulled", 0x5328F0, &CBaseModelInfo::IsBackfaceCulled);
     ReversibleHooks::Install("CBaseModelInfo", "HasBeenPreRendered", 0x5328B0, &CBaseModelInfo::HasBeenPreRendered);
@@ -74,10 +86,9 @@ void CBaseModelInfo::Init()
 void CBaseModelInfo::Init_Reversed()
 {
     m_nRefCount = 0;
-    m_nTxdIndex = -1;
     m_pColModel = nullptr;
-    m_n2dEffectIndex = -1;
-    m_n2dfxCount = 0;
+    CBaseModelInfo::ClearTexDictionary();
+    CBaseModelInfo::Init2dEffects();
     m_nObjectInfoIndex = -1;
     m_fDrawDistance = 2000.0F;
     m_pRwObject = nullptr;
@@ -87,7 +98,6 @@ void CBaseModelInfo::Init_Reversed()
     bIsLod = true;
 }
 
-
 void CBaseModelInfo::Shutdown()
 {
     CBaseModelInfo::Shutdown_Reversed();
@@ -95,15 +105,12 @@ void CBaseModelInfo::Shutdown()
 void CBaseModelInfo::Shutdown_Reversed()
 {
     DeleteRwObject();
-    if (m_pColModel && bIsLod)
-        delete m_pColModel;
+    CBaseModelInfo::DeleteCollisionModel();
 
     bIsLod = true;
-    m_pColModel = nullptr;
-    m_n2dEffectIndex = -1;
-    m_n2dfxCount = 0;
     m_nObjectInfoIndex = -1;
-    m_nTxdIndex = -1;
+    CBaseModelInfo::ClearTexDictionary();
+    CBaseModelInfo::Init2dEffects();
 }
 
 void CBaseModelInfo::SetAnimFile(char const* filename)
@@ -129,54 +136,98 @@ signed int CBaseModelInfo::GetAnimFileIndex_Reversed()
     return -1;
 }
 
-void CBaseModelInfo::SetTexDictionary(const char *txdName)
+void CBaseModelInfo::SetTexDictionary(char const* txdName)
 {
-    ((void(__thiscall *)(CBaseModelInfo *, const char*))0x4C4B40)(this, txdName);
+    m_nTxdIndex = CTxdStore::FindTxdSlot(txdName);
+    if (m_nTxdIndex == -1)
+        m_nTxdIndex = CTxdStore::AddTxdSlot(txdName);
 }
 
 void CBaseModelInfo::ClearTexDictionary()
 {
-    ((void(__thiscall *)(CBaseModelInfo *))0x4C4B70)(this);
+    m_nTxdIndex = -1;
 }
 
 void CBaseModelInfo::AddTexDictionaryRef()
 {
-    ((void(__thiscall *)(CBaseModelInfo *))0x4C4B80)(this);
+    CTxdStore::AddRef(m_nTxdIndex);
 }
 
 void CBaseModelInfo::RemoveTexDictionaryRef()
 {
-    ((void(__thiscall *)(CBaseModelInfo *))0x4C4B90)(this);
+    CTxdStore::RemoveRef(m_nTxdIndex);
 }
 
 void CBaseModelInfo::AddRef()
 {
-    ((void(__thiscall *)(CBaseModelInfo *))0x4C4BA0)(this);
+    ++m_nRefCount;
+    CBaseModelInfo::AddTexDictionaryRef();
 }
 
 void CBaseModelInfo::RemoveRef()
 {
-    ((void(__thiscall *)(CBaseModelInfo *))0x4C4BB0)(this);
+    --m_nRefCount;
+    CBaseModelInfo::RemoveTexDictionaryRef();
 }
 
-void CBaseModelInfo::SetColModel(CColModel *colModel, bool initPairedModel)
+void CBaseModelInfo::SetColModel(CColModel *colModel, bool bIsLodModel)
 {
-    ((void(__thiscall *)(CBaseModelInfo *, CColModel *, bool))0x4C4BC0)(this, colModel, initPairedModel);
+    m_pColModel = colModel;
+    if (!bIsLodModel) {
+        bIsLod = false;
+        return;
+    }
+
+    bIsLod = true;
+    auto pTimeInfo = GetTimeInfo();
+    if (!pTimeInfo)
+        return;
+
+    if (pTimeInfo->m_wOtherTimeModel == -1)
+        return;
+
+    auto pLodInfo = CModelInfo::GetModelInfo(pTimeInfo->m_wOtherTimeModel);
+    pLodInfo->m_pColModel = colModel;
+    pLodInfo->bIsLod = false;
 }
 
 void CBaseModelInfo::Init2dEffects()
 {
-    ((void(__thiscall *)(CBaseModelInfo *))0x4C4C20)(this);
+    m_n2dEffectIndex = -1;
+    m_n2dfxCount = 0;
 }
 
 void CBaseModelInfo::DeleteCollisionModel()
 {
-    ((void(__thiscall *)(CBaseModelInfo *))0x4C4C40)(this);
+    if (m_pColModel && bIsLod)
+        delete m_pColModel;
+
+    m_pColModel = nullptr;
 }
 
 C2dEffect *CBaseModelInfo::Get2dEffect(int index)
 {
-    return ((C2dEffect *(__thiscall *)(CBaseModelInfo *, int))0x4C4C70)(this, index);
+    auto uiStoredEffectsCount = m_n2dfxCount;
+    RpGeometry* pGeometry = nullptr;
+    if (m_pRwObject) {
+        if (GetRwModelType() == RwModelInfoType::RWMODEL_INFO_ATOMIC) {
+            pGeometry = RpAtomicGetGeometry(m_pRwAtomic);
+        }
+        else if (GetRwModelType() == RwModelInfoType::RWMODEL_INFO_CLUMP) {
+            auto pAtomic = Get2DEffectAtomic(m_pRwClump);
+            if (pAtomic) {
+                pGeometry = RpAtomicGetGeometry(m_pRwAtomic);
+            }
+        }
+
+        if (pGeometry && RpGeometryHas2Fx(pGeometry))
+            uiStoredEffectsCount -= RpGeometryGet2dFxCount(pGeometry);
+    }
+
+    if (index < uiStoredEffectsCount)
+        return &CModelInfo::Get2dEffectStore()->GetItemAtIndex(index + m_n2dEffectIndex);
+    else
+        return RpGeometryGet2dFxAtIndex(pGeometry, index - uiStoredEffectsCount);
 }
 
 void CBaseModelInfo::Add2dEffect(C2dEffect *effect)

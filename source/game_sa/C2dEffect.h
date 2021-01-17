@@ -184,6 +184,9 @@ public:
     };
 
 public:
+    static unsigned int& g2dEffectPluginOffset;
+
+public:
     static void InjectHooks();
 
 public:
