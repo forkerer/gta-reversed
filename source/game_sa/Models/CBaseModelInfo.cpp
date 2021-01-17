@@ -33,13 +33,18 @@ void CBaseModelInfo::InjectHooks()
     ReversibleHooks::Install("CBaseModelInfo", "Add2dEffect", 0x4C4D20, &CBaseModelInfo::Add2dEffect);
 
 // Helpers
-    ReversibleHooks::Install("CBaseModelInfo", "IsBackfaceCulled", 0x5328F0, &CBaseModelInfo::IsBackfaceCulled);
+    ReversibleHooks::Install("CBaseModelInfo", "GetIsDrawLast", 0x5328C0, &CBaseModelInfo::GetIsDrawLast);
     ReversibleHooks::Install("CBaseModelInfo", "HasBeenPreRendered", 0x5328B0, &CBaseModelInfo::HasBeenPreRendered);
     ReversibleHooks::Install("CBaseModelInfo", "HasComplexHierarchy", 0x4C4E00, &CBaseModelInfo::HasComplexHierarchy);
-    ReversibleHooks::Install("CBaseModelInfo", "GetIsDrawLast", 0x5328C0, &CBaseModelInfo::GetIsDrawLast);
-    ReversibleHooks::Install("CBaseModelInfo", "IsBreakableStatuePart", 0x59F090, &CBaseModelInfo::IsBreakableStatuePart);
+    ReversibleHooks::Install("CBaseModelInfo", "IsBackfaceCulled", 0x5328F0, &CBaseModelInfo::IsBackfaceCulled);
     ReversibleHooks::Install("CBaseModelInfo", "IsLod", 0x4C4A00, &CBaseModelInfo::IsLod);
     ReversibleHooks::Install("CBaseModelInfo", "IsRoad", 0x4C4DF0, &CBaseModelInfo::IsRoad);
+    ReversibleHooks::Install("CBaseModelInfo", "SetHasBeenPreRendered", 0x4C42F0, &CBaseModelInfo::SetHasBeenPreRendered);
+    ReversibleHooks::Install("CBaseModelInfo", "SetIsLod", 0x4C4A10, &CBaseModelInfo::SetIsLod);
+    ReversibleHooks::Install("CBaseModelInfo", "SetOwnsColModel", 0x5328D0, &CBaseModelInfo::SetOwnsColModel);
+    ReversibleHooks::Install("CBaseModelInfo", "IncreaseAlpha", 0x532900, &CBaseModelInfo::IncreaseAlpha);
+
+    ReversibleHooks::Install("CBaseModelInfo", "IsBreakableStatuePart", 0x59F090, &CBaseModelInfo::IsBreakableStatuePart);
     ReversibleHooks::Install("CBaseModelInfo", "IsTagModel", 0x49CC20, &CBaseModelInfo::IsTagModel);
     ReversibleHooks::Install("CBaseModelInfo", "SwaysInWind", 0x4212C0, &CBaseModelInfo::SwaysInWind);
 }
@@ -246,67 +251,4 @@ void CBaseModelInfo::Add2dEffect(C2dEffect *effect)
         m_n2dEffectIndex = (effect - &CModelInfo::Get2dEffectStore()->m_aObjects[0]);
         m_n2dfxCount = 1;
     }
-}
-
-bool CBaseModelInfo::IsBackfaceCulled() {
-    return bIsBackfaceCulled;
-}
-
-bool CBaseModelInfo::HasBeenPreRendered() {
-    return bHasBeenPreRendered;
-}
-
-// Converted from thiscall bool CBaseModelInfo::HasComplexHierarchy(void) 0x4C4E00
-bool CBaseModelInfo::HasComplexHierarchy() {
-    return bHasComplexHierarchy;
-}
-
-// Converted from thiscall bool CBaseModelInfo::GetIsDrawLast(void) 0x5328C0
-bool CBaseModelInfo::GetIsDrawLast() {
-    return bDrawLast;
-}
-
-// Converted from thiscall bool CBaseModelInfo::IsBreakableStatuePart(void) 0x59F090
-bool CBaseModelInfo::IsBreakableStatuePart() {
-    return nSpecialType == 11;
-}
-
-// Converted from thiscall bool CBaseModelInfo::IsLod(void) 0x4C4A00
-bool CBaseModelInfo::IsLod() {
-    return bIsLod;
-}
-
-// Converted from thiscall bool CBaseModelInfo::IsRoad(void) 0x4C4DF0
-bool CBaseModelInfo::IsRoad() {
-    return bIsRoad;
-}
-
-// Converted from thiscall bool CBaseModelInfo::IsTagModel(void) 0x49CC20
-bool CBaseModelInfo::IsTagModel() {
-    return nSpecialType == 6;
-}
-
-// Converted from thiscall bool CBaseModelInfo::SwaysInWind(void) 0x4212C0	
-bool CBaseModelInfo::SwaysInWind() {
-    return IsSwayInWind1() || IsSwayInWind2();
-}
-
-// Converted from thiscall void CBaseModelInfo::SetHasBeenPreRendered(int bHasBeenPreRendered) 0x4C42F0
-void CBaseModelInfo::SetHasBeenPreRendered(int bHasBeenPreRendered) {
-    plugin::CallMethod<0x4C42F0, CBaseModelInfo *, int>(this, bHasBeenPreRendered);
-}
-
-// Converted from thiscall void CBaseModelInfo::SetIsLod(int bIsLod) 0x4C4A10
-void CBaseModelInfo::SetIsLod(int bIsLod) {
-    plugin::CallMethod<0x4C4A10, CBaseModelInfo *, int>(this, bIsLod);
-}
-
-// Converted from thiscall void CBaseModelInfo::SetOwnsColModel(int bOwns) 0x5328D0
-void CBaseModelInfo::SetOwnsColModel(int bOwns) {
-    plugin::CallMethod<0x5328D0, CBaseModelInfo *, int>(this, bOwns);
-}
-
-// Converted from thiscall void CBaseModelInfo::IncreaseAlpha(void) 0x532900
-void CBaseModelInfo::IncreaseAlpha() {
-    plugin::CallMethod<0x532900, CBaseModelInfo *>(this);
 }

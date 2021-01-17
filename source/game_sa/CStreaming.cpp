@@ -664,7 +664,7 @@ bool CStreaming::DeleteLeastUsedEntityRwObject(bool bNotOnScreen, unsigned int s
             for (CEntity* pEntityLod = pEntity->m_pLod; pEntityLod; pEntityLod = pEntityLod->m_pLod) {
                 pEntityLastLod = pEntityLod;
             }
-            float fModelRadius = pBaseModelInfo->m_pColModel->m_boundSphere.m_fRadius;
+            float fModelRadius = pBaseModelInfo->GetColModel()->GetBoundRadius();
             if (ms_bLoadingScene
                 || bNotOnScreen && !pEntityLastLod->GetIsOnScreen()
                 || pEntity->m_nAreaCode != CGame::currArea && pEntity->m_nAreaCode != AREA_CODE_13

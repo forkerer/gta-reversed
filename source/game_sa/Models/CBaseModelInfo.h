@@ -28,6 +28,16 @@ enum ModelInfoType : unsigned char
 	MODEL_INFO_LOD = 8
 };
 
+enum eModelInfoSpecialType : unsigned char {
+    SWAY_IN_WIND_1 = 1,
+    SWAY_IN_WIND_2 = 2,
+    GLASS_TYPE_1 = 4,
+    GLASS_TYPE_2 = 5,
+    TAG = 6,
+    CRANE = 9,
+    BREAKABLE_STATUE = 11,
+};
+
 struct tTimeInfo
 {
 	unsigned char m_nTimeOn;
@@ -144,32 +154,34 @@ public:
 	void Add2dEffect(C2dEffect *effect);
 
     // Those further ones are completely inlined in final version, not present at all in android version;
-	bool GetIsDrawLast();
-	bool HasBeenPreRendered();
-	bool HasComplexHierarchy();
-	bool IsBackfaceCulled();
-	bool IsBreakableStatuePart();
-	bool IsLod();
-	bool IsRoad();
-	bool IsTagModel();
-	bool SwaysInWind();
-	void SetHasBeenPreRendered(int bHasBeenPreRendered);
-	void SetIsLod(int bIsLod);
-	void SetOwnsColModel(int bOwns);
-	void IncreaseAlpha();
-
-    CVehicleModelInfo* AsVehicleModelInfoPtr() { return reinterpret_cast<CVehicleModelInfo*>(this); }
+    inline CVehicleModelInfo* AsVehicleModelInfoPtr() { return reinterpret_cast<CVehicleModelInfo*>(this); }
     inline CColModel* GetColModel() { return m_pColModel; }
-    inline bool IsSwayInWind1() { return nSpecialType == 1; }      //0x0800
-    inline bool IsSwayInWind2() { return nSpecialType == 2; }      //0x1000
-    //inline bool SwaysInWind() { return IsSwayInWind1() || IsSwayInWind2(); }
-    inline bool IsGlassType1() { return nSpecialType == 4; }       //0x2000
-    inline bool IsGlassType2() { return nSpecialType == 5; }       //0x2800
-    inline bool IsGlass() { return IsGlassType1() || IsGlassType2(); }
-    //inline bool IsTagModel() { return nSpecialType == 6; }         //0x3000
 
-    inline bool IsCrane() { return nSpecialType == 9; }            //0x4800
-    inline bool IsBreakableStatue() { return nSpecialType == 11; } //0x5800
+    inline bool GetIsDrawLast() { return bDrawLast; }
+    inline bool HasBeenPreRendered() { return bHasBeenPreRendered; }
+    inline bool HasComplexHierarchy() { return bHasComplexHierarchy; }
+    inline bool IsBackfaceCulled() { return bIsBackfaceCulled; }
+    inline bool IsLod() { return bIsLod; }
+    inline bool IsRoad() { return bIsRoad; }
+    inline void SetHasBeenPreRendered(int bPreRendered) { bHasBeenPreRendered = bPreRendered; }
+    inline void SetIsLod(int bLod) { bIsLod = bLod; }
+    inline void SetOwnsColModel(int bOwns) { bDoWeOwnTheColModel = bOwns; }
+    inline void IncreaseAlpha() {
+        if (m_nAlpha >= 239)
+            m_nAlpha = 255;
+        else
+            m_nAlpha += 16;
+    };
+
+    inline bool IsSwayInWind1() { return nSpecialType == eModelInfoSpecialType::SWAY_IN_WIND_1; }      //0x0800
+    inline bool IsSwayInWind2() { return nSpecialType == eModelInfoSpecialType::SWAY_IN_WIND_2; }      //0x1000
+    inline bool SwaysInWind() { return IsSwayInWind1() || IsSwayInWind2(); }
+    inline bool IsGlassType1() { return nSpecialType == eModelInfoSpecialType::GLASS_TYPE_1; }       //0x2000
+    inline bool IsGlassType2() { return nSpecialType == eModelInfoSpecialType::GLASS_TYPE_2; }       //0x2800
+    inline bool IsGlass() { return IsGlassType1() || IsGlassType2(); }        
+	inline bool IsTagModel() { return nSpecialType == eModelInfoSpecialType::TAG; } //0x3000
+    inline bool IsBreakableStatuePart() { return nSpecialType == eModelInfoSpecialType::BREAKABLE_STATUE; }
+    inline bool IsCrane() { return nSpecialType == eModelInfoSpecialType::CRANE; }            //0x4800
 };
 
 VALIDATE_SIZE(CBaseModelInfo, 0x20);
