@@ -96,33 +96,7 @@ void CModelInfo::ShutDown()
 
     for (int32_t i = 0; i < ms_2dFXInfoStore.m_nCount; ++i) {
         auto& pEffect = ms_2dFXInfoStore.GetItemAtIndex(i);
-        if (pEffect.m_nType == e2dEffectType::EFFECT_ROADSIGN) {
-            if (pEffect.roadsign.m_pText) {
-                CMemoryMgr::Free(pEffect.roadsign.m_pText);
-                pEffect.roadsign.m_pText = nullptr;
-            }
-
-            if (pEffect.roadsign.m_pAtomic) {
-                auto pFrame = RpAtomicGetFrame(pEffect.roadsign.m_pAtomic);
-                if (pFrame) {
-                    RpAtomicSetFrame(pEffect.roadsign.m_pAtomic, nullptr);
-                    RwFrameDestroy(pFrame);
-                }
-                RpAtomicDestroy(pEffect.roadsign.m_pAtomic);
-                pEffect.roadsign.m_pAtomic = nullptr;
-            }
-        }
-        else if (pEffect.m_nType == e2dEffectType::EFFECT_LIGHT) {
-            if (pEffect.light.m_pCoronaTex) {
-                RwTextureDestroy(pEffect.light.m_pCoronaTex);
-                pEffect.light.m_pCoronaTex = nullptr;
-            }
-
-            if (pEffect.light.m_pShadowTex) {
-                RwTextureDestroy(pEffect.light.m_pShadowTex);
-                pEffect.light.m_pShadowTex = nullptr;
-            }
-        }
+        pEffect.Shutdown();
     }
 
     ms_atomicModelInfoStore.m_nCount = 0;

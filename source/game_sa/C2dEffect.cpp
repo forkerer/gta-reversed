@@ -5,10 +5,15 @@ unsigned int& C2dEffect::ms_nTxdSlot = *(unsigned int*)0x8D4948;
 
 void C2dEffect::InjectHooks()
 {
+// Class methods
+    ReversibleHooks::Install("C2dEffect", "Shutdown", 0x4C57D0, &C2dEffect::Shutdown);
+
+// Statics
     ReversibleHooks::Install("C2dEffect", "Roadsign_GetNumLinesFromFlags", 0x6FA640, &C2dEffect::Roadsign_GetNumLinesFromFlags);
     ReversibleHooks::Install("C2dEffect", "Roadsign_GetNumLettersFromFlags", 0x6FA670, &C2dEffect::Roadsign_GetNumLettersFromFlags);
     ReversibleHooks::Install("C2dEffect", "Roadsign_GetPaletteIDFromFlags", 0x6FA6A0, &C2dEffect::Roadsign_GetPaletteIDFromFlags);
     ReversibleHooks::Install("C2dEffect", "PluginAttach", 0x6FA970, &C2dEffect::PluginAttach);
+    ReversibleHooks::Install("C2dEffect", "DestroyAtomic", 0x4C54E0, &C2dEffect::DestroyAtomic);
 
 // RW PLUGIN
     ReversibleHooks::Install("C2dEffect", "RpGeometryGet2dFxCount", 0x4C4340, &RpGeometryGet2dFxCount);
@@ -21,6 +26,32 @@ void C2dEffect::InjectHooks()
     //ReversibleHooks::Install("C2dEffect", "Rwt2dEffectPluginDataChunkReadCallBack", 0x6F9FD0, &Rwt2dEffectPluginDataChunkReadCallBack);
     ReversibleHooks::Install("C2dEffect", "Rwt2dEffectPluginDataChunkWriteCallBack", 0x6FA620, &Rwt2dEffectPluginDataChunkWriteCallBack);
     ReversibleHooks::Install("C2dEffect", "Rwt2dEffectPluginDataChunkGetSizeCallBack", 0x6FA630, &Rwt2dEffectPluginDataChunkGetSizeCallBack);
+}
+
+void C2dEffect::Shutdown()
+{
+    if (m_nType == e2dEffectType::EFFECT_ROADSIGN) {
+        if (roadsign.m_pText) {
+            CMemoryMgr::Free(roadsign.m_pText);
+            roadsign.m_pText = nullptr;
+        }
+
+        if (roadsign.m_pAtomic) {
+            C2dEffect::DestroyAtomic(roadsign.m_pAtomic);
+            roadsign.m_pAtomic = nullptr;
+        }
+    }
+    else if (m_nType == e2dEffectType::EFFECT_LIGHT) {
+        if (light.m_pCoronaTex) {
+            RwTextureDestroy(light.m_pCoronaTex);
+            light.m_pCoronaTex = nullptr;
+        }
+
+        if (light.m_pShadowTex) {
+            RwTextureDestroy(light.m_pShadowTex);
+            light.m_pShadowTex = nullptr;
+        }
+    }
 }
 
 int C2dEffect::Roadsign_GetNumLinesFromFlags(CRoadsignAttrFlags flags)
@@ -84,6 +115,19 @@ bool C2dEffect::PluginAttach()
     return C2dEffect::g2dEffectPluginOffset != -1;
 }
 
+void C2dEffect::DestroyAtomic(RpAtomic* pAtomic)
+{
+    if (!pAtomic)
+        return;
+
+    auto pFrame = RpAtomicGetFrame(pAtomic);
+    if (pFrame) {
+        RpAtomicSetFrame(pAtomic, nullptr);
+        RwFrameDestroy(pFrame);
+    }
+    RpAtomicDestroy(pAtomic);
+}
+
 unsigned int RpGeometryGet2dFxCount(RpGeometry* pGeometry)
 {
     auto plugin = C2DEFFECTPLG(pGeometry, m_pEffectEntries);
@@ -115,33 +159,7 @@ void* t2dEffectPluginDestructor(void* object, RwInt32 offsetInObject, RwInt32 si
     // Dunno how that would work, as the size is decided at runtime, easy with some manual memory tricks tho.
     for (int32_t i = 0; i < plugin->m_nObjCount; ++i) {
         auto& pEffect = plugin->m_pObjects[i];
-        if (pEffect.m_nType == e2dEffectType::EFFECT_ROADSIGN) {
-            if (pEffect.roadsign.m_pText) {
-                CMemoryMgr::Free(pEffect.roadsign.m_pText);
-                pEffect.roadsign.m_pText = nullptr;
-            }
-
-            if (pEffect.roadsign.m_pAtomic) {
-                auto pFrame = RpAtomicGetFrame(pEffect.roadsign.m_pAtomic);
-                if (pFrame) {
-                    RpAtomicSetFrame(pEffect.roadsign.m_pAtomic, nullptr);
-                    RwFrameDestroy(pFrame);
-                }
-                RpAtomicDestroy(pEffect.roadsign.m_pAtomic);
-                pEffect.roadsign.m_pAtomic = nullptr;
-            }
-        }
-        else if (pEffect.m_nType == e2dEffectType::EFFECT_LIGHT) {
-            if (pEffect.light.m_pCoronaTex) {
-                RwTextureDestroy(pEffect.light.m_pCoronaTex);
-                pEffect.light.m_pCoronaTex = nullptr;
-            }
-
-            if (pEffect.light.m_pShadowTex) {
-                RwTextureDestroy(pEffect.light.m_pShadowTex);
-                pEffect.light.m_pShadowTex = nullptr;
-            }
-        }
+        pEffect.Shutdown();
     }
 
     if (C2DEFFECTPLG(object, m_pEffectEntries))

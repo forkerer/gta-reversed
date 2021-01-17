@@ -30,6 +30,7 @@ void CBaseModelInfo::InjectHooks()
     ReversibleHooks::Install("CBaseModelInfo", "Init2dEffects", 0x4C4C20, &CBaseModelInfo::Init2dEffects);
     ReversibleHooks::Install("CBaseModelInfo", "DeleteCollisionModel", 0x4C4C40, &CBaseModelInfo::DeleteCollisionModel);
     ReversibleHooks::Install("CBaseModelInfo", "Get2dEffect", 0x4C4C70, &CBaseModelInfo::Get2dEffect);
+    ReversibleHooks::Install("CBaseModelInfo", "Add2dEffect", 0x4C4D20, &CBaseModelInfo::Add2dEffect);
 
 // Helpers
     ReversibleHooks::Install("CBaseModelInfo", "IsBackfaceCulled", 0x5328F0, &CBaseModelInfo::IsBackfaceCulled);
@@ -41,6 +42,13 @@ void CBaseModelInfo::InjectHooks()
     ReversibleHooks::Install("CBaseModelInfo", "IsRoad", 0x4C4DF0, &CBaseModelInfo::IsRoad);
     ReversibleHooks::Install("CBaseModelInfo", "IsTagModel", 0x49CC20, &CBaseModelInfo::IsTagModel);
     ReversibleHooks::Install("CBaseModelInfo", "SwaysInWind", 0x4212C0, &CBaseModelInfo::SwaysInWind);
+}
+
+//0x4C4A80
+CBaseModelInfo::CBaseModelInfo()
+{
+    m_nRefCount = 0;
+    CBaseModelInfo::ClearTexDictionary();
 }
 
 CAtomicModelInfo* CBaseModelInfo::AsAtomicModelInfoPtr()
@@ -232,12 +240,12 @@ C2dEffect *CBaseModelInfo::Get2dEffect(int index)
 
 void CBaseModelInfo::Add2dEffect(C2dEffect *effect)
 {
-    ((void(__thiscall *)(CBaseModelInfo *, C2dEffect *))0x4C4D20)(this, effect);
-}
-
-CBaseModelInfo::CBaseModelInfo()
-{
-    ((void(__thiscall *)(CBaseModelInfo *))0x4C4A60)(this);
+    if (m_n2dEffectIndex >= 0)
+        ++m_n2dfxCount;
+    else {
+        m_n2dEffectIndex = (effect - &CModelInfo::Get2dEffectStore()->m_aObjects[0]);
+        m_n2dfxCount = 1;
+    }
 }
 
 bool CBaseModelInfo::IsBackfaceCulled() {

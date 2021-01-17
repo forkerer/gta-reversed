@@ -191,11 +191,15 @@ public:
     static void InjectHooks();
 
 public:
+    void Shutdown();
+
+public:
     static int Roadsign_GetNumLinesFromFlags(CRoadsignAttrFlags flags);
     static int Roadsign_GetNumLettersFromFlags(CRoadsignAttrFlags flags);
     static int Roadsign_GetPaletteIDFromFlags(CRoadsignAttrFlags flags);
 
     static bool PluginAttach();
+    static void DestroyAtomic(RpAtomic* pAtomic);
 };
 VALIDATE_SIZE(C2dEffect, 0x40);
 
