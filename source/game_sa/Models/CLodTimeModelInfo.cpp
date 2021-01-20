@@ -6,11 +6,10 @@ void CLodTimeModelInfo::InjectHooks()
     ReversibleHooks::Install("CLodTimeModelInfo", "GetTimeInfo", 0x4C5670, &CLodTimeModelInfo::GetTimeInfo_Reversed);
 }
 
-CLodTimeModelInfo::CLodTimeModelInfo() : CTimeModelInfo()
+CLodTimeModelInfo::CLodTimeModelInfo() : CLodAtomicModelInfo()
 {
-    m_timeInfo.m_nTimeOn = 0;
-    m_timeInfo.m_nTimeOff = 0;
-    m_timeInfo.m_wOtherTimeModel = 0;
+    field_20 = 0;
+    field_22 = 0;
     m_lodTimeInfo.m_wOtherTimeModel = -1;
 }
 
@@ -29,5 +28,5 @@ tTimeInfo* CLodTimeModelInfo::GetTimeInfo()
 }
 tTimeInfo* CLodTimeModelInfo::GetTimeInfo_Reversed()
 {
-    return &m_timeInfo;
+    return &m_lodTimeInfo;
 }

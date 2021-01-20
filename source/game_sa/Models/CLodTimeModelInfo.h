@@ -2,7 +2,7 @@
 #include "PluginBase.h"
 #include "CAtomicModelInfo.h"
 
-class  CLodTimeModelInfo : public CTimeModelInfo {
+class  CLodTimeModelInfo : public CLodAtomicModelInfo {
 public:
     CLodTimeModelInfo();
 public:

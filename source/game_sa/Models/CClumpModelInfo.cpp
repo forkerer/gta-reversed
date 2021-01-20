@@ -268,9 +268,10 @@ void CClumpModelInfo::SetFrameIds(RwObjectNameIdAssocation* data) {
     }
 }
 
-void CClumpModelInfo::SetAtomicRendererCB(RpAtomic* atomic, void* renderFunc)
+RpAtomic* CClumpModelInfo::SetAtomicRendererCB(RpAtomic* atomic, void* renderFunc)
 {
     CVisibilityPlugins::SetAtomicRenderCallback(atomic, reinterpret_cast<RpAtomicCallBackRender>(renderFunc));
+    return atomic;
 }
 
 RpAtomic* CClumpModelInfo::AtomicSetupLightingCB(RpAtomic* atomic, void* data)

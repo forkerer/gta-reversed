@@ -29,6 +29,8 @@ struct tCompSearchStructById {
 
 class  CClumpModelInfo : public CBaseModelInfo {
 public:
+    CClumpModelInfo() : CBaseModelInfo() {}
+public:
 	union{
 		char *m_animFileName;
 		unsigned int m_dwAnimFileIndex;
@@ -71,7 +73,7 @@ public:
     void SetFrameIds(RwObjectNameIdAssocation* data);
 
 	// static functions
-	static void SetAtomicRendererCB(RpAtomic *atomic, void *renderFunc);
+	static RpAtomic* SetAtomicRendererCB(RpAtomic *atomic, void *renderFunc);
     static RpAtomic* AtomicSetupLightingCB(RpAtomic* atomic, void* data);
     static RpAtomic* SetHierarchyForSkinAtomic(RpAtomic* pAtomic, void* data);
 	/* struct tSearchData { char *name; RwFrame *result; };
