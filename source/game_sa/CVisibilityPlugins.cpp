@@ -1183,7 +1183,7 @@ void CVisibilityPlugins::SetAtomicId(void* pRpAtomic, std::int16_t id) {
 #endif
 }
 
-void CVisibilityPlugins::SetAtomicRenderCallback(RpAtomic* atomic, RpAtomic* (*renderCB)(RpAtomic*)) {
+void CVisibilityPlugins::SetAtomicRenderCallback(RpAtomic* atomic, RpAtomicCallBackRender renderCB) {
 #ifdef USE_DEFAULT_FUNCTIONS
     plugin::Call<0x7328A0, RpAtomic*, RpAtomic* (*)(RpAtomic*)>(atomic, renderCB);
 #else

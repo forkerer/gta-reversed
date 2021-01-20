@@ -47,4 +47,6 @@ public:
     void SetupVehicleUpgradeFlags(char const* name);
 };
 
+void SetAtomicModelInfoFlags(CAtomicModelInfo* modelInfo, unsigned int dwFlags);
+
 VALIDATE_SIZE(CAtomicModelInfo, 0x20);

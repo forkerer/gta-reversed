@@ -22,6 +22,7 @@ void CAtomicModelInfo::InjectHooks()
 // OTHER
     ReversibleHooks::Install("CAtomicModelInfo", "GetAtomicFromDistance", 0x4C44B0, &CAtomicModelInfo::GetAtomicFromDistance);
     ReversibleHooks::Install("CAtomicModelInfo", "SetupVehicleUpgradeFlags", 0x4C4570, &CAtomicModelInfo::SetupVehicleUpgradeFlags);
+    ReversibleHooks::Install("CAtomicModelInfo", "SetAtomicModelInfoFlags", 0x5B3B20, &SetAtomicModelInfoFlags);
 }
 
 CAtomicModelInfo* CAtomicModelInfo::AsAtomicModelInfoPtr()
@@ -211,3 +212,36 @@ void CAtomicModelInfo::SetupVehicleUpgradeFlags(char const* name)
     }
 }
 
+void SetAtomicModelInfoFlags(CAtomicModelInfo* modelInfo, unsigned int dwFlags)
+{
+    SetBaseModelInfoFlags(modelInfo, dwFlags);
+
+    auto flagsStruct = sItemDefinitionFlags(dwFlags);
+    if (flagsStruct.bIsGlassType1)
+        modelInfo->nSpecialType = eModelInfoSpecialType::GLASS_TYPE_1;
+
+    if (flagsStruct.bIsGlassType2)
+        modelInfo->nSpecialType = eModelInfoSpecialType::GLASS_TYPE_2;
+
+    if (flagsStruct.bIsGarageDoor)
+        modelInfo->nSpecialType = eModelInfoSpecialType::GARAGE_DOOR;
+
+    if (flagsStruct.bIsTree)
+        modelInfo->nSpecialType = eModelInfoSpecialType::TREE;
+
+    if (flagsStruct.bIsPalm)
+        modelInfo->nSpecialType = eModelInfoSpecialType::PALM;
+
+    if (flagsStruct.bIsUnknown)
+        modelInfo->nSpecialType = eModelInfoSpecialType::UNKNOWN;
+
+    if (flagsStruct.bIsTag)
+        modelInfo->nSpecialType = eModelInfoSpecialType::TAG;
+
+    if (flagsStruct.bisBreakableStatue)
+        modelInfo->nSpecialType = eModelInfoSpecialType::BREAKABLE_STATUE;
+
+
+    modelInfo->bIsRoad = flagsStruct.bIsRoad;
+    modelInfo->bDontCollideWithFlyer = flagsStruct.bDoesNotCollideWithFlyer;
+}

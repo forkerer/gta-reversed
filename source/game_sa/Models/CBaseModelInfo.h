@@ -29,13 +29,14 @@ enum ModelInfoType : unsigned char
 };
 
 enum eModelInfoSpecialType : unsigned char {
-    SWAY_IN_WIND_1 = 1,
-    SWAY_IN_WIND_2 = 2,
+    TREE = 1,
+    PALM = 2,
     GLASS_TYPE_1 = 4,
     GLASS_TYPE_2 = 5,
     TAG = 6,
-    GARAGE_DOOR = 6,
+    GARAGE_DOOR = 7,
     CRANE = 9,
+    UNKNOWN = 10,
     BREAKABLE_STATUE = 11,
 };
 
@@ -80,22 +81,23 @@ public:
 			unsigned char bIsLod : 1;
 
 			union{
-				struct{
+				struct{ // Atomic flags
 					unsigned char bIsRoad: 1;
-					unsigned char bHasComplexHierarchy : 1;
+					unsigned char : 1;
 					unsigned char bDontCollideWithFlyer : 1;
 					unsigned char nSpecialType : 4;
 					unsigned char bWetRoadReflection : 1;
 				};
-				struct{
+				struct{ // Vehicle flags
                     unsigned char bUsesVehDummy: 1;
 					unsigned char : 1;
 					unsigned char nCarmodId : 5;
 					unsigned char bUseCommonVehicleDictionary : 1;
 				};
-                struct {
+                struct { // Clump flags
                     unsigned char bHasAnimBlend : 1;
-                    unsigned char : 2;
+                    unsigned char bHasComplexHierarchy : 1;
+                    unsigned char bAnimSomething : 1;
                     unsigned char bOwnsCollisionModel : 1;
                     unsigned char : 3;
                     unsigned char bTagDisabled : 1;
@@ -178,8 +180,8 @@ public:
             m_nAlpha += 16;
     };
 
-    inline bool IsSwayInWind1() { return nSpecialType == eModelInfoSpecialType::SWAY_IN_WIND_1; }      //0x0800
-    inline bool IsSwayInWind2() { return nSpecialType == eModelInfoSpecialType::SWAY_IN_WIND_2; }      //0x1000
+    inline bool IsSwayInWind1() { return nSpecialType == eModelInfoSpecialType::TREE; }      //0x0800
+    inline bool IsSwayInWind2() { return nSpecialType == eModelInfoSpecialType::PALM; }      //0x1000
     inline bool SwaysInWind() { return IsSwayInWind1() || IsSwayInWind2(); }
     inline bool IsGlassType1() { return nSpecialType == eModelInfoSpecialType::GLASS_TYPE_1; }       //0x2000
     inline bool IsGlassType2() { return nSpecialType == eModelInfoSpecialType::GLASS_TYPE_2; }       //0x2800
@@ -189,5 +191,6 @@ public:
     inline bool IsBreakableStatuePart() { return nSpecialType == eModelInfoSpecialType::BREAKABLE_STATUE; }
     inline bool IsCrane() { return nSpecialType == eModelInfoSpecialType::CRANE; }            //0x4800
 };
-
 VALIDATE_SIZE(CBaseModelInfo, 0x20);
+
+void SetBaseModelInfoFlags(CBaseModelInfo* modelInfo, unsigned int dwFlags);

@@ -13,6 +13,19 @@ struct RwFrame;
 struct RpAtomic;
 struct RpClump;
 
+struct tCompSearchStructByName {
+    char* m_pName;
+    RwFrame* m_pFrame;
+
+    inline tCompSearchStructByName(char* name, RwFrame* frame) : m_pName(name), m_pFrame(frame) {}
+};
+struct tCompSearchStructById {
+    int32_t m_nId;
+    RwFrame* m_pFrame;
+
+    inline tCompSearchStructById(int32_t id, RwFrame* frame) : m_nId(id), m_pFrame(frame) {}
+};
+
 
 class  CClumpModelInfo : public CBaseModelInfo {
 public:
@@ -54,6 +67,9 @@ public:
     CBox* GetBoundingBox_Reversed();
     void SetClump_Reversed(RpClump* clump);
 
+    // Class functions
+    void SetFrameIds(RwObjectNameIdAssocation* data);
+
 	// static functions
 	static void SetAtomicRendererCB(RpAtomic *atomic, void *renderFunc);
     static RpAtomic* AtomicSetupLightingCB(RpAtomic* atomic, void* data);
@@ -67,7 +83,8 @@ public:
 	static RwFrame *GetFrameFromId(RpClump *clump, int id);
 	static RwFrame *GetFrameFromName(RpClump *clump, char *name);
 	static void FillFrameArray(RpClump *clump, RwFrame **frames);
-    void SetFrameIds(RwObjectNameIdAssocation* data);
 };
+
+void SetClumpModelInfoFlags(CClumpModelInfo* modelInfo, unsigned int dwFlags);
 
 VALIDATE_SIZE(CClumpModelInfo, 0x24);

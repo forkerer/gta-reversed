@@ -47,6 +47,9 @@ void CBaseModelInfo::InjectHooks()
     ReversibleHooks::Install("CBaseModelInfo", "IsBreakableStatuePart", 0x59F090, &CBaseModelInfo::IsBreakableStatuePart);
     ReversibleHooks::Install("CBaseModelInfo", "IsTagModel", 0x49CC20, &CBaseModelInfo::IsTagModel);
     ReversibleHooks::Install("CBaseModelInfo", "SwaysInWind", 0x4212C0, &CBaseModelInfo::SwaysInWind);
+
+// Other
+    ReversibleHooks::Install("CBaseModelInfo", "SetBaseModelInfoFlags", 0x5B3AD0, &SetBaseModelInfoFlags);
 }
 
 //0x4C4A80
@@ -251,4 +254,14 @@ void CBaseModelInfo::Add2dEffect(C2dEffect *effect)
         m_n2dEffectIndex = (effect - &CModelInfo::Get2dEffectStore()->m_aObjects[0]);
         m_n2dfxCount = 1;
     }
+}
+
+void SetBaseModelInfoFlags(CBaseModelInfo* modelInfo, unsigned int dwFlags)
+{
+    auto flagsStruct = sItemDefinitionFlags(dwFlags);
+    modelInfo->bDrawLast = flagsStruct.bDrawLast | flagsStruct.bDrawLast;
+    modelInfo->bAdditiveRender = flagsStruct.bAdditive;
+    modelInfo->bDontWriteZBuffer = flagsStruct.bNoZBufferWrite;
+    modelInfo->bDontCastShadowsOn = flagsStruct.bDontReceiveShadows;
+    modelInfo->bIsBackfaceCulled = !flagsStruct.bDisableBackfaceCulling;
 }

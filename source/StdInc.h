@@ -417,6 +417,7 @@
 #include "game_sa\Enums\eWeaponModel.h"
 #include "game_sa\Enums\eWeaponType.h"
 #include "game_sa\Enums\eWinchType.h"
+#include "game_sa\Enums\eItemDefinitionFlags.h"
 #include "game_sa\Fx\CCarFXRenderer.h"
 #include "game_sa\Fx\FxBox_c.h"
 #include "game_sa\Fx\FxEmitterBP_c.h"

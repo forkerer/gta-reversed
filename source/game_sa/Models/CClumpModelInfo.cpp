@@ -24,9 +24,22 @@ void CClumpModelInfo::InjectHooks()
     ReversibleHooks::Install("CClumpModelInfo", "SetClump", 0x4C4F70, &CClumpModelInfo::SetClump_Reversed);
 
 // CLASS FUNCTIONS
+    ReversibleHooks::Install("CClumpModelInfo", "SetFrameIds", 0x4C5460, &CClumpModelInfo::SetFrameIds);
 
 // STATICS
     ReversibleHooks::Install("CClumpModelInfo", "SetHierarchyForSkinAtomic", 0x4C4EF0, &CClumpModelInfo::SetHierarchyForSkinAtomic);
+    ReversibleHooks::Install("CClumpModelInfo", "AtomicSetupLightingCB", 0x4C4F30, &CClumpModelInfo::AtomicSetupLightingCB);
+    ReversibleHooks::Install("CClumpModelInfo", "SetAtomicRendererCB", 0x4C5280, &CClumpModelInfo::SetAtomicRendererCB);
+    ReversibleHooks::Install("CClumpModelInfo", "FindFrameFromNameCB", 0x4C52A0, &CClumpModelInfo::FindFrameFromNameCB);
+    ReversibleHooks::Install("CClumpModelInfo", "FindFrameFromNameWithoutIdCB", 0x4C52F0, &CClumpModelInfo::FindFrameFromNameWithoutIdCB);
+    ReversibleHooks::Install("CClumpModelInfo", "FindFrameFromIdCB", 0x4C5350, &CClumpModelInfo::FindFrameFromIdCB);
+    ReversibleHooks::Install("CClumpModelInfo", "FillFrameArrayCB", 0x4C5390, &CClumpModelInfo::FillFrameArrayCB);
+    ReversibleHooks::Install("CClumpModelInfo", "GetFrameFromId", 0x4C53C0, &CClumpModelInfo::GetFrameFromId);
+    ReversibleHooks::Install("CClumpModelInfo", "GetFrameFromName", 0x4C5400, &CClumpModelInfo::GetFrameFromName);
+    ReversibleHooks::Install("CClumpModelInfo", "FillFrameArray", 0x4C5440, &CClumpModelInfo::FillFrameArray);
+
+// Other
+    ReversibleHooks::Install("CBaseModelInfo", "SetClumpModelInfoFlags", 0x5B3C30, &SetClumpModelInfoFlags);
 }
 
 ModelInfoType CClumpModelInfo::GetModelType()
@@ -237,9 +250,27 @@ void CClumpModelInfo::SetClump_Reversed(RpClump* clump)
     }
 }
 
+// Converted from thiscall void CClumpModelInfo::SetFrameIds(RwObjectNameIdAssocation *data) 0x4C5460
+void CClumpModelInfo::SetFrameIds(RwObjectNameIdAssocation* data) {
+    if (!data->m_pName)
+        return;
+
+    auto pCurComponent = data;
+    while (pCurComponent->m_pName) {
+        if ((pCurComponent->m_dwFlags & 1) == 0) {
+            auto searchInfo = tCompSearchStructByName(pCurComponent->m_pName, nullptr);
+            RwFrameForAllChildren(RpClumpGetFrame(m_pRwClump), CClumpModelInfo::FindFrameFromNameWithoutIdCB, &searchInfo);
+            if (searchInfo.m_pFrame)
+                CVisibilityPlugins::SetFrameHierarchyId(searchInfo.m_pFrame, pCurComponent->m_dwHierarchyId);
+        }
+
+        pCurComponent++;
+    }
+}
+
 void CClumpModelInfo::SetAtomicRendererCB(RpAtomic* atomic, void* renderFunc)
 {
-    ((void(__cdecl*)(RpAtomic*, void*))0x4C5280)(atomic, renderFunc);
+    CVisibilityPlugins::SetAtomicRenderCallback(atomic, reinterpret_cast<RpAtomicCallBackRender>(renderFunc));
 }
 
 RpAtomic* CClumpModelInfo::AtomicSetupLightingCB(RpAtomic* atomic, void* data)
@@ -266,40 +297,84 @@ RpAtomic* CClumpModelInfo::SetHierarchyForSkinAtomic(RpAtomic* pAtomic, void* da
 
 RwFrame* CClumpModelInfo::FindFrameFromNameCB(RwFrame* frame, void* searchData)
 {
-    return ((RwFrame * (__cdecl*)(RwFrame*, void*))0x4C52A0)(frame, searchData);
+    auto searchInfo = reinterpret_cast<tCompSearchStructByName*>(searchData);
+    auto pName = GetFrameNodeName(frame);
+    if (!strcmp(searchInfo->m_pName, pName)) {
+        searchInfo->m_pFrame = frame;
+        return nullptr;
+    }
+
+    RwFrameForAllChildren(frame, CClumpModelInfo::FindFrameFromNameCB, searchData);
+    if (searchInfo->m_pFrame)
+        return nullptr;
+    else
+        return frame;
 }
 
 RwFrame* CClumpModelInfo::FindFrameFromNameWithoutIdCB(RwFrame* frame, void* searchData)
 {
-    return ((RwFrame * (__cdecl*)(RwFrame*, void*))0x4C52F0)(frame, searchData);
+    auto searchInfo = reinterpret_cast<tCompSearchStructByName*>(searchData);
+    auto pName = GetFrameNodeName(frame);
+    if (!CVisibilityPlugins::GetFrameHierarchyId(frame) && !strcmp(searchInfo->m_pName, pName)) {
+        searchInfo->m_pFrame = frame;
+        return nullptr;
+    }
+
+    RwFrameForAllChildren(frame, CClumpModelInfo::FindFrameFromNameWithoutIdCB, searchData);
+    if (searchInfo->m_pFrame)
+        return nullptr;
+    else
+        return frame;
 }
 
 RwFrame* CClumpModelInfo::FindFrameFromIdCB(RwFrame* frame, void* searchData)
 {
-    return ((RwFrame * (__cdecl*)(RwFrame*, void*))0x4C5350)(frame, searchData);
+    auto searchInfo = reinterpret_cast<tCompSearchStructById*>(searchData);
+    if (searchInfo->m_nId == CVisibilityPlugins::GetFrameHierarchyId(frame)) {
+        searchInfo->m_pFrame = frame;
+        return nullptr;
+    }
+
+    RwFrameForAllChildren(frame, CClumpModelInfo::FindFrameFromIdCB, searchData);
+    if (searchInfo->m_pFrame)
+        return nullptr;
+    else
+        return frame;
 }
 
 RwFrame* CClumpModelInfo::FillFrameArrayCB(RwFrame* frame, void* data)
 {
-    return ((RwFrame * (__cdecl*)(RwFrame*, void*))0x4C5390)(frame, data);
+    auto iId = CVisibilityPlugins::GetFrameHierarchyId(frame);
+    if (iId > 0)
+        reinterpret_cast<RwFrame**>(data)[iId] = frame;
+
+    RwFrameForAllChildren(frame, CClumpModelInfo::FillFrameArrayCB, data);
+    return frame;
 }
 
 RwFrame* CClumpModelInfo::GetFrameFromId(RpClump* clump, int id)
 {
-    return ((RwFrame * (__cdecl*)(RpClump*, int))0x4C53C0)(clump, id);
+    auto searchInfo = tCompSearchStructById(id, nullptr);
+    RwFrameForAllChildren(RpClumpGetFrame(clump), CClumpModelInfo::FindFrameFromIdCB, &searchInfo);
+    return searchInfo.m_pFrame;
 }
 
 RwFrame* CClumpModelInfo::GetFrameFromName(RpClump* clump, char* name)
 {
-    return ((RwFrame * (__cdecl*)(RpClump*, char*))0x4C5400)(clump, name);
+    auto searchInfo = tCompSearchStructByName(name, nullptr);
+    RwFrameForAllChildren(RpClumpGetFrame(clump), CClumpModelInfo::FindFrameFromNameCB, &searchInfo);
+    return searchInfo.m_pFrame;
 }
 
 void CClumpModelInfo::FillFrameArray(RpClump* clump, RwFrame** frames)
 {
-    ((void(__cdecl*)(RpClump*, RwFrame * *))0x4C5440)(clump, frames);
+    RwFrameForAllChildren(RpClumpGetFrame(clump), CClumpModelInfo::FillFrameArrayCB, frames);
 }
 
-// Converted from thiscall void CClumpModelInfo::SetFrameIds(RwObjectNameIdAssocation *data) 0x4C5460
-void CClumpModelInfo::SetFrameIds(RwObjectNameIdAssocation* data) {
-    plugin::CallMethod<0x4C5460, CClumpModelInfo*, RwObjectNameIdAssocation*>(this, data);
+void SetClumpModelInfoFlags(CClumpModelInfo* modelInfo, unsigned int dwFlags)
+{
+    SetBaseModelInfoFlags(modelInfo, dwFlags);
+
+    auto flagsStruct = sItemDefinitionFlags(dwFlags);
+    modelInfo->bAnimSomething = flagsStruct.bAnimSomething;
 }
