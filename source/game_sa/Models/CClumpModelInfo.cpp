@@ -7,19 +7,261 @@
 
 #include "StdInc.h"
 
+void CClumpModelInfo::InjectHooks()
+{
+// VTABLE
+    ReversibleHooks::Install("CClumpModelInfo", "GetModelType", 0x4C5720, &CClumpModelInfo::GetModelType_Reversed);
+    ReversibleHooks::Install("CClumpModelInfo", "Init", 0x4C4E40, &CClumpModelInfo::Init_Reversed);
+    ReversibleHooks::Install("CClumpModelInfo", "Shutdown", 0x4C4E60, &CClumpModelInfo::Shutdown_Reversed);
+    ReversibleHooks::Install("CClumpModelInfo", "DeleteRwObject", 0x4C4E70, &CClumpModelInfo::DeleteRwObject_Reversed);
+    ReversibleHooks::Install("CClumpModelInfo", "GetRwModelType", 0x4C5730, &CClumpModelInfo::GetRwModelType_Reversed);
+    ReversibleHooks::Install("CClumpModelInfo", "CreateInstance_void", 0x4C5140, (RwObject * (CClumpModelInfo::*)())(&CClumpModelInfo::CreateInstance_Reversed));
+    ReversibleHooks::Install("CClumpModelInfo", "CreateInstance_mat", 0x4C5110, (RwObject * (CClumpModelInfo::*)(RwMatrix*))(&CClumpModelInfo::CreateInstance_Reversed));
+    ReversibleHooks::Install("CClumpModelInfo", "SetAnimFile", 0x4C5200, &CClumpModelInfo::SetAnimFile_Reversed);
+    ReversibleHooks::Install("CClumpModelInfo", "ConvertAnimFileIndex", 0x4C5250, &CClumpModelInfo::ConvertAnimFileIndex_Reversed);
+    ReversibleHooks::Install("CClumpModelInfo", "GetAnimFileIndex", 0x4C5740, &CClumpModelInfo::GetAnimFileIndex_Reversed);
+    ReversibleHooks::Install("CClumpModelInfo", "GetBoundingBox", 0x4C5710, &CClumpModelInfo::GetBoundingBox_Reversed);
+    ReversibleHooks::Install("CClumpModelInfo", "SetClump", 0x4C4F70, &CClumpModelInfo::SetClump_Reversed);
+
+// CLASS FUNCTIONS
+
+// STATICS
+    ReversibleHooks::Install("CClumpModelInfo", "SetHierarchyForSkinAtomic", 0x4C4EF0, &CClumpModelInfo::SetHierarchyForSkinAtomic);
+}
+
+ModelInfoType CClumpModelInfo::GetModelType()
+{
+    return CClumpModelInfo::GetModelType_Reversed();
+}
+ModelInfoType CClumpModelInfo::GetModelType_Reversed()
+{
+    return ModelInfoType::MODEL_INFO_CLUMP;
+}
+
+void CClumpModelInfo::Init()
+{
+    CClumpModelInfo::Init_Reversed();
+}
+void CClumpModelInfo::Init_Reversed()
+{
+    CBaseModelInfo::Init();
+    m_dwAnimFileIndex = -1;
+}
+
+void CClumpModelInfo::Shutdown()
+{
+    return CClumpModelInfo::Shutdown_Reversed();
+}
+void CClumpModelInfo::Shutdown_Reversed()
+{
+    CBaseModelInfo::Shutdown();
+}
+
+void CClumpModelInfo::DeleteRwObject()
+{
+    CClumpModelInfo::DeleteRwObject_Reversed();
+}
+void CClumpModelInfo::DeleteRwObject_Reversed()
+{
+    if (!m_pRwObject)
+        return;
+
+    auto pAtomic = Get2DEffectAtomic(m_pRwClump);
+    if (pAtomic)
+        m_n2dfxCount -= RpGeometryGet2dFxCount(RpAtomicGetGeometry(pAtomic));
+
+    RpClumpDestroy(m_pRwClump);
+    m_pRwObject = nullptr;
+
+    CBaseModelInfo::RemoveTexDictionaryRef();
+    auto iAnimIndex = GetAnimFileIndex();
+    if (iAnimIndex != -1)
+        CAnimManager::RemoveAnimBlockRef(iAnimIndex);
+
+    if (bOwnsCollisionModel)
+        CBaseModelInfo::DeleteCollisionModel();
+}
+
+unsigned int CClumpModelInfo::GetRwModelType()
+{
+    return CClumpModelInfo::GetRwModelType_Reversed();
+}
+unsigned int CClumpModelInfo::GetRwModelType_Reversed()
+{
+    return rpCLUMP;
+}
+
+RwObject* CClumpModelInfo::CreateInstance()
+{
+    return CClumpModelInfo::CreateInstance_Reversed();
+}
+RwObject* CClumpModelInfo::CreateInstance_Reversed()
+{
+    if (!m_pRwObject)
+        return nullptr;
+
+    CBaseModelInfo::AddRef();
+    auto pClonedClump = RpClumpClone(m_pRwClump);
+    auto pAtomic = GetFirstAtomic(pClonedClump);
+    if (pAtomic && RpSkinGeometryGetSkin(RpAtomicGetGeometry(pAtomic)) && !bHasComplexHierarchy) {
+        auto pHierarchy = GetAnimHierarchyFromClump(pClonedClump);
+        RpClumpForAllAtomics(pClonedClump, CClumpModelInfo::SetHierarchyForSkinAtomic, pHierarchy);
+        auto pAnim = RpAnimBlendCreateAnimationForHierarchy(pHierarchy);
+        RtAnimInterpolatorSetCurrentAnim(pHierarchy->currentAnim, pAnim);
+        pHierarchy->flags = rpHANIMHIERARCHYUPDATEMODELLINGMATRICES | rpHANIMHIERARCHYUPDATELTMS;
+    }
+
+    if (bHasAnimBlend) {
+        RpAnimBlendClumpInit(pClonedClump);
+        auto pAnimBlend = CAnimManager::GetAnimation(m_nKey, &CAnimManager::ms_aAnimBlocks[m_dwAnimFileIndex]);
+        if (pAnimBlend)
+            CAnimManager::BlendAnimation(pClonedClump, pAnimBlend, eAnimationFlags::ANIM_FLAG_LOOPED, 1.0F);
+    }
+
+    CBaseModelInfo::RemoveRef();
+    return reinterpret_cast<RwObject*>(pClonedClump);
+}
+
+RwObject* CClumpModelInfo::CreateInstance(RwMatrix* matrix)
+{
+    return CClumpModelInfo::CreateInstance_Reversed(matrix);
+}
+RwObject* CClumpModelInfo::CreateInstance_Reversed(RwMatrix* matrix)
+{
+    if (!m_pRwObject)
+        return nullptr;
+
+    auto pClump = CreateInstance();
+    memcpy(RpClumpGetFrame(pClump), matrix, sizeof(*RwFrameGetMatrix(RpClumpGetFrame(pClump))));
+    return pClump;
+}
+
+void CClumpModelInfo::SetAnimFile(char const* filename)
+{
+    CClumpModelInfo::SetAnimFile_Reversed(filename);
+}
+void CClumpModelInfo::SetAnimFile_Reversed(char const* filename)
+{
+    if (!strcmp(filename, "null"))
+        return;
+
+    auto pName = new char[strlen(filename) + 1];
+    strcpy(pName, filename);
+    m_animFileName = pName;
+}
+
+void CClumpModelInfo::ConvertAnimFileIndex()
+{
+    CClumpModelInfo::ConvertAnimFileIndex_Reversed();
+}
+void CClumpModelInfo::ConvertAnimFileIndex_Reversed()
+{
+    if (m_dwAnimFileIndex == -1)
+        return;
+
+    auto iIndex = CAnimManager::GetAnimationBlockIndex(m_animFileName);
+    delete[] m_animFileName;
+    m_dwAnimFileIndex = iIndex;
+}
+
+signed int CClumpModelInfo::GetAnimFileIndex()
+{
+    return CClumpModelInfo::GetAnimFileIndex_Reversed();
+}
+signed int CClumpModelInfo::GetAnimFileIndex_Reversed()
+{
+    return m_dwAnimFileIndex;
+}
+
 CBox* CClumpModelInfo::GetBoundingBox()
 {
-    return ((CBox * (__thiscall*)(CClumpModelInfo*))plugin::GetVMT(this, 15))(this);
+    return CClumpModelInfo::GetBoundingBox_Reversed();
+}
+CBox* CClumpModelInfo::GetBoundingBox_Reversed()
+{
+    return &GetColModel()->GetBoundingBox();
 }
 
 void CClumpModelInfo::SetClump(RpClump* clump)
 {
-    ((void(__thiscall*)(CClumpModelInfo*, RpClump*))0x4C4F70)(this, clump);
+    CClumpModelInfo::SetClump_Reversed(clump);
+}
+void CClumpModelInfo::SetClump_Reversed(RpClump* clump)
+{
+    if (m_pRwObject) {
+        auto pAtomic = Get2DEffectAtomic(m_pRwClump);
+        if (pAtomic)
+            m_n2dfxCount -= RpGeometryGet2dFxCount(RpAtomicGetGeometry(pAtomic));
+    }
+
+    m_pRwClump = clump;
+    if (m_pRwClump) {
+        auto pAtomic = Get2DEffectAtomic(m_pRwClump);
+        if (pAtomic)
+            m_n2dfxCount += RpGeometryGet2dFxCount(RpAtomicGetGeometry(pAtomic));
+    }
+
+    CVisibilityPlugins::SetClumpModelInfo(m_pRwClump, this);
+    CBaseModelInfo::AddTexDictionaryRef();
+
+    auto iAnimIndex = GetAnimFileIndex();
+    if (iAnimIndex != -1)
+        CAnimManager::AddAnimBlockRef(iAnimIndex);
+
+    RpClumpForAllAtomics(m_pRwClump, CClumpModelInfo::AtomicSetupLightingCB, this);
+    auto pFirstAtomic = GetFirstAtomic(m_pRwClump);
+    if (pFirstAtomic && RpSkinGeometryGetSkin(RpAtomicGetGeometry(pFirstAtomic))) {
+        if (bHasComplexHierarchy) {
+            RpClumpForAllAtomics(m_pRwClump, CClumpModelInfo::SetHierarchyForSkinAtomic, nullptr);
+        }
+        else {
+            auto sphere = RpMorphTargetGetBoundingSphere(RpGeometryGetMorphTarget(RpAtomicGetGeometry(pFirstAtomic), 0));
+            sphere->radius *= 1.2F;
+
+            auto pHierarchy = GetAnimHierarchyFromClump(m_pRwClump);
+            RpClumpForAllAtomics(m_pRwClump, CClumpModelInfo::SetHierarchyForSkinAtomic, pHierarchy);
+
+            auto pGeometry = RpAtomicGetGeometry(pFirstAtomic);
+            auto pSkin = RpSkinGeometryGetSkin(pGeometry);
+            for (int32_t i = 0; i < RpGeometryGetNumVertices(pGeometry); ++i) {
+                auto& pWeight = RpSkinGetVertexBoneWeights(pSkin)[i];
+                auto fRecip = 1.0F / (pWeight.w0 + pWeight.w1 + pWeight.w2 + pWeight.w3);
+                pWeight.w0 *= fRecip;
+                pWeight.w1 *= fRecip;
+                pWeight.w2 *= fRecip;
+                pWeight.w3 *= fRecip;
+            }
+
+            pHierarchy->flags = rpHANIMHIERARCHYUPDATEMODELLINGMATRICES | rpHANIMHIERARCHYUPDATELTMS;
+        }
+    }
 }
 
 void CClumpModelInfo::SetAtomicRendererCB(RpAtomic* atomic, void* renderFunc)
 {
     ((void(__cdecl*)(RpAtomic*, void*))0x4C5280)(atomic, renderFunc);
+}
+
+RpAtomic* CClumpModelInfo::AtomicSetupLightingCB(RpAtomic* atomic, void* data)
+{
+    if (CCustomBuildingRenderer::IsCBPCPipelineAttached(atomic))
+        CCustomBuildingRenderer::AtomicSetup(atomic);
+    else if (CCarFXRenderer::IsCBPCPipelineAttached(atomic))
+        CCarFXRenderer::CustomCarPipeAtomicSetup(atomic);
+
+    return atomic;
+}
+
+RpAtomic* CClumpModelInfo::SetHierarchyForSkinAtomic(RpAtomic* pAtomic, void* data)
+{
+    if (data) {
+        RpSkinAtomicSetHAnimHierarchy(pAtomic, reinterpret_cast<RpHAnimHierarchy*>(data));
+        return nullptr;
+    }
+
+    auto pHierarchy = GetAnimHierarchyFromFrame(RpAtomicGetFrame(pAtomic));
+    RpSkinAtomicSetHAnimHierarchy(pAtomic, pHierarchy);
+    return pAtomic;
 }
 
 RwFrame* CClumpModelInfo::FindFrameFromNameCB(RwFrame* frame, void* searchData)

@@ -849,7 +849,7 @@ RpSkin* RpSkinGeometryGetSkin(RpGeometry* geometry); // 0x7C7550
 RpSkin* RpSkinCreate(RwUInt32 numVertices, RwUInt32 numBones, RwMatrixWeights* vertexWeights, RwUInt32* vertexIndices, RwMatrix* inverseMatrices); // 0x7C75B0
 RpSkin* RpSkinDestroy(RpSkin* skin); // 0x7C77A0
 RwUInt32 RpSkinGetNumBones(RpSkin* skin); // 0x7C77E0
-const RwMatrixWeights* RpSkinGetVertexBoneWeights(RpSkin* skin); // 0x7C77F0
+RwMatrixWeights* RpSkinGetVertexBoneWeights(RpSkin* skin); // 0x7C77F0
 const RwUInt32* RpSkinGetVertexBoneIndices(RpSkin* skin); // 0x7C7800
 const RwMatrix* RpSkinGetSkinToBoneMatrices(RpSkin* skin); // 0x7C7810
 RwBool RpSkinIsSplit(RpSkin* skin); // 0x7C7820

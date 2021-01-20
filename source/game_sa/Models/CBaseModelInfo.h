@@ -94,7 +94,10 @@ public:
 					unsigned char bUseCommonVehicleDictionary : 1;
 				};
                 struct {
-                    unsigned char : 7;
+                    unsigned char bHasAnimBlend : 1;
+                    unsigned char : 2;
+                    unsigned char bOwnsCollisionModel : 1;
+                    unsigned char : 3;
                     unsigned char bTagDisabled : 1;
                 };
 			};

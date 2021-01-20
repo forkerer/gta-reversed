@@ -16,6 +16,7 @@ void CTempColModels::InjectHooks()
 
 void CTempColModels::Initialise()
 {
+    plugin::Call<0x5BA8C0>();
 }
 
 void CTempColModels::Shutdown()

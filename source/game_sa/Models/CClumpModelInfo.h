@@ -21,6 +21,9 @@ public:
 		unsigned int m_dwAnimFileIndex;
 	};
 
+public:
+    static void InjectHooks();
+
     // Overriden vtable methods
     ModelInfoType GetModelType() override;
     void Init() override;
@@ -37,9 +40,24 @@ public:
     virtual CBox *GetBoundingBox();
     virtual void SetClump(RpClump *clump);
 
-	// static functions
+    // Reversed vtable methods
+    ModelInfoType GetModelType_Reversed();
+    void Init_Reversed();
+    void Shutdown_Reversed();
+    void DeleteRwObject_Reversed();
+    unsigned int GetRwModelType_Reversed();
+    RwObject* CreateInstance_Reversed();
+    RwObject* CreateInstance_Reversed(RwMatrix* matrix);
+    void SetAnimFile_Reversed(char const* filename);
+    void ConvertAnimFileIndex_Reversed();
+    signed int GetAnimFileIndex_Reversed();
+    CBox* GetBoundingBox_Reversed();
+    void SetClump_Reversed(RpClump* clump);
 
+	// static functions
 	static void SetAtomicRendererCB(RpAtomic *atomic, void *renderFunc);
+    static RpAtomic* AtomicSetupLightingCB(RpAtomic* atomic, void* data);
+    static RpAtomic* SetHierarchyForSkinAtomic(RpAtomic* pAtomic, void* data);
 	/* struct tSearchData { char *name; RwFrame *result; };
 	  returns 0 if we found frame, or last frame if we need to continue searching */
 	static RwFrame *FindFrameFromNameCB(RwFrame *frame, void *searchData);
