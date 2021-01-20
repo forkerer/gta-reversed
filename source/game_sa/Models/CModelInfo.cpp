@@ -67,34 +67,34 @@ void CModelInfo::ReInit2dEffects()
 // Converted from stdcall void CModelInfo::ShutDown(void) 0x4C63E0
 void CModelInfo::ShutDown()
 {
-    for (int32_t i = 0; i < ms_atomicModelInfoStore.m_nCount; ++i)
+    for (uint32_t i = 0; i < ms_atomicModelInfoStore.m_nCount; ++i)
         ms_atomicModelInfoStore.GetItemAtIndex(i).Shutdown();
 
-    for (int32_t i = 0; i < ms_damageAtomicModelInfoStore.m_nCount; ++i)
+    for (uint32_t i = 0; i < ms_damageAtomicModelInfoStore.m_nCount; ++i)
         ms_damageAtomicModelInfoStore.GetItemAtIndex(i).Shutdown();
 
-    for (int32_t i = 0; i < ms_lodAtomicModelInfoStore.m_nCount; ++i)
+    for (uint32_t i = 0; i < ms_lodAtomicModelInfoStore.m_nCount; ++i)
         ms_lodAtomicModelInfoStore.GetItemAtIndex(i).Shutdown();
 
-    for (int32_t i = 0; i < ms_timeModelInfoStore.m_nCount; ++i)
+    for (uint32_t i = 0; i < ms_timeModelInfoStore.m_nCount; ++i)
         ms_timeModelInfoStore.GetItemAtIndex(i).Shutdown();
 
-    for (int32_t i = 0; i < ms_lodTimeModelInfoStore.m_nCount; ++i)
+    for (uint32_t i = 0; i < ms_lodTimeModelInfoStore.m_nCount; ++i)
         ms_lodTimeModelInfoStore.GetItemAtIndex(i).Shutdown();
 
-    for (int32_t i = 0; i < ms_weaponModelInfoStore.m_nCount; ++i)
+    for (uint32_t i = 0; i < ms_weaponModelInfoStore.m_nCount; ++i)
         ms_weaponModelInfoStore.GetItemAtIndex(i).Shutdown();
 
-    for (int32_t i = 0; i < ms_clumpModelInfoStore.m_nCount; ++i)
+    for (uint32_t i = 0; i < ms_clumpModelInfoStore.m_nCount; ++i)
         ms_clumpModelInfoStore.GetItemAtIndex(i).Shutdown();
 
-    for (int32_t i = 0; i < ms_vehicleModelInfoStore.m_nCount; ++i)
+    for (uint32_t i = 0; i < ms_vehicleModelInfoStore.m_nCount; ++i)
         ms_vehicleModelInfoStore.GetItemAtIndex(i).Shutdown();
 
-    for (int32_t i = 0; i < ms_pedModelInfoStore.m_nCount; ++i)
+    for (uint32_t i = 0; i < ms_pedModelInfoStore.m_nCount; ++i)
         ms_pedModelInfoStore.GetItemAtIndex(i).Shutdown();
 
-    for (int32_t i = 0; i < ms_2dFXInfoStore.m_nCount; ++i) {
+    for (uint32_t i = 0; i < ms_2dFXInfoStore.m_nCount; ++i) {
         auto& pEffect = ms_2dFXInfoStore.GetItemAtIndex(i);
         pEffect.Shutdown();
     }
