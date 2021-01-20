@@ -120,8 +120,8 @@ public:
 	// vtable
     virtual ~CBaseModelInfo() { assert(0); }
 	virtual class CAtomicModelInfo *AsAtomicModelInfoPtr();
-    virtual class CDamagableModelInfo *AsDamageAtomicModelInfoPtr();
-    virtual class CLodAtomicModelInfo*AsLodAtomicModelInfoPtr();
+    virtual class CDamageAtomicModelInfo *AsDamageAtomicModelInfoPtr();
+    virtual class CLodAtomicModelInfo *AsLodAtomicModelInfoPtr();
     virtual ModelInfoType GetModelType() = 0;
     virtual tTimeInfo *GetTimeInfo();
     virtual void Init();
@@ -136,7 +136,7 @@ public:
 
     // vtable methods implementations
     class CAtomicModelInfo* AsAtomicModelInfoPtr_Reversed();
-    class CDamagableModelInfo* AsDamageAtomicModelInfoPtr_Reversed();
+    class CDamageAtomicModelInfo* AsDamageAtomicModelInfoPtr_Reversed();
     class CLodAtomicModelInfo* AsLodAtomicModelInfoPtr_Reversed();
     tTimeInfo* GetTimeInfo_Reversed();
     void Init_Reversed();

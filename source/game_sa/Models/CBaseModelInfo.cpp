@@ -68,11 +68,11 @@ CAtomicModelInfo* CBaseModelInfo::AsAtomicModelInfoPtr_Reversed()
     return nullptr;
 }
 
-CDamagableModelInfo* CBaseModelInfo::AsDamageAtomicModelInfoPtr()
+CDamageAtomicModelInfo* CBaseModelInfo::AsDamageAtomicModelInfoPtr()
 {
     return CBaseModelInfo::AsDamageAtomicModelInfoPtr_Reversed();
 }
-CDamagableModelInfo* CBaseModelInfo::AsDamageAtomicModelInfoPtr_Reversed()
+CDamageAtomicModelInfo* CBaseModelInfo::AsDamageAtomicModelInfoPtr_Reversed()
 {
     return nullptr;
 }
