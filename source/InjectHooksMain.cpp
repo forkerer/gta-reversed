@@ -33,6 +33,7 @@ void InjectHooksMain(void)
     CAtomicModelInfo::InjectHooks();
     CVehicleModelInfo::InjectHooks();
     CClumpModelInfo::InjectHooks();
+    CTimeModelInfo::InjectHooks();
     SurfaceInfos_c::InjectHooks();
     CFileLoader::InjectHooks();
     CFileMgr::InjectHooks();
