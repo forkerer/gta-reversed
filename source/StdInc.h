@@ -443,7 +443,6 @@
 #include "game_sa\Models\CLodTimeModelInfo.h"
 #include "game_sa\Models\CVehicleModelInfo.h"
 #include "game_sa\Models\CWeaponModelInfo.h"
-#include "game_sa\Models\CDamagableModelInfo.h"
 #include "game_sa\Plugins\JPegCompress.h"
 #include "game_sa\Plugins\NodeName.h"
 #include "game_sa\Plugins\PipelinePlugin.h"

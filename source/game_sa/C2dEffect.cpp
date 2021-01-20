@@ -153,7 +153,7 @@ void* t2dEffectPluginDestructor(void* object, RwInt32 offsetInObject, RwInt32 si
 {
     auto plugin = C2DEFFECTPLG(object, m_pEffectEntries);
     if (!plugin)
-        return 0;
+        return object;
 
     // It's the same as CModelInfo::ms_2dFXInfoStore cleaning, maybe the plugin has CStore inside too?
     // Dunno how that would work, as the size is decided at runtime, easy with some manual memory tricks tho.
@@ -164,6 +164,8 @@ void* t2dEffectPluginDestructor(void* object, RwInt32 offsetInObject, RwInt32 si
 
     if (C2DEFFECTPLG(object, m_pEffectEntries))
         CMemoryMgr::Free(C2DEFFECTPLG(object, m_pEffectEntries));
+
+    return object;
 }
 
 void* t2dEffectPluginCopyConstructor(void* dstObject, const void* srcObject, RwInt32 offsetInObject, RwInt32 sizeInObject)
