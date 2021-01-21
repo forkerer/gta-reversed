@@ -114,7 +114,7 @@ RwObject* CAtomicModelInfo::CreateInstance_Reversed(RwMatrix* matrix)
     CBaseModelInfo::AddRef();
     auto pClonedAtomic = RpAtomicClone(m_pRwAtomic);
     auto pFrame = RwFrameCreate();
-    memcpy(RwFrameGetMatrix(pFrame), matrix, sizeof(*RwFrameGetMatrix(pFrame)));
+    memcpy(RwFrameGetMatrix(pFrame), matrix, sizeof(RwMatrix));
     RpAtomicSetFrame(pClonedAtomic, pFrame);
     CBaseModelInfo::RemoveRef();
 

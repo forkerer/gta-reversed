@@ -6,6 +6,12 @@ void CColModel::InjectHooks()
     ReversibleHooks::Install("CColModel", "operator delete", 0x40FC40, &CColModel::operator delete);
 }
 
+void CColModel::AllocateData(int numSpheres, int numBoxes, int numLines, int numVertices, int numTriangles, bool disks)
+{
+    plugin::CallMethod<0x40F870, CColModel*, int, int, int, int, int, bool>
+        (this, numSpheres, numBoxes, numLines, numVertices, numTriangles, disks);
+}
+
 CColModel::CColModel() : m_boundBox()
 {
     m_boundSphere.m_nMaterial = 0;

@@ -145,7 +145,7 @@ RwObject* CClumpModelInfo::CreateInstance_Reversed(RwMatrix* matrix)
         return nullptr;
 
     auto pClump = CreateInstance();
-    memcpy(RpClumpGetFrame(pClump), matrix, sizeof(*RwFrameGetMatrix(RpClumpGetFrame(pClump))));
+    memcpy(RpClumpGetFrame(pClump), matrix, sizeof(RwMatrix));
     return pClump;
 }
 

@@ -36,6 +36,7 @@ void InjectHooksMain(void)
     CTimeModelInfo::InjectHooks();
     CDamageAtomicModelInfo::InjectHooks();
     CWeaponModelInfo::InjectHooks();
+    CPedModelInfo::InjectHooks();
     SurfaceInfos_c::InjectHooks();
     CFileLoader::InjectHooks();
     CFileMgr::InjectHooks();
@@ -49,6 +50,7 @@ void InjectHooksMain(void)
     CTrain::InjectHooks();
     CColSphere::InjectHooks();
     CColLine::InjectHooks();
+    CBox::InjectHooks();
     CColModel::InjectHooks();
     CAnimBlendAssociation::InjectHooks();
     CTrafficLights::InjectHooks();
