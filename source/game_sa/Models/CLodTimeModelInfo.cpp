@@ -8,8 +8,6 @@ void CLodTimeModelInfo::InjectHooks()
 
 CLodTimeModelInfo::CLodTimeModelInfo() : CLodAtomicModelInfo()
 {
-    field_20 = 0;
-    field_22 = 0;
     m_lodTimeInfo.m_wOtherTimeModel = -1;
 }
 

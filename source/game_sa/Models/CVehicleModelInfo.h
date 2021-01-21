@@ -176,7 +176,11 @@ public:
 	// static CRGBA ms_vehicleColourTable[128];
 	static CRGBA *ms_vehicleColourTable;
 
+public:
     static void InjectHooks();
+
+public:
+    // VTable
 
     virtual void SetClump(RpClump* clump) override;
 

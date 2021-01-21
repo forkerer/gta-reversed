@@ -31,6 +31,7 @@ void InjectHooksMain(void)
     CModelInfoAccelerator::InjectHooks();
     CBaseModelInfo::InjectHooks();
     CAtomicModelInfo::InjectHooks();
+    CLodAtomicModelInfo::InjectHooks();
     CVehicleModelInfo::InjectHooks();
     CClumpModelInfo::InjectHooks();
     CTimeModelInfo::InjectHooks();
