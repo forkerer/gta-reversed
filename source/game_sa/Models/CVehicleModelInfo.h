@@ -53,11 +53,14 @@ enum VehicleUpgradePosn {
 };
 
 struct  UpgradePosnDesc {
+public:
+    UpgradePosnDesc() {};
+    ~UpgradePosnDesc() {};
+public:
 	CVector m_vPosition;
 	CQuaternion m_qRotation;
 	int m_nParentComponentId;
 };
-
 VALIDATE_SIZE(UpgradePosnDesc, 0x20);
 
 class CVehicleModelInfo : public CClumpModelInfo {
@@ -97,17 +100,25 @@ public:
 	};
 	float m_fBikeSteerAngle;
 
-	class CVehicleStructure {
-	public:
-		CVector m_avDummyPos[15];
-		UpgradePosnDesc m_aUpgrades[18];
-		RpAtomic *m_apExtras[6];
-		unsigned char m_nNumExtras;
-		unsigned int m_nMaskComponentsDamagable;
-		static CPool<CVehicleStructure> *&m_pInfoPool;
+    class CVehicleStructure {
+    public:
+        CVehicleStructure();
+        ~CVehicleStructure();
+        static void* operator new(unsigned int size);
+        static void operator delete(void* data);
+    public:
+        static constexpr int NUM_DUMMIES = 15;
+        static constexpr int NUM_UPGRADES = 18;
+        static constexpr int NUM_EXTRAS = 6;
 
-        CVehicleStructure* Constructor();
-	} *m_pVehicleStruct;
+    public:
+        CVector m_avDummyPos[NUM_DUMMIES];
+        UpgradePosnDesc m_aUpgrades[NUM_UPGRADES];
+        RpAtomic* m_apExtras[NUM_EXTRAS];
+        unsigned char m_nNumExtras;
+        unsigned int m_nMaskComponentsDamagable;
+
+    } *m_pVehicleStruct;
 
 	char field_60[464];
 	RpMaterial *m_apDirtMaterials[32];
@@ -126,42 +137,51 @@ public:
 private:
     char _pad302[2];
 public:
-	class CAnimBlock *m_pAnimBlock;
+    union {
+        CAnimBlock* m_pAnimBlock;
+        char* m_animBlockFileName;
+        unsigned int m_dwAnimBlockIndex;
+    };
 
-	static class CLinkedUpgradeList{
-	public:
-		short m_anUpgrade1[30];
-		short m_anUpgrade2[30];
-		unsigned int m_nLinksCount;
-		// add upgrade with components upgrade1 and upgrade2
-		void AddUpgradeLink(std::int16_t upgrade1, std::int16_t upgrade2);
-		// find linked upgrade for this upgrade. In this case upgrade param could be upgrade1 or 
-		// upgrade2
+	static class CLinkedUpgradeList {
+    public:
+        short m_anUpgrade1[30];
+        short m_anUpgrade2[30];
+        unsigned int m_nLinksCount;
+
+    public:
+        // add upgrade with components upgrade1 and upgrade2
+        void AddUpgradeLink(std::int16_t upgrade1, std::int16_t upgrade2);
+        // find linked upgrade for this upgrade. In this case upgrade param could be upgrade1 or upgrade2
         std::int16_t FindOtherUpgrade(std::int16_t upgrade);
-	} &ms_linkedUpgrades;
+    } &ms_linkedUpgrades;
 
 	// vehicle components description tables
 	// static RwObjectNameIdAssocation ms_vehicleDescs[12];
-	static RwObjectNameIdAssocation** ms_vehicleDescs;
+    static constexpr int NUM_VEHICLE_MODEL_DESCS = 12;
+	static RwObjectNameIdAssocation*(&ms_vehicleDescs)[NUM_VEHICLE_MODEL_DESCS]; // use eVehicleType to access
 
 	// remap texture
-	static RwTexture *ms_pRemapTexture;
+	static RwTexture* (&ms_pRemapTexture);
 	// vehiclelights128 texture
-	static RwTexture *ms_pLightsTexture;
+	static RwTexture* (&ms_pLightsTexture);
 	// vehiclelightson128 texture
-	static RwTexture *ms_pLightsOnTexture;
+	static RwTexture* (&ms_pLightsOnTexture);
 	
 	// color of currently rendered car
 	// static unsigned char ms_currentCol[4];
-	static unsigned char *ms_currentCol;
+    static constexpr int NUM_CURRENT_COLORS = 4;
+	static unsigned char (&ms_currentCol)[NUM_CURRENT_COLORS];
 
 	// number of wheel upgrades available
-	// tatic short ms_numWheelUpgrades[4];
-	static short *ms_numWheelUpgrades;
+	// static short ms_numWheelUpgrades[4];
+    static constexpr int NUM_WHEELS = 4;
+	static short (&ms_numWheelUpgrades)[NUM_WHEELS];
 
 	// wheels upgrades data
 	// static short ms_upgradeWheels[15][4];
-	static short *ms_upgradeWheels;
+    static constexpr int NUM_WHEEL_UPGRADES = 15;
+	static short (&ms_upgradeWheels)[NUM_WHEEL_UPGRADES][NUM_WHEELS];
 
 	// lights states for currently rendered car
 	// static char *ms_lightsOn[4];
@@ -169,21 +189,37 @@ public:
 
 	// extras ids for next-spawned car
 	// static char ms_compsUsed[2];
-	static char *ms_compsUsed;
-    static char *ms_compsToUse;
+    static constexpr int NUM_COMPS_USAGE = 2;
+	static char (&ms_compsUsed)[NUM_COMPS_USAGE];
+    static char (&ms_compsToUse)[NUM_COMPS_USAGE];
 
 	// vehicle colours from carcols.dat
 	// static CRGBA ms_vehicleColourTable[128];
-	static CRGBA *ms_vehicleColourTable;
+    static constexpr int NUM_VEHICLE_COLORS = 128;
+	static CRGBA (&ms_vehicleColourTable)[NUM_VEHICLE_COLORS];
 
 public:
     static void InjectHooks();
 
 public:
     // VTable
+    ModelInfoType GetModelType() override;
+    void Init() override;
+    void DeleteRwObject() override;
+    RwObject* CreateInstance() override;
+    void SetAnimFile(char const* filename) override;
+    void ConvertAnimFileIndex() override;
+    signed int GetAnimFileIndex() override;
+    void SetClump(RpClump* clump) override;
 
-    virtual void SetClump(RpClump* clump) override;
-
+    // VTable implementations
+    ModelInfoType GetModelType_Reversed();
+    void Init_Reversed();
+    void DeleteRwObject_Reversed();
+    RwObject* CreateInstance_Reversed();
+    void SetAnimFile_Reversed(char const* filename);
+    void ConvertAnimFileIndex_Reversed();
+    signed int GetAnimFileIndex_Reversed();
     void SetClump_Reversed(RpClump* clump);
 
 	// destroying vehiclelights textures

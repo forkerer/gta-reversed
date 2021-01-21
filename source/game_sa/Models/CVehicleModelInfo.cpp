@@ -7,69 +7,182 @@
 #include "StdInc.h"
 
 CVehicleModelInfo::CLinkedUpgradeList& CVehicleModelInfo::ms_linkedUpgrades = *(CVehicleModelInfo::CLinkedUpgradeList*)0xB4E6D8;
-RwTexture* CVehicleModelInfo::ms_pRemapTexture = (RwTexture*)0xB4E47C;
-RwTexture* CVehicleModelInfo::ms_pLightsTexture = (RwTexture*)0xB4E68C;
-RwTexture* CVehicleModelInfo::ms_pLightsOnTexture = (RwTexture*)0xB4E690;
-unsigned char* CVehicleModelInfo::ms_currentCol = (unsigned char*)0xB4E3F0;
-CRGBA* CVehicleModelInfo::ms_vehicleColourTable = (CRGBA*)0xB4E480;
-char* CVehicleModelInfo::ms_compsUsed = (char*)0xB4E478;
-char* CVehicleModelInfo::ms_compsToUse = (char*)0x8A6458;
+RwTexture* &CVehicleModelInfo::ms_pRemapTexture = *(RwTexture**)0xB4E47C;
+RwTexture* &CVehicleModelInfo::ms_pLightsTexture = *(RwTexture**)0xB4E68C;
+RwTexture* &CVehicleModelInfo::ms_pLightsOnTexture = *(RwTexture**)0xB4E690;
+unsigned char (&CVehicleModelInfo::ms_currentCol)[NUM_CURRENT_COLORS] = *(unsigned char(*)[NUM_CURRENT_COLORS])0xB4E3F0;
+CRGBA (&CVehicleModelInfo::ms_vehicleColourTable)[NUM_VEHICLE_COLORS] = *(CRGBA(*)[NUM_VEHICLE_COLORS])0xB4E480;
+char (&CVehicleModelInfo::ms_compsUsed)[NUM_COMPS_USAGE] = *(char(*)[NUM_COMPS_USAGE])0xB4E478;
+char (&CVehicleModelInfo::ms_compsToUse)[NUM_COMPS_USAGE] = *(char(*)[NUM_COMPS_USAGE])0x8A6458;
+short(&CVehicleModelInfo::ms_numWheelUpgrades)[NUM_WHEELS] = *(short(*)[NUM_WHEELS])0xB4E470;
+short(&CVehicleModelInfo::ms_upgradeWheels)[NUM_WHEEL_UPGRADES][NUM_WHEELS] = *(short(*)[NUM_WHEEL_UPGRADES][NUM_WHEELS])0xB4E3F8;
 
 typedef CVehicleModelInfo::CVehicleStructure CVehicleStructure;
-CPool<CVehicleStructure>*& CVehicleStructure::m_pInfoPool = *(CPool<CVehicleStructure> * *)0xB4E680;
-RwObjectNameIdAssocation** CVehicleModelInfo::ms_vehicleDescs = (RwObjectNameIdAssocation * *)0x8A7740;
+RwObjectNameIdAssocation* (&CVehicleModelInfo::ms_vehicleDescs)[NUM_VEHICLE_MODEL_DESCS] = *(RwObjectNameIdAssocation*(*)[NUM_VEHICLE_MODEL_DESCS])0x8A7740;
 
 void CVehicleModelInfo::InjectHooks()
 {
-    HookInstall(0x4C95C0, &CVehicleModelInfo::SetClump_Reversed);
+// ClinkedUpgradeList
+    ReversibleHooks::Install("CLinkedUpgradeList", "AddUpgradeLink", 0x4C74B0, &CLinkedUpgradeList::AddUpgradeLink);
+    ReversibleHooks::Install("CLinkedUpgradeList", "FindOtherUpgrade", 0x4C74D0, &CLinkedUpgradeList::FindOtherUpgrade);
+
+// VTable
+    ReversibleHooks::Install("CVehicleModelInfo", "GetModelType", 0x4C7650, &CVehicleModelInfo::GetModelType_Reversed);
+    ReversibleHooks::Install("CVehicleModelInfo", "Init", 0x4C7630, &CVehicleModelInfo::Init_Reversed);
+    ReversibleHooks::Install("CVehicleModelInfo", "DeleteRwObject", 0x4C9890, &CVehicleModelInfo::DeleteRwObject_Reversed);
+    ReversibleHooks::Install("CVehicleModelInfo", "CreateInstance", 0x4C9680, &CVehicleModelInfo::CreateInstance_Reversed);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetAnimFile", 0x4C7670, &CVehicleModelInfo::SetAnimFile_Reversed);
+    ReversibleHooks::Install("CVehicleModelInfo", "ConvertAnimFileIndex", 0x4C76D0, &CVehicleModelInfo::ConvertAnimFileIndex_Reversed);
+    ReversibleHooks::Install("CVehicleModelInfo", "GetAnimFileIndex", 0x4C7660, &CVehicleModelInfo::GetAnimFileIndex_Reversed);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetClump", 0x4C95C0, &CVehicleModelInfo::SetClump_Reversed);
 }
 
-void CVehicleModelInfo::CLinkedUpgradeList::AddUpgradeLink(std::int16_t upgrade1, std::int16_t upgrade2)
+ModelInfoType CVehicleModelInfo::GetModelType()
 {
-    plugin::CallMethod<0x4C74B0, CVehicleModelInfo::CLinkedUpgradeList*, std::int16_t, std::int16_t>(this, upgrade1, upgrade2);
+    return CVehicleModelInfo::GetModelType_Reversed();
+}
+ModelInfoType CVehicleModelInfo::GetModelType_Reversed()
+{
+    return ModelInfoType::MODEL_INFO_VEHICLE;
 }
 
-std::int16_t CVehicleModelInfo::CLinkedUpgradeList::FindOtherUpgrade(std::int16_t upgrade)
+void CVehicleModelInfo::Init()
 {
-    return plugin::CallMethodAndReturn<std::int16_t, 0x4C74D0, CVehicleModelInfo::CLinkedUpgradeList*, std::int16_t>(this, upgrade);
+    CVehicleModelInfo::Init_Reversed();
+}
+void CVehicleModelInfo::Init_Reversed()
+{
+    CClumpModelInfo::Init();
+    m_nVehicleType = eVehicleType::VEHICLE_NONE;
+    m_nWheelModelIndex = 01;
+    m_fBikeSteerAngle = 999.99F;
 }
 
-CVehicleStructure* CVehicleStructure::Constructor()
+void CVehicleModelInfo::DeleteRwObject()
 {
-    return plugin::CallMethodAndReturn<CVehicleStructure*, 0x4C8D60, CVehicleStructure*>(this);
+    CVehicleModelInfo::DeleteRwObject_Reversed();
+}
+void CVehicleModelInfo::DeleteRwObject_Reversed()
+{
+    if (m_pVehicleStruct)
+        delete m_pVehicleStruct;
+
+    m_pVehicleStruct = nullptr;
+    CClumpModelInfo::DeleteRwObject();
+}
+
+RwObject* CVehicleModelInfo::CreateInstance()
+{
+    return CVehicleModelInfo::CreateInstance_Reversed();
+}
+RwObject* CVehicleModelInfo::CreateInstance_Reversed()
+{
+    auto pClump = reinterpret_cast<RpClump*>(CClumpModelInfo::CreateInstance());
+    if (m_pVehicleStruct->m_nNumExtras) {
+        RwFrame* pFrame;
+        if (m_nVehicleType != eVehicleType::VEHICLE_BIKE
+            && m_nVehicleType != eVehicleType::VEHICLE_BMX
+            && m_nVehicleType >= eVehicleType::VEHICLE_BOAT) {
+
+            pFrame = RpClumpGetFrame(pClump);
+        }
+        else {
+            pFrame = CClumpModelInfo::GetFrameFromId(pClump, 1);
+            if (!pFrame)
+                pFrame = RpClumpGetFrame(pClump);
+        }
+
+        auto iFirstComp = CVehicleModelInfo::ChooseComponent();
+        if (iFirstComp != -1 && m_pVehicleStruct->m_apExtras[iFirstComp]) {
+            auto& pExtra = m_pVehicleStruct->m_apExtras[iFirstComp];
+            auto pAtomicClone = RpAtomicClone(pExtra);
+            auto pNewFrame = RwFrameCreate();
+            RwFrameTransform(pNewFrame, RwFrameGetMatrix(RpAtomicGetFrame(pExtra)), RwOpCombineType::rwCOMBINEREPLACE);
+            RpAtomicSetFrame(pAtomicClone, pNewFrame);
+            RpClumpAddAtomic(pClump, pAtomicClone);
+            RwFrameAddChild(pFrame, pNewFrame);
+        }
+        CVehicleModelInfo::ms_compsUsed[0] = iFirstComp;
+
+        auto iSecondComp = CVehicleModelInfo::ChooseSecondComponent();
+        if (iSecondComp != -1 && m_pVehicleStruct->m_apExtras[iSecondComp]) {
+            auto& pExtra = m_pVehicleStruct->m_apExtras[iSecondComp];
+            auto pAtomicClone = RpAtomicClone(pExtra);
+            auto pNewFrame = RwFrameCreate();
+            RwFrameTransform(pNewFrame, RwFrameGetMatrix(RpAtomicGetFrame(pExtra)), RwOpCombineType::rwCOMBINEREPLACE);
+            RpAtomicSetFrame(pAtomicClone, pNewFrame);
+            RpClumpAddAtomic(pClump, pAtomicClone);
+            RwFrameAddChild(pFrame, pNewFrame);
+        }
+        CVehicleModelInfo::ms_compsUsed[1] = iSecondComp;
+    }
+    else {
+        CVehicleModelInfo::ms_compsUsed[0] = -1;
+        CVehicleModelInfo::ms_compsUsed[1] = -1;
+    }
+
+    RpClumpForAllAtomics(pClump, CVehicleModelInfo::SetEnvironmentMapAtomicCB, nullptr);
+    return reinterpret_cast<RwObject*>(pClump);
+}
+
+void CVehicleModelInfo::SetAnimFile(char const* filename)
+{
+    return CVehicleModelInfo::SetAnimFile_Reversed(filename);
+}
+void CVehicleModelInfo::SetAnimFile_Reversed(char const* filename)
+{
+    if (!strcmp(filename, "null")) {
+        m_dwAnimBlockIndex = -1;
+        return;
+    }
+
+    auto pName = new char[strlen(filename) + 1];
+    m_animBlockFileName = pName;
+    strcpy(pName, filename);
+}
+
+void CVehicleModelInfo::ConvertAnimFileIndex()
+{
+    CVehicleModelInfo::ConvertAnimFileIndex_Reversed();
+}
+void CVehicleModelInfo::ConvertAnimFileIndex_Reversed()
+{
+    if (m_dwAnimBlockIndex == -1)
+        return;
+
+    auto iIndex = CAnimManager::GetAnimationBlockIndex(m_animBlockFileName);
+    delete[] m_animBlockFileName;
+    m_dwAnimBlockIndex = iIndex;
+}
+
+signed int CVehicleModelInfo::GetAnimFileIndex()
+{
+    return CVehicleModelInfo::GetAnimFileIndex_Reversed();
+}
+signed int CVehicleModelInfo::GetAnimFileIndex_Reversed()
+{
+    return m_dwAnimBlockIndex;
 }
 
 void CVehicleModelInfo::SetClump(RpClump* clump)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    ((void(__thiscall*)(CClumpModelInfo*, RpClump*))plugin::GetVMT(this, 16))(this, clump);
-#else
-    SetClump_Reversed(clump);
-#endif
+    CVehicleModelInfo::SetClump_Reversed(clump);
 }
-
 void CVehicleModelInfo::SetClump_Reversed(RpClump* clump)
 {
-    auto pVehicleStructure = (CVehicleStructure*)CVehicleStructure::m_pInfoPool->New();
-    if (pVehicleStructure)
-    {
-        pVehicleStructure->Constructor();
-    }
-
-    m_pVehicleStruct = pVehicleStructure;
+    m_pVehicleStruct = new CVehicleStructure();
     CClumpModelInfo::SetClump(clump);
-    SetAtomicRenderCallbacks();
-    SetFrameIds(ms_vehicleDescs[m_nVehicleType]);
-    SetRenderPipelines();
-    PreprocessHierarchy();
-    ReduceMaterialsInVehicle();
+    CVehicleModelInfo::SetAtomicRenderCallbacks();
+    CClumpModelInfo::SetFrameIds(ms_vehicleDescs[m_nVehicleType]);
+    CVehicleModelInfo::SetRenderPipelines();
+    CVehicleModelInfo::PreprocessHierarchy();
+    CVehicleModelInfo::ReduceMaterialsInVehicle();
     m_nCurrentPrimaryColor = 255;
     m_nCurrentSecondaryColor = 255;
     m_nCurrentTertiaryColor = 255;
     m_nCurrentQuaternaryColor = 255;
-    SetCarCustomPlate();
+    CVehicleModelInfo::SetCarCustomPlate();
 }
-
 
 void CVehicleModelInfo::ShutdownLightTexture()
 {
@@ -363,4 +476,60 @@ int CVehicleModelInfo::GetNumDoors()
 void CVehicleModelInfo::AssignRemapTxd(const char* name, std::int16_t txdSlot)
 {
     plugin::Call<0x4C9360, const char*, std::int16_t>(name, txdSlot);
+}
+
+void CVehicleModelInfo::CLinkedUpgradeList::AddUpgradeLink(std::int16_t upgrade1, std::int16_t upgrade2)
+{
+    m_anUpgrade1[m_nLinksCount] = upgrade1;
+    m_anUpgrade2[m_nLinksCount] = upgrade2;
+    ++m_nLinksCount;
+}
+
+std::int16_t CVehicleModelInfo::CLinkedUpgradeList::FindOtherUpgrade(std::int16_t upgrade)
+{
+    if (!m_nLinksCount)
+        return -1;
+
+    for (int32_t i = m_nLinksCount - 1; i >= 0; --i) {
+        if (m_anUpgrade1[i] == upgrade)
+            return m_anUpgrade2[i];
+
+        if (m_anUpgrade2[i] == upgrade)
+            return m_anUpgrade1[i];
+    }
+
+    return -1;
+}
+
+CVehicleModelInfo::CVehicleStructure::CVehicleStructure() : m_aUpgrades()
+{
+    for (auto& pVecPos : m_avDummyPos)
+        pVecPos.Set(0.0F, 0.0F, 0.0F);
+
+    for (auto& pUpgrade : m_aUpgrades)
+        pUpgrade.m_nParentComponentId = -1;
+
+    memset(m_apExtras, 0, sizeof(m_apExtras));
+    m_nNumExtras = 0;
+    m_nMaskComponentsDamagable = 0;
+}
+
+CVehicleModelInfo::CVehicleStructure::~CVehicleStructure()
+{
+    for (int32_t i = 0; i < m_nNumExtras; ++i) {
+        auto pAtomic = m_apExtras[i];
+        auto pFrame = RpAtomicGetFrame(pAtomic);
+        RpAtomicDestroy(pAtomic);
+        RwFrameDestroy(pFrame);
+    }
+}
+
+void* CVehicleModelInfo::CVehicleStructure::operator new(unsigned int size)
+{
+    return CPools::m_pInfoPool->New();
+}
+
+void CVehicleModelInfo::CVehicleStructure::operator delete(void* data)
+{
+    CPools::m_pInfoPool->Delete(reinterpret_cast<CVehicleStructure*>(data));
 }
