@@ -52,6 +52,49 @@ enum VehicleUpgradePosn {
 	UPGRADE_NITRO,
 };
 
+enum eVehicleComponentFlags : unsigned int {
+    COMP_IS_LEFT             = 0x000020,
+    COMP_IS_RIGHT            = 0x000040,
+    COMP_IS_FRONT            = 0x000080,
+
+    COMP_IS_REAR             = 0x000100,
+    COMP_HAS_ALPHA           = 0x000400,
+    COMP_CULL                = 0x001000,
+    COMP_IS_REAR_DOOR        = 0x002000,
+    COMP_IS_FRONT_DOOR       = 0x004000,
+    COMP_UNKNOWN             = 0x008000,
+
+    COMP_DISABLE_REFLECTIONS = 0x040000,
+    COMP_RENDER_ALWAYS       = 0x400000,
+};
+struct tVehicleComponentFlagsUnion {
+    union {
+        unsigned int m_nFlags;
+        struct {
+            unsigned int          : 5;
+            unsigned int bIsLeft  : 1;
+            unsigned int bIsRight : 1;
+            unsigned int bIsFront : 1;
+
+            unsigned int bIsRear      : 1;
+            unsigned int              : 1;
+            unsigned int bHasAlpha    : 1;
+            unsigned int              : 1;
+            unsigned int bCull        : 1;
+            unsigned int bIsRearDoor  : 1;
+            unsigned int bIsFrontDoor : 1;
+            unsigned int bUnknown     : 1;
+
+            unsigned int                     : 2;
+            unsigned int bDisableReflections : 1;
+            unsigned int                     : 3;
+            unsigned int bRenderAlways       : 1;
+
+        };
+    };
+};
+VALIDATE_SIZE(tVehicleComponentFlagsUnion, 0x4);
+
 struct  UpgradePosnDesc {
 public:
     UpgradePosnDesc() {};
@@ -198,6 +241,8 @@ public:
     static constexpr int NUM_VEHICLE_COLORS = 128;
 	static CRGBA (&ms_vehicleColourTable)[NUM_VEHICLE_COLORS];
 
+    static RwTextureCallBackFind& SavedTextureFindCallback;
+
 public:
     static void InjectHooks();
 
@@ -343,3 +388,5 @@ public:
 
 VALIDATE_SIZE(CVehicleModelInfo::CVehicleStructure, 0x314);
 VALIDATE_SIZE(CVehicleModelInfo, 0x308);
+
+extern RwTexDictionary* &vehicleTxd;

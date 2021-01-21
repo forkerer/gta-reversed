@@ -16,9 +16,12 @@ char (&CVehicleModelInfo::ms_compsUsed)[NUM_COMPS_USAGE] = *(char(*)[NUM_COMPS_U
 char (&CVehicleModelInfo::ms_compsToUse)[NUM_COMPS_USAGE] = *(char(*)[NUM_COMPS_USAGE])0x8A6458;
 short(&CVehicleModelInfo::ms_numWheelUpgrades)[NUM_WHEELS] = *(short(*)[NUM_WHEELS])0xB4E470;
 short(&CVehicleModelInfo::ms_upgradeWheels)[NUM_WHEEL_UPGRADES][NUM_WHEELS] = *(short(*)[NUM_WHEEL_UPGRADES][NUM_WHEELS])0xB4E3F8;
+RwObjectNameIdAssocation* (&CVehicleModelInfo::ms_vehicleDescs)[NUM_VEHICLE_MODEL_DESCS] = *(RwObjectNameIdAssocation*(*)[NUM_VEHICLE_MODEL_DESCS])0x8A7740;
+
+RwTextureCallBackFind & CVehicleModelInfo::SavedTextureFindCallback = *(RwTextureCallBackFind*)0xB4E6A0;
+RwTexDictionary* &vehicleTxd = *(RwTexDictionary**)0xB4E688;
 
 typedef CVehicleModelInfo::CVehicleStructure CVehicleStructure;
-RwObjectNameIdAssocation* (&CVehicleModelInfo::ms_vehicleDescs)[NUM_VEHICLE_MODEL_DESCS] = *(RwObjectNameIdAssocation*(*)[NUM_VEHICLE_MODEL_DESCS])0x8A7740;
 
 void CVehicleModelInfo::InjectHooks()
 {
@@ -35,6 +38,16 @@ void CVehicleModelInfo::InjectHooks()
     ReversibleHooks::Install("CVehicleModelInfo", "ConvertAnimFileIndex", 0x4C76D0, &CVehicleModelInfo::ConvertAnimFileIndex_Reversed);
     ReversibleHooks::Install("CVehicleModelInfo", "GetAnimFileIndex", 0x4C7660, &CVehicleModelInfo::GetAnimFileIndex_Reversed);
     ReversibleHooks::Install("CVehicleModelInfo", "SetClump", 0x4C95C0, &CVehicleModelInfo::SetClump_Reversed);
+
+// Class methods
+    ReversibleHooks::Install("CVehicleModelInfo", "SetAtomicRenderCallbacks", 0x4C7B10, &CVehicleModelInfo::SetAtomicRenderCallbacks);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetVehicleComponentFlags", 0x4C7C10, &CVehicleModelInfo::SetVehicleComponentFlags);
+
+// Static methods
+    ReversibleHooks::Install("CVehicleModelInfo", "ShutdownLightTexture", 0x4C7470, &CVehicleModelInfo::ShutdownLightTexture);
+    ReversibleHooks::Install("CVehicleModelInfo", "FindTextureCB", 0x4C7510, &CVehicleModelInfo::FindTextureCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "UseCommonVehicleTexDicationary", 0x4C75A0, &CVehicleModelInfo::UseCommonVehicleTexDicationary);
+    ReversibleHooks::Install("CVehicleModelInfo", "StopUsingCommonVehicleTexDicationary", 0x4C75C0, &CVehicleModelInfo::StopUsingCommonVehicleTexDicationary);
 }
 
 ModelInfoType CVehicleModelInfo::GetModelType()
@@ -184,30 +197,231 @@ void CVehicleModelInfo::SetClump_Reversed(RpClump* clump)
     CVehicleModelInfo::SetCarCustomPlate();
 }
 
-void CVehicleModelInfo::ShutdownLightTexture()
+void CVehicleModelInfo::SetAtomicRenderCallbacks()
 {
-    ((void(__cdecl*)())0x4C7470)();
+    if (m_nVehicleType == eVehicleType::VEHICLE_TRAIN)
+        RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB_Train, nullptr);
+    else if (m_nVehicleType == eVehicleType::VEHICLE_PLANE || m_nVehicleType == eVehicleType::VEHICLE_FPLANE)
+        RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB_Plane, nullptr);
+    else if (m_nVehicleType == eVehicleType::VEHICLE_BOAT)
+        RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB_Boat, nullptr);
+    else if (m_nVehicleType == eVehicleType::VEHICLE_HELI)
+        RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB_Heli, nullptr);
+    else
+        RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB, nullptr);
 }
 
-RwTexture* CVehicleModelInfo::FindTextureCB(char const* name)
+void CVehicleModelInfo::SetVehicleComponentFlags(RwFrame* component, unsigned int flags)
 {
-    return ((RwTexture * (__cdecl*)(char const*))0x4C7510)(name);
+    tVehicleComponentFlagsUnion flagsUnion;
+    flagsUnion.m_nFlags = flags;
+
+    auto pHandling = &gHandlingDataMgr.m_aVehicleHandling[m_nHandlingId];
+    if (flagsUnion.bCull)
+        RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_CULL);
+
+    if (flagsUnion.bRenderAlways)
+        RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_RENDER_ALWAYS);
+
+    if (flagsUnion.bDisableReflections)
+        RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_DISABLE_REFLECTIONS);
+
+    if (flagsUnion.bIsFront)
+        RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_IS_FRONT);
+    else if (flagsUnion.bIsRear && (pHandling->m_bIsVan || !(flagsUnion.bIsLeft || flagsUnion.bIsRight)))
+        RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_IS_REAR);
+    else if (flagsUnion.bIsLeft)
+        RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_IS_LEFT);
+    else if (flagsUnion.bIsRight)
+        RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_IS_RIGHT);
+
+    if (flagsUnion.bUnknown && (pHandling->m_bIsHatchback || (flagsUnion.bIsFrontDoor || flagsUnion.bIsRearDoor)))
+        RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_VEHCOMP_15);
+
+    if (flagsUnion.bIsRearDoor)
+        RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_IS_REAR_DOOR);
+    else if (flagsUnion.bIsFrontDoor)
+        RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_IS_FRONT_DOOR);
+
+    if (flagsUnion.bHasAlpha)
+        RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_HAS_ALPHA);
 }
 
-void CVehicleModelInfo::UseCommonVehicleTexDicationary()
+void CVehicleModelInfo::GetWheelPosn(int wheel, CVector& outVec, bool local)
 {
-    ((void(__cdecl*)())0x4C75A0)();
+    ((void(__thiscall*)(CVehicleModelInfo*, int, CVector&, bool))0x4C7D20)(this, wheel, outVec, local);
 }
 
-void CVehicleModelInfo::StopUsingCommonVehicleTexDicationary()
+bool CVehicleModelInfo::GetOriginalCompPosition(CVector& outVec, int component)
 {
-    ((void(__cdecl*)())0x4C75C0)();
+    return ((bool(__thiscall*)(CVehicleModelInfo*, CVector&, int))0x4C7DD0)(this, outVec, component);
 }
+
+int CVehicleModelInfo::ChooseComponent()
+{
+    return ((int(__thiscall*)(CVehicleModelInfo*))0x4C8040)(this);
+}
+
+int CVehicleModelInfo::ChooseSecondComponent()
+{
+    return ((int(__thiscall*)(CVehicleModelInfo*))0x4C8120)(this);
+}
+
+bool CVehicleModelInfo::IsUpgradeAvailable(VehicleUpgradePosn upgrade)
+{
+    return ((bool(__thiscall*)(CVehicleModelInfo*, VehicleUpgradePosn))0x4C8200)(this, upgrade);
+}
+
+void CVehicleModelInfo::SetVehicleColour(unsigned char prim, unsigned char sec, unsigned char tert, unsigned char quat)
+{
+    ((void(__thiscall*)(CVehicleModelInfo*, unsigned char, unsigned char, unsigned char, unsigned char))0x4C84B0)(this, prim, sec, tert, quat);
+}
+
+// Converted from thiscall void CVehicleModelInfo::ChooseVehicleColour(unsigned char &prim, unsigned char &sec, unsigned char &tert, unsigned char &quat, int variationShift) 0x4C8500
+void CVehicleModelInfo::ChooseVehicleColour(unsigned char& prim, unsigned char& sec, unsigned char& tert, unsigned char& quat, int variationShift)
+{
+    ((void(__thiscall*)(CVehicleModelInfo*, unsigned char&, unsigned char&, unsigned char&, unsigned char&, int))0x4C8500)(this, prim, sec, tert, quat, variationShift);
+}
+
+// Converted from thiscall int CVehicleModelInfo::GetNumRemaps(void) 0x4C86B0
+int CVehicleModelInfo::GetNumRemaps()
+{
+    return ((int(__thiscall*)(CVehicleModelInfo*))0x4C86B0)(this);
+}
+
+// Converted from thiscall void CVehicleModelInfo::AddRemap(int txd) 0x4C86D0
+void CVehicleModelInfo::AddRemap(int txd)
+{
+    ((void(__thiscall*)(CVehicleModelInfo*, int))0x4C86D0)(this, txd);
+}
+
+void CVehicleModelInfo::SetRenderPipelines()
+{
+    ((void(__thiscall*)(CVehicleModelInfo*))0x4C8900)(this);
+}
+
+char* CVehicleModelInfo::GetCustomCarPlateText()
+{
+    return ((char* (__thiscall*)(CVehicleModelInfo*))0x4C8970)(this);
+}
+
+void CVehicleModelInfo::SetCustomCarPlateText(char* text)
+{
+    ((void(__thiscall*)(CVehicleModelInfo*, char*))0x4C8980)(this, text);
+}
+
+int CVehicleModelInfo::GetMaximumNumberOfPassengersFromNumberOfDoors(int modelId)
+{
+    return ((int(__cdecl*)(int))0x4C89B0)(modelId);
+}
+
+void CVehicleModelInfo::ReduceMaterialsInVehicle()
+{
+    ((void(__thiscall*)(CVehicleModelInfo*))0x4C8BD0)(this);
+}
+
+void CVehicleModelInfo::SetupLightFlags(CVehicle* vehicle)
+{
+    ((void(__thiscall*)(CVehicleModelInfo*, CVehicle*))0x4C8C90)(this, vehicle);
+}
+
+void CVehicleModelInfo::SetCarCustomPlate()
+{
+    ((void(__thiscall*)(CVehicleModelInfo*))0x4C9450)(this);
+}
+
+void CVehicleModelInfo::DisableEnvMap()
+{
+    ((void(__thiscall*)(CVehicleModelInfo*))0x4C97E0)(this);
+}
+
+void CVehicleModelInfo::SetEnvMapCoeff(float coeff)
+{
+    ((void(__thiscall*)(CVehicleModelInfo*, float))0x4C9800)(this, coeff);
+}
+
+int CVehicleModelInfo::GetNumDoors()
+{
+    return ((int(__thiscall*)(CVehicleModelInfo*))0x4C73C0)(this);
+}
+
 
 RpAtomic* CVehicleModelInfo::MoveObjectsCB(RwObject* object, void* data)
 {
     return ((RpAtomic * (__cdecl*)(RwObject*, void*))0x4C7700)(object, data);
 }
+
+RpMaterial* CVehicleModelInfo::SetEditableMaterialsCB(RpMaterial* material, void* data)
+{
+    return ((RpMaterial * (__cdecl*)(RpMaterial*, void*))0x4C8220)(material, data);
+}
+
+RpAtomic* CVehicleModelInfo::SetEditableMaterialsCB(RpAtomic* atomic, void* data)
+{
+    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C83E0)(atomic, data);
+}
+
+void CVehicleModelInfo::ShutdownLightTexture()
+{
+    if (CVehicleModelInfo::ms_pLightsTexture) {
+        RwTextureDestroy(CVehicleModelInfo::ms_pLightsTexture);
+        CVehicleModelInfo::ms_pLightsTexture = nullptr;
+    }
+
+    if (CVehicleModelInfo::ms_pLightsOnTexture) {
+        RwTextureDestroy(CVehicleModelInfo::ms_pLightsOnTexture);
+        CVehicleModelInfo::ms_pLightsOnTexture = nullptr;
+    }
+}
+
+RwTexture* CVehicleModelInfo::FindTextureCB(char const* name)
+{
+    auto dictTex = RwTexDictionaryFindNamedTexture(vehicleTxd, name);
+    if (dictTex)
+        return dictTex;
+
+    auto pCurrent = RwTexDictionaryGetCurrent();
+    auto pNamed = RwTexDictionaryFindNamedTexture(pCurrent, name);
+    if (strncmp(name, "remap", 5))
+        return pNamed;
+
+    // Remap below this point
+    if (pNamed) {
+        pNamed->name[0] = '#';
+        return pNamed;
+    }
+
+    char buffer[32];
+    strcpy(buffer, name);
+    buffer[0] = '#';
+    return RwTexDictionaryFindNamedTexture(pCurrent, buffer);
+}
+
+void CVehicleModelInfo::UseCommonVehicleTexDicationary()
+{
+    CVehicleModelInfo::SavedTextureFindCallback = RwTextureGetFindCallBack();
+    RwTextureSetFindCallBack(CVehicleModelInfo::FindTextureCB);
+}
+
+void CVehicleModelInfo::StopUsingCommonVehicleTexDicationary()
+{
+    RwTextureSetFindCallBack(CVehicleModelInfo::SavedTextureFindCallback);
+    CVehicleModelInfo::SavedTextureFindCallback = nullptr;
+}
+
+// Converted from stdcall void CVehicleModelInfo::SetEditableMaterials(RpClump *clump) 0x4C8430
+void CVehicleModelInfo::SetEditableMaterials(RpClump* clump)
+{
+    ((void(__cdecl*)(RpClump*))0x4C8430)(clump);
+}
+
+// Converted from stdcall void CVehicleModelInfo::ResetEditableMaterials(RpClump *clump) 0x4C8460
+void CVehicleModelInfo::ResetEditableMaterials(RpClump* clump)
+{
+    ((void(__cdecl*)(RpClump*))0x4C8460)(clump);
+}
+
+// Converted from thiscall void CVehicleModelInfo::SetVehicleColour(unsigned char prim, unsigned char sec, unsigned char tert, unsigned char quat) 0x4C84B0
 
 RpAtomic* CVehicleModelInfo::HideDamagedAtomicCB(RpAtomic* atomic, void* data)
 {
@@ -254,11 +468,6 @@ RpAtomic* CVehicleModelInfo::SetAtomicRendererCB_Train(RpAtomic* atomic, void* d
     return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C7AA0)(atomic, data);
 }
 
-void CVehicleModelInfo::SetAtomicRenderCallbacks()
-{
-    ((void(__thiscall*)(CVehicleModelInfo*))0x4C7B10)(this);
-}
-
 RwObject* CVehicleModelInfo::SetAtomicFlagCB(RwObject* object, void* data)
 {
     return ((RwObject * (__cdecl*)(RwObject*, void*))0x4C7B90)(object, data);
@@ -268,88 +477,6 @@ RwObject* CVehicleModelInfo::SetAtomicFlagCB(RwObject* object, void* data)
 RwObject* CVehicleModelInfo::ClearAtomicFlagCB(RwObject* object, void* data)
 {
     return ((RwObject * (__cdecl*)(RwObject*, void*))0x4C7BB0)(object, data);
-}
-
-// Converted from thiscall void CVehicleModelInfo::SetVehicleComponentFlags(RwFrame *component, unsigned int flags) 0x4C7C10
-void CVehicleModelInfo::SetVehicleComponentFlags(RwFrame* component, unsigned int flags)
-{
-    ((void(__thiscall*)(CVehicleModelInfo*, RwFrame*, unsigned int))0x4C7C10)(this, component, flags);
-}
-
-// Converted from thiscall void CVehicleModelInfo::GetWheelPosn(int wheel, CVector &outVec, bool local) 0x4C7D20
-void CVehicleModelInfo::GetWheelPosn(int wheel, CVector& outVec, bool local)
-{
-    ((void(__thiscall*)(CVehicleModelInfo*, int, CVector&, bool))0x4C7D20)(this, wheel, outVec, local);
-}
-
-// Converted from thiscall bool CVehicleModelInfo::GetOriginalCompPosition(CVector &outVec, int component) 0x4C7DD0
-bool CVehicleModelInfo::GetOriginalCompPosition(CVector& outVec, int component)
-{
-    return ((bool(__thiscall*)(CVehicleModelInfo*, CVector&, int))0x4C7DD0)(this, outVec, component);
-}
-
-// Converted from thiscall int CVehicleModelInfo::ChooseComponent(void) 0x4C8040
-int CVehicleModelInfo::ChooseComponent()
-{
-    return ((int(__thiscall*)(CVehicleModelInfo*))0x4C8040)(this);
-}
-
-// Converted from thiscall int CVehicleModelInfo::ChooseSecondComponent(void) 0x4C8120
-int CVehicleModelInfo::ChooseSecondComponent()
-{
-    return ((int(__thiscall*)(CVehicleModelInfo*))0x4C8120)(this);
-}
-
-// Converted from thiscall bool CVehicleModelInfo::IsUpgradeAvailable(VehicleUpgradePosn upgrade) 0x4C8200
-bool CVehicleModelInfo::IsUpgradeAvailable(VehicleUpgradePosn upgrade)
-{
-    return ((bool(__thiscall*)(CVehicleModelInfo*, VehicleUpgradePosn))0x4C8200)(this, upgrade);
-}
-
-RpMaterial* CVehicleModelInfo::SetEditableMaterialsCB(RpMaterial* material, void* data)
-{
-    return ((RpMaterial * (__cdecl*)(RpMaterial*, void*))0x4C8220)(material, data);
-}
-
-RpAtomic* CVehicleModelInfo::SetEditableMaterialsCB(RpAtomic* atomic, void* data)
-{
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C83E0)(atomic, data);
-}
-
-// Converted from stdcall void CVehicleModelInfo::SetEditableMaterials(RpClump *clump) 0x4C8430
-void CVehicleModelInfo::SetEditableMaterials(RpClump* clump)
-{
-    ((void(__cdecl*)(RpClump*))0x4C8430)(clump);
-}
-
-// Converted from stdcall void CVehicleModelInfo::ResetEditableMaterials(RpClump *clump) 0x4C8460
-void CVehicleModelInfo::ResetEditableMaterials(RpClump* clump)
-{
-    ((void(__cdecl*)(RpClump*))0x4C8460)(clump);
-}
-
-// Converted from thiscall void CVehicleModelInfo::SetVehicleColour(unsigned char prim, unsigned char sec, unsigned char tert, unsigned char quat) 0x4C84B0
-void CVehicleModelInfo::SetVehicleColour(unsigned char prim, unsigned char sec, unsigned char tert, unsigned char quat)
-{
-    ((void(__thiscall*)(CVehicleModelInfo*, unsigned char, unsigned char, unsigned char, unsigned char))0x4C84B0)(this, prim, sec, tert, quat);
-}
-
-// Converted from thiscall void CVehicleModelInfo::ChooseVehicleColour(unsigned char &prim, unsigned char &sec, unsigned char &tert, unsigned char &quat, int variationShift) 0x4C8500
-void CVehicleModelInfo::ChooseVehicleColour(unsigned char& prim, unsigned char& sec, unsigned char& tert, unsigned char& quat, int variationShift)
-{
-    ((void(__thiscall*)(CVehicleModelInfo*, unsigned char&, unsigned char&, unsigned char&, unsigned char&, int))0x4C8500)(this, prim, sec, tert, quat, variationShift);
-}
-
-// Converted from thiscall int CVehicleModelInfo::GetNumRemaps(void) 0x4C86B0
-int CVehicleModelInfo::GetNumRemaps()
-{
-    return ((int(__thiscall*)(CVehicleModelInfo*))0x4C86B0)(this);
-}
-
-// Converted from thiscall void CVehicleModelInfo::AddRemap(int txd) 0x4C86D0
-void CVehicleModelInfo::AddRemap(int txd)
-{
-    ((void(__thiscall*)(CVehicleModelInfo*, int))0x4C86D0)(this, txd);
 }
 
 // Converted from stdcall void CVehicleModelInfo::AddWheelUpgrade(int wheelSetNumber, int modelId) 0x4C8700
@@ -403,35 +530,7 @@ RpAtomic* CVehicleModelInfo::SetRenderPipelinesCB(RpAtomic* atomic, void* data)
     return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C88F4)(atomic, data);
 }
 
-void CVehicleModelInfo::SetRenderPipelines()
-{
-    ((void(__thiscall*)(CVehicleModelInfo*))0x4C8900)(this);
-}
 
-char* CVehicleModelInfo::GetCustomCarPlateText()
-{
-    return ((char* (__thiscall*)(CVehicleModelInfo*))0x4C8970)(this);
-}
-
-void CVehicleModelInfo::SetCustomCarPlateText(char* text)
-{
-    ((void(__thiscall*)(CVehicleModelInfo*, char*))0x4C8980)(this, text);
-}
-
-int CVehicleModelInfo::GetMaximumNumberOfPassengersFromNumberOfDoors(int modelId)
-{
-    return ((int(__cdecl*)(int))0x4C89B0)(modelId);
-}
-
-void CVehicleModelInfo::ReduceMaterialsInVehicle()
-{
-    ((void(__thiscall*)(CVehicleModelInfo*))0x4C8BD0)(this);
-}
-
-void CVehicleModelInfo::SetupLightFlags(CVehicle* vehicle)
-{
-    ((void(__thiscall*)(CVehicleModelInfo*, CVehicle*))0x4C8C90)(this, vehicle);
-}
 
 RwFrame* CVehicleModelInfo::CollapseFramesCB(RwFrame* frame, void* data)
 {
@@ -451,26 +550,6 @@ RpAtomic* CVehicleModelInfo::SetEnvironmentMapAtomicCB(RpAtomic* atomic, void* d
 RpAtomic* CVehicleModelInfo::SetEnvMapCoeffAtomicCB(RpAtomic* atomic, void* data)
 {
     return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C9430)(atomic, data);
-}
-
-void CVehicleModelInfo::SetCarCustomPlate()
-{
-    ((void(__thiscall*)(CVehicleModelInfo*))0x4C9450)(this);
-}
-
-void CVehicleModelInfo::DisableEnvMap()
-{
-    ((void(__thiscall*)(CVehicleModelInfo*))0x4C97E0)(this);
-}
-
-void CVehicleModelInfo::SetEnvMapCoeff(float coeff)
-{
-    ((void(__thiscall*)(CVehicleModelInfo*, float))0x4C9800)(this, coeff);
-}
-
-int CVehicleModelInfo::GetNumDoors()
-{
-    return ((int(__thiscall*)(CVehicleModelInfo*))0x4C73C0)(this);
 }
 
 void CVehicleModelInfo::AssignRemapTxd(const char* name, std::int16_t txdSlot)
