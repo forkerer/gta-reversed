@@ -15,6 +15,7 @@ CRGBA (&CVehicleModelInfo::ms_vehicleColourTable)[NUM_VEHICLE_COLORS] = *(CRGBA(
 char (&CVehicleModelInfo::ms_compsUsed)[NUM_COMPS_USAGE] = *(char(*)[NUM_COMPS_USAGE])0xB4E478;
 char (&CVehicleModelInfo::ms_compsToUse)[NUM_COMPS_USAGE] = *(char(*)[NUM_COMPS_USAGE])0x8A6458;
 short(&CVehicleModelInfo::ms_numWheelUpgrades)[NUM_WHEELS] = *(short(*)[NUM_WHEELS])0xB4E470;
+int (&CVehicleModelInfo::ms_wheelFrameIDs)[NUM_WHEELS] = *(int(*)[NUM_WHEELS])0x8A7770;
 short(&CVehicleModelInfo::ms_upgradeWheels)[NUM_WHEEL_UPGRADES][NUM_WHEELS] = *(short(*)[NUM_WHEEL_UPGRADES][NUM_WHEELS])0xB4E3F8;
 RwObjectNameIdAssocation* (&CVehicleModelInfo::ms_vehicleDescs)[NUM_VEHICLE_MODEL_DESCS] = *(RwObjectNameIdAssocation*(*)[NUM_VEHICLE_MODEL_DESCS])0x8A7740;
 
@@ -42,12 +43,21 @@ void CVehicleModelInfo::InjectHooks()
 // Class methods
     ReversibleHooks::Install("CVehicleModelInfo", "SetAtomicRenderCallbacks", 0x4C7B10, &CVehicleModelInfo::SetAtomicRenderCallbacks);
     ReversibleHooks::Install("CVehicleModelInfo", "SetVehicleComponentFlags", 0x4C7C10, &CVehicleModelInfo::SetVehicleComponentFlags);
+    ReversibleHooks::Install("CVehicleModelInfo", "GetWheelPosn", 0x4C7D20, &CVehicleModelInfo::GetWheelPosn);
+    ReversibleHooks::Install("CVehicleModelInfo", "GetOriginalCompPosition", 0x4C7DD0, &CVehicleModelInfo::GetOriginalCompPosition);
+    ReversibleHooks::Install("CVehicleModelInfo", "ChooseComponent", 0x4C8040, &CVehicleModelInfo::ChooseComponent);
 
 // Static methods
     ReversibleHooks::Install("CVehicleModelInfo", "ShutdownLightTexture", 0x4C7470, &CVehicleModelInfo::ShutdownLightTexture);
     ReversibleHooks::Install("CVehicleModelInfo", "FindTextureCB", 0x4C7510, &CVehicleModelInfo::FindTextureCB);
     ReversibleHooks::Install("CVehicleModelInfo", "UseCommonVehicleTexDicationary", 0x4C75A0, &CVehicleModelInfo::UseCommonVehicleTexDicationary);
     ReversibleHooks::Install("CVehicleModelInfo", "StopUsingCommonVehicleTexDicationary", 0x4C75C0, &CVehicleModelInfo::StopUsingCommonVehicleTexDicationary);
+
+// Other
+    ReversibleHooks::Install("CVehicleModelInfo", "HELP_IsValidCompRule", 0x4C7E10, &IsValidCompRule);
+    ReversibleHooks::Install("CVehicleModelInfo", "HELP_ChooseComponent", 0x4C7FB0, &::ChooseComponent);
+    ReversibleHooks::Install("CVehicleModelInfo", "HELP_CountCompsInRule", 0x4C7F80, &CountCompsInRule);
+    ReversibleHooks::Install("CVehicleModelInfo", "HELP_GetListOfComponentsNotUsedByRules", 0x4C7E50, &GetListOfComponentsNotUsedByRules);
 }
 
 ModelInfoType CVehicleModelInfo::GetModelType()
@@ -235,7 +245,7 @@ void CVehicleModelInfo::SetVehicleComponentFlags(RwFrame* component, unsigned in
     else if (flagsUnion.bIsRight)
         RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_IS_RIGHT);
 
-    if (flagsUnion.bUnknown && (pHandling->m_bIsHatchback || (flagsUnion.bIsFrontDoor || flagsUnion.bIsRearDoor)))
+    if (flagsUnion.bUnknown && (pHandling->m_bIsHatchback || flagsUnion.bIsFrontDoor || flagsUnion.bIsRearDoor))
         RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_VEHCOMP_15);
 
     if (flagsUnion.bIsRearDoor)
@@ -249,17 +259,53 @@ void CVehicleModelInfo::SetVehicleComponentFlags(RwFrame* component, unsigned in
 
 void CVehicleModelInfo::GetWheelPosn(int wheel, CVector& outVec, bool local)
 {
-    ((void(__thiscall*)(CVehicleModelInfo*, int, CVector&, bool))0x4C7D20)(this, wheel, outVec, local);
+    auto pFrame = CClumpModelInfo::GetFrameFromId(m_pRwClump, CVehicleModelInfo::ms_wheelFrameIDs[wheel]);
+
+    if (m_nVehicleType != eVehicleType::VEHICLE_PLANE || local)
+        outVec = *RwMatrixGetPos(RwFrameGetMatrix(pFrame));
+    else {
+        auto pMatrix = RwMatrixCreate();
+        memcpy(pMatrix, RwFrameGetMatrix(pFrame), sizeof(CMatrix));
+        auto pParent = RwFrameGetParent(pFrame);
+        while (pParent) {
+            RwMatrixTransform(pMatrix, RwFrameGetMatrix(pParent), RwOpCombineType::rwCOMBINEPOSTCONCAT);
+            pParent = RwFrameGetParent(pParent);
+        }
+
+        outVec = *RwMatrixGetPos(pMatrix);
+        RwMatrixDestroy(pMatrix);
+    }
 }
 
 bool CVehicleModelInfo::GetOriginalCompPosition(CVector& outVec, int component)
 {
-    return ((bool(__thiscall*)(CVehicleModelInfo*, CVector&, int))0x4C7DD0)(this, outVec, component);
+    auto pFrame = CClumpModelInfo::GetFrameFromId(m_pRwClump, component);
+    if (!pFrame)
+        return false;
+
+    outVec = *RwMatrixGetPos(RwFrameGetMatrix(pFrame));
+    return true;
 }
 
 int CVehicleModelInfo::ChooseComponent()
 {
-    return ((int(__thiscall*)(CVehicleModelInfo*))0x4C8040)(this);
+    auto result = CVehicleModelInfo::ms_compsToUse[0];
+    if (result != -2) {
+        CVehicleModelInfo::ms_compsToUse[0] = -2;
+        return result;
+    }
+
+    if (m_extraComps.nExtraARule && IsValidCompRule(m_extraComps.nExtraARule)) {
+        return ::ChooseComponent(m_extraComps.nExtraARule, m_extraComps.nExtraAComp);
+    }
+    else if (CGeneral::GetRandomNumberInRange(0.0F, 3.0F) < 2.0F) {
+        int anVariations[6];
+        auto numComps = GetListOfComponentsNotUsedByRules(m_extraComps.nExtraA, m_pVehicleStruct->m_nNumExtras, anVariations);
+        if (numComps)
+            return anVariations[CGeneral::GetRandomNumberInRange(0, numComps)];
+    }
+
+    return -1;
 }
 
 int CVehicleModelInfo::ChooseSecondComponent()
@@ -611,4 +657,94 @@ void* CVehicleModelInfo::CVehicleStructure::operator new(unsigned int size)
 void CVehicleModelInfo::CVehicleStructure::operator delete(void* data)
 {
     CPools::m_pInfoPool->Delete(reinterpret_cast<CVehicleStructure*>(data));
+}
+
+bool IsValidCompRule(int nRule)
+{
+    return nRule != eComponentsRules::ONLY_WHEN_RAINING
+        || CWeather::OldWeatherType == eWeatherType::WEATHER_RAINY_COUNTRYSIDE
+        || CWeather::NewWeatherType == eWeatherType::WEATHER_RAINY_COUNTRYSIDE
+        || CWeather::OldWeatherType == eWeatherType::WEATHER_RAINY_SF
+        || CWeather::NewWeatherType == eWeatherType::WEATHER_RAINY_SF;
+}
+
+int ChooseComponent(int rule, int comps)
+{
+    if (rule == eComponentsRules::ALLOW_ALWAYS || rule == eComponentsRules::ONLY_WHEN_RAINING) {
+        auto iNumComps = CountCompsInRule(comps);
+        auto rand = CGeneral::GetRandomNumberInRange(0, iNumComps);
+        return (comps >> (4 * rand)) & 0xF;
+    }
+    else if (rule == eComponentsRules::MAYBE_HIDE) {
+        auto iNumComps = CountCompsInRule(comps);
+        auto rand = CGeneral::GetRandomNumberInRange(-1, iNumComps);
+        if (rand == -1)
+            return -1;
+
+        return (comps >> (4 * rand)) & 0xF;
+    }
+    else if (rule == eComponentsRules::FULL_RANDOM) {
+        return CGeneral::GetRandomNumberInRange(0, 5);
+    }
+    else
+        return -1;
+}
+
+int CountCompsInRule(int comps)
+{
+    int result = 0;
+    while (comps) {
+        if ((comps & 0xF) != 0xF)
+            ++result;
+
+        comps /= 16;
+    }
+
+    return result;
+}
+
+int GetListOfComponentsNotUsedByRules(unsigned int compRules, int numExtras, int* outList)
+{
+    int iCompsList[]{ 0, 1, 2, 3, 4, 5 };
+    tVehicleCompsUnion comps;
+    comps.m_nComps = compRules;
+
+    if (comps.nExtraARule && IsValidCompRule(comps.nExtraARule)) {
+        if (comps.nExtraARule == eComponentsRules::FULL_RANDOM)
+            return 0;
+
+        if (comps.nExtraA_comp1 != 0xF)
+            iCompsList[comps.nExtraA_comp1] = 0xF;
+
+        if (comps.nExtraA_comp2 != 0xF)
+            iCompsList[comps.nExtraA_comp2] = 0xF;
+
+        if (comps.nExtraA_comp3 != 0xF)
+            iCompsList[comps.nExtraA_comp3] = 0xF;
+    }
+
+    if (comps.nExtraBRule && IsValidCompRule(comps.nExtraBRule)) {
+        if (comps.nExtraBRule == eComponentsRules::FULL_RANDOM)
+            return 0;
+
+        if (comps.nExtraB_comp1 != 0xF)
+            iCompsList[comps.nExtraA_comp1] = 0xF;
+
+        if (comps.nExtraB_comp2 != 0xF)
+            iCompsList[comps.nExtraA_comp2] = 0xF;
+
+        if (comps.nExtraB_comp3 != 0xF)
+            iCompsList[comps.nExtraA_comp3] = 0xF;
+    }
+
+    auto iNumComps = 0;
+    for (int i = 0; i < numExtras; ++i) {
+        if (iCompsList[i] == 0xF)
+            continue;
+
+        outList[iNumComps] = i;
+        ++iNumComps;
+    }
+
+    return iNumComps;
 }

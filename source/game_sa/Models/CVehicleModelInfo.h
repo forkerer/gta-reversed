@@ -95,6 +95,40 @@ struct tVehicleComponentFlagsUnion {
 };
 VALIDATE_SIZE(tVehicleComponentFlagsUnion, 0x4);
 
+enum eComponentsRules {
+    ALLOW_ALWAYS      = 1,
+    ONLY_WHEN_RAINING = 2,
+    MAYBE_HIDE        = 3,
+    FULL_RANDOM       = 4,
+};
+union tVehicleCompsUnion {
+    unsigned int m_nComps;
+    struct {
+        unsigned int nExtraA_comp1 : 4;
+        unsigned int nExtraA_comp2 : 4;
+        unsigned int nExtraA_comp3 : 4;
+        unsigned int               : 4;
+
+        unsigned int nExtraB_comp1 : 4;
+        unsigned int nExtraB_comp2 : 4;
+        unsigned int nExtraB_comp3 : 4;
+        unsigned int               : 4;
+    };
+    struct {
+        unsigned int nExtraAComp : 12;
+        unsigned int nExtraARule : 4;
+
+        unsigned int nExtraBComp : 12;
+        unsigned int nExtraBRule : 4;
+    };
+
+    struct {
+        unsigned int nExtraA : 16;
+        unsigned int nExtraB : 16;
+    };
+};
+VALIDATE_SIZE(tVehicleCompsUnion, 0x4);
+
 struct  UpgradePosnDesc {
 public:
     UpgradePosnDesc() {};
@@ -128,19 +162,7 @@ public:
 	unsigned char m_nTimesUsed;
     char field_51;
 	unsigned short m_nFrq;
-	union{
-		unsigned int m_nCompRules;
-		struct{
-			unsigned int nExtraA_comp1 : 4;
-			unsigned int nExtraA_comp2 : 4;
-			unsigned int nExtraA_comp3 : 4;
-			unsigned int nExtraA_rule : 4;
-			unsigned int nExtraB_comp1 : 4;
-			unsigned int nExtraB_comp2 : 4;
-			unsigned int nExtraB_comp3 : 4;
-			unsigned int nExtraB_rule : 4;
-		} m_nCompRulesBits;
-	};
+    tVehicleCompsUnion m_extraComps;
 	float m_fBikeSteerAngle;
 
     class CVehicleStructure {
@@ -220,6 +242,8 @@ public:
 	// static short ms_numWheelUpgrades[4];
     static constexpr int NUM_WHEELS = 4;
 	static short (&ms_numWheelUpgrades)[NUM_WHEELS];
+
+    static int(&ms_wheelFrameIDs)[NUM_WHEELS];
 
 	// wheels upgrades data
 	// static short ms_upgradeWheels[15][4];
@@ -385,8 +409,12 @@ public:
 	static RpAtomic *SetEnvMapCoeffAtomicCB(RpAtomic *atomic, void *data);
 	static void AssignRemapTxd(const char* name, std::int16_t txdSlot);
 };
-
 VALIDATE_SIZE(CVehicleModelInfo::CVehicleStructure, 0x314);
 VALIDATE_SIZE(CVehicleModelInfo, 0x308);
+
+static bool IsValidCompRule(int nRule);
+static int ChooseComponent(int rule, int comps);
+static int CountCompsInRule(int comps);
+static int GetListOfComponentsNotUsedByRules(unsigned int compRules, int numExtras, int* outList);
 
 extern RwTexDictionary* &vehicleTxd;
