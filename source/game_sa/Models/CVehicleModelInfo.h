@@ -202,7 +202,7 @@ public:
     static void InjectHooks();
 
 public:
-    // VTable
+// VTable
     ModelInfoType GetModelType() override;
     void Init() override;
     void DeleteRwObject() override;
@@ -212,7 +212,7 @@ public:
     signed int GetAnimFileIndex() override;
     void SetClump(RpClump* clump) override;
 
-    // VTable implementations
+// VTable implementations
     ModelInfoType GetModelType_Reversed();
     void Init_Reversed();
     void DeleteRwObject_Reversed();
@@ -222,6 +222,62 @@ public:
     signed int GetAnimFileIndex_Reversed();
     void SetClump_Reversed(RpClump* clump);
 
+// Class methods
+    // setup model render callbacks
+    void SetAtomicRenderCallbacks();
+    // set component flags
+    void SetVehicleComponentFlags(RwFrame* component, unsigned int flags);
+    // get wheel position. Wheel is wheel id [0-3]. Local - get local offset (if false it will get world position)
+    void GetWheelPosn(int wheel, CVector& outVec, bool local);
+    // get component local offset. Component is a frame hierarchy id. Returns true if component present
+    bool GetOriginalCompPosition(CVector& outVec, int component);
+    // get vehicle extra with rules. Returns extra id.
+    int ChooseComponent();
+    // get vehicle second extra with rules. Returns extra id.
+    int ChooseSecondComponent();
+    // check if upgrade is available
+    bool IsUpgradeAvailable(VehicleUpgradePosn upgrade);
+    // change colors and settings of material according to vehicle color and lights states.  Data 
+    // contains pointer to restore entries
+    RpMaterial* SetEditableMaterialsCB(RpMaterial* material, void* data);
+    // execute SetEditableMaterialsCB(RpMaterial *, void *) for atomic materials and also remove
+    // vehicle window if needed. Data contains pointer to restore entries
+    RpAtomic* SetEditableMaterialsCB(RpAtomic* atomic, void* data);
+    // execute SetEditableMaterialsCB(RpAtomic *, void *) for atomics in clump. This one is called
+    // before vehicle rendering
+    void SetEditableMaterials(RpClump* clump);
+    // reset materials settings. This one is called after vehicle rendering
+    void ResetEditableMaterials(RpClump* clump);
+    // set current vehicle colour for model
+    void SetVehicleColour(unsigned char prim, unsigned char sec, unsigned char tert, unsigned char quat);
+    // get color for car. variationShift determines how many color variations to skip. 
+    // For example, 1 will simply give you next color variation.
+    void ChooseVehicleColour(unsigned char& prim, unsigned char& sec, unsigned char& tert, unsigned char& quat, int variationShift);
+    // get num remaps in this model
+    int GetNumRemaps();
+    // add remap to model. Txd is id of tex dictionary.
+    void AddRemap(int txd);
+    // setups rendering pipelines for atomics in model (CCustomCarEnvMapPipeline::CustomPipeAtomicSetup)
+    void SetRenderPipelines();
+    // gets car plate text
+    char* GetCustomCarPlateText();
+    // sets plate text
+    void SetCustomCarPlateText(char* text);
+    // remove some unused materials in model?
+    void ReduceMaterialsInVehicle();
+    // setup lights states for currenly rendered vehicle
+    void SetupLightFlags(class CVehicle* vehicle);
+    // setup vehicle model components
+    void PreprocessHierarchy();
+    // setup custom plate
+    void SetCarCustomPlate();
+    // disable environment map effect on model
+    void DisableEnvMap();
+    // setup environment map intensity for model
+    void SetEnvMapCoeff(float coeff);
+    // get num doors in this model
+    int GetNumDoors();
+//Static methods
 	// destroying vehiclelights textures
 	static void ShutdownLightTexture();
 	// find remap texture with name
@@ -232,8 +288,7 @@ public:
 	static void StopUsingCommonVehicleTexDicationary();
 	// set new parent frame for object. Data is actually RwFrame *
 	static RpAtomic *MoveObjectsCB(RwObject *object, void *data);
-	// this is used to disable _dam atomic and "enable" _ok atomic at vehicle model setup. Data is 
-	// unused
+	// this is used to disable _dam atomic and "enable" _ok atomic at vehicle model setup. Data is unused
 	static RpAtomic *HideDamagedAtomicCB(RpAtomic *atomic, void *data);
 	// hide all atomics with state data (data is actually unsigned char)
 	static RpAtomic *HideAllComponentsAtomicCB(RpAtomic *atomic, void *data);
@@ -250,48 +305,11 @@ public:
 	// setup heli renderer. Data is unused
 	static RpAtomic *SetAtomicRendererCB_Heli(RpAtomic *atomic, void *data);
 	// setup train renderer. Data is unused
-	static RpAtomic *SetAtomicRendererCB_Train(RpAtomic *atomic, void *data);
-	// setup model render callbacks
-	void SetAtomicRenderCallbacks();
+	static RpAtomic *SetAtomicRendererCB_Train(RpAtomic *atomic, void *data);	
 	// setup objects flag. Data is actually flag (unsigned short)
 	static RwObject *SetAtomicFlagCB(RwObject *object, void *data);
 	// clear all atomic flag. Data is actually flag (unsigned short)
-	static RwObject *ClearAtomicFlagCB(RwObject *object, void *data);
-	// set component flags
-	void SetVehicleComponentFlags(RwFrame *component, unsigned int flags);
-	// get wheel position. Wheel is wheel id [0-3]. Local - get local offset (if false it will get 
-	// world position)
-	void GetWheelPosn(int wheel, CVector &outVec, bool local);
-	// get component local offset. Component is a frame hierarchy id. Returns true if component present
-	bool GetOriginalCompPosition(CVector &outVec, int component);
-	// get vehicle extra with rules. Returns extra id.
-	int ChooseComponent();
-	// get vehicle second extra with rules. Returns extra id.
-	int ChooseSecondComponent();
-	// check if upgrade is available
-	bool IsUpgradeAvailable(VehicleUpgradePosn upgrade);
-	// change colors and settings of material according to vehicle color and lights states.  Data 
-	// contains pointer to restore entries
-	RpMaterial *SetEditableMaterialsCB(RpMaterial *material, void *data);
-	// execute SetEditableMaterialsCB(RpMaterial *, void *) for atomic materials and also remove
-	// vehicle window if needed. Data contains pointer to restore entries
-	RpAtomic *SetEditableMaterialsCB(RpAtomic *atomic, void *data);
-	// execute SetEditableMaterialsCB(RpAtomic *, void *) for atomics in clump. This one is called
-	// before vehicle rendering
-	void SetEditableMaterials(RpClump *clump);
-	// reset materials settings. This one is called after vehicle rendering
-	void ResetEditableMaterials(RpClump *clump);
-	// set current vehicle colour for model
-	void SetVehicleColour(unsigned char prim, unsigned char sec, unsigned char tert, 
-		unsigned char quat);
-	// get color for car. variationShift determines how many color variations to skip. 
-	// For example, 1 will simply give you next color variation.
-	void ChooseVehicleColour(unsigned char &prim, unsigned char &sec, unsigned char &tert, 
-		unsigned char &quat, int variationShift);
-	// get num remaps in this model
-	int GetNumRemaps();
-	// add remap to model. Txd is id of tex dictionary.
-	void AddRemap(int txd);
+	static RwObject *ClearAtomicFlagCB(RwObject *object, void *data);	
 	// adds wheel upgrade. This one is called from LoadVehicleUpgrades()
 	static void AddWheelUpgrade(int wheelSetNumber, int modelId);
 	// gets num upgrades for this set
@@ -312,35 +330,14 @@ public:
 	static RpMaterial *SetEnvMapCoeffCB(RpMaterial *material, void *data);
 	// do nothing
 	static RpAtomic *SetRenderPipelinesCB(RpAtomic *atomic, void *data);
-	// setups rendering pipelines for atomics in model (CCustomCarEnvMapPipeline::CustomPipeAtomicSetup)
-	void SetRenderPipelines();
-	// gets car plate text
-	// return m_plateText[0] != '\0' ? m_plateText : NULL;
-	char *GetCustomCarPlateText();
-	// sets plate text
-	void SetCustomCarPlateText(char *text);
 	// gets max number of passengers for model
 	static int GetMaximumNumberOfPassengersFromNumberOfDoors(int modelId);
-	// remove some unused materials in model?
-	void ReduceMaterialsInVehicle();
-	// setup lights states for currenly rendered vehicle
-	void SetupLightFlags(class CVehicle *vehicle);
 	// move all objects from data (it is actually RwFrame *) to frame
 	static RwFrame *CollapseFramesCB(RwFrame *frame, void *data);
-	// setup vehicle model components
-	void PreprocessHierarchy();
 	// setup environment map for atomic's materials. Data is actually int and it represents effect id
 	static RpAtomic *SetEnvironmentMapAtomicCB(RpAtomic *atomic, void *data);
 	// setup environment map intensity for atomic with data (unsigned int)
 	static RpAtomic *SetEnvMapCoeffAtomicCB(RpAtomic *atomic, void *data);
-	// setup custom plate
-	void SetCarCustomPlate();
-	// disable environment map effect on model
-	void DisableEnvMap();
-	// setup environment map intensity for model
-	void SetEnvMapCoeff(float coeff);
-    // get num doors in this model
-    int GetNumDoors();
 	static void AssignRemapTxd(const char* name, std::int16_t txdSlot);
 };
 
