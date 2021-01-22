@@ -278,7 +278,7 @@ RpAtomic* CClumpModelInfo::AtomicSetupLightingCB(RpAtomic* atomic, void* data)
 {
     if (CCustomBuildingRenderer::IsCBPCPipelineAttached(atomic))
         CCustomBuildingRenderer::AtomicSetup(atomic);
-    else if (CCarFXRenderer::IsCBPCPipelineAttached(atomic))
+    else if (CCarFXRenderer::IsCCPCPipelineAttached(atomic))
         CCarFXRenderer::CustomCarPipeAtomicSetup(atomic);
 
     return atomic;

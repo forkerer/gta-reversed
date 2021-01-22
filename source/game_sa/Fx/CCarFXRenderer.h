@@ -3,9 +3,21 @@
 class CCarFXRenderer
 {
 public:
-    static bool IsCBPCPipelineAttached(RpAtomic* pAtomic);
+    static void Initialise();
+    static void Shutdown();
+    static void PreRenderUpdate();
+
+    static void RegisterPlugins();
     static bool IsCCPCPipelineAttached(RpAtomic* pAtomic);
+
     static void CustomCarPipeAtomicSetup(RpAtomic* pAtomic);
-    static void SetCustomFXAtomicRenderPipelinesVMICB(RpAtomic* pAtomic, void* data);
-    static float SetFxEnvMapLightMult(float multiplier);
+    static void CustomCarPipeClumpSetup(RpClump* pClump);
+
+    static void InitialiseDirtTexture();
+    static RpMaterial* MaterialRemapDirtCB(RpMaterial*, void*);
+    static RpAtomic* AtomicRemapDirtCB(RpAtomic*, void*);
+    static RpAtomic* SetCustomFXAtomicRenderPipelinesVMICB(RpAtomic* pAtomic, void* data);
+
+    static float GetFxEnvMapLightMult();
+    static void SetFxEnvMapLightMult(float multiplier);
 };

@@ -143,7 +143,7 @@ void CAtomicModelInfo::SetAtomic_Reversed(RpAtomic* atomic)
 
     if (CCustomBuildingRenderer::IsCBPCPipelineAttached(m_pRwAtomic))
         CCustomBuildingRenderer::AtomicSetup(m_pRwAtomic);
-    else if (CCarFXRenderer::IsCBPCPipelineAttached(m_pRwAtomic))
+    else if (CCarFXRenderer::IsCCPCPipelineAttached(m_pRwAtomic))
         CCarFXRenderer::SetCustomFXAtomicRenderPipelinesVMICB(m_pRwAtomic, nullptr);
 
     if (!bTagDisabled && IsTagModel())

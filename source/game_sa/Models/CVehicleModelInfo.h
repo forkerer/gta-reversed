@@ -408,6 +408,8 @@ public:
 	// setup environment map intensity for atomic with data (unsigned int)
 	static RpAtomic *SetEnvMapCoeffAtomicCB(RpAtomic *atomic, void *data);
 	static void AssignRemapTxd(const char* name, std::int16_t txdSlot);
+
+    static RpAtomic* StoreAtomicUsedMaterialsCB(RpAtomic* atomic, void* data); // matList is RpMaterialList
 };
 VALIDATE_SIZE(CVehicleModelInfo::CVehicleStructure, 0x314);
 VALIDATE_SIZE(CVehicleModelInfo, 0x308);
@@ -418,3 +420,4 @@ static int CountCompsInRule(int comps);
 static int GetListOfComponentsNotUsedByRules(unsigned int compRules, int numExtras, int* outList);
 
 extern RwTexDictionary* &vehicleTxd;
+extern RwFrame* &carFrame;
