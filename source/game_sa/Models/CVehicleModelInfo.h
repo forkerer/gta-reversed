@@ -252,7 +252,8 @@ public:
 
 	// lights states for currently rendered car
 	// static char *ms_lightsOn[4];
-	static char *ms_lightsOn;
+    static constexpr int NUM_LIGHTS = 4;
+	static char (&ms_lightsOn)[NUM_LIGHTS];
 
 	// extras ids for next-spawned car
 	// static char ms_compsUsed[2];

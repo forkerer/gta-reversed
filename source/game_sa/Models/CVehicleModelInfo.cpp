@@ -17,6 +17,7 @@ char (&CVehicleModelInfo::ms_compsToUse)[NUM_COMPS_USAGE] = *(char(*)[NUM_COMPS_
 short(&CVehicleModelInfo::ms_numWheelUpgrades)[NUM_WHEELS] = *(short(*)[NUM_WHEELS])0xB4E470;
 int (&CVehicleModelInfo::ms_wheelFrameIDs)[NUM_WHEELS] = *(int(*)[NUM_WHEELS])0x8A7770;
 short(&CVehicleModelInfo::ms_upgradeWheels)[NUM_WHEEL_UPGRADES][NUM_WHEELS] = *(short(*)[NUM_WHEEL_UPGRADES][NUM_WHEELS])0xB4E3F8;
+char(&CVehicleModelInfo::ms_lightsOn)[NUM_LIGHTS] = *(char(*)[NUM_LIGHTS])0xB4E3E8;
 RwObjectNameIdAssocation* (&CVehicleModelInfo::ms_vehicleDescs)[NUM_VEHICLE_MODEL_DESCS] = *(RwObjectNameIdAssocation*(*)[NUM_VEHICLE_MODEL_DESCS])0x8A7740;
 
 RwTextureCallBackFind & CVehicleModelInfo::SavedTextureFindCallback = *(RwTextureCallBackFind*)0xB4E6A0;
@@ -57,6 +58,11 @@ void CVehicleModelInfo::InjectHooks()
     ReversibleHooks::Install("CVehicleModelInfo", "GetCustomCarPlateText", 0x4C8970, &CVehicleModelInfo::GetCustomCarPlateText);
     ReversibleHooks::Install("CVehicleModelInfo", "SetCustomCarPlateText", 0x4C8980, &CVehicleModelInfo::SetCustomCarPlateText);
     ReversibleHooks::Install("CVehicleModelInfo", "ReduceMaterialsInVehicle", 0x4C8BD0, &CVehicleModelInfo::ReduceMaterialsInVehicle);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetupLightFlags", 0x4C8C90, &CVehicleModelInfo::SetupLightFlags);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetCarCustomPlate", 0x4C9450, &CVehicleModelInfo::SetCarCustomPlate);
+    ReversibleHooks::Install("CVehicleModelInfo", "DisableEnvMap", 0x4C97E0, &CVehicleModelInfo::DisableEnvMap);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetEnvMapCoeff", 0x4C9800, &CVehicleModelInfo::SetEnvMapCoeff);
+    ReversibleHooks::Install("CVehicleModelInfo", "GetNumDoors", 0x4C73C0, &CVehicleModelInfo::GetNumDoors);
 
 // Static methods
     ReversibleHooks::Install("CVehicleModelInfo", "ShutdownLightTexture", 0x4C7470, &CVehicleModelInfo::ShutdownLightTexture);
@@ -483,27 +489,44 @@ void CVehicleModelInfo::ReduceMaterialsInVehicle()
 
 void CVehicleModelInfo::SetupLightFlags(CVehicle* vehicle)
 {
-    ((void(__thiscall*)(CVehicleModelInfo*, CVehicle*))0x4C8C90)(this, vehicle);
+    CVehicleModelInfo::ms_lightsOn[eLights::LIGHT_FRONT_LEFT] = vehicle->m_renderLights.m_bLeftFront;
+    CVehicleModelInfo::ms_lightsOn[eLights::LIGHT_FRONT_RIGHT] = vehicle->m_renderLights.m_bRightFront;
+    CVehicleModelInfo::ms_lightsOn[eLights::LIGHT_REAR_RIGHT] = vehicle->m_renderLights.m_bRightRear;
+    CVehicleModelInfo::ms_lightsOn[eLights::LIGHT_REAR_LEFT] = vehicle->m_renderLights.m_bLeftRear;
 }
 
 void CVehicleModelInfo::SetCarCustomPlate()
 {
-    ((void(__thiscall*)(CVehicleModelInfo*))0x4C9450)(this);
+    m_pPlateMaterial = nullptr;
+    CVehicleModelInfo::SetCustomCarPlateText(nullptr);
+
+    char plateBuffer[8];
+    CCustomCarPlateMgr::GeneratePlateText(plateBuffer, 8);
+    auto pMaterial = CCustomCarPlateMgr::SetupClump(m_pRwClump, plateBuffer, m_nPlateType);
+    if (pMaterial)
+        m_pPlateMaterial = pMaterial;
 }
 
 void CVehicleModelInfo::DisableEnvMap()
 {
-    ((void(__thiscall*)(CVehicleModelInfo*))0x4C97E0)(this);
+    if (!m_pRwObject)
+        return;
+
+    RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetEnvironmentMapAtomicCB, (void*)0xFFFF);
 }
 
 void CVehicleModelInfo::SetEnvMapCoeff(float coeff)
 {
-    ((void(__thiscall*)(CVehicleModelInfo*, float))0x4C9800)(this, coeff);
+    auto iUsedCoeff = static_cast<int>(floor(coeff * 1000.0F));
+    if (!m_pRwObject)
+        return;
+
+    RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetEnvMapCoeffAtomicCB, (void*)iUsedCoeff);
 }
 
 int CVehicleModelInfo::GetNumDoors()
 {
-    return ((int(__thiscall*)(CVehicleModelInfo*))0x4C73C0)(this);
+    return m_nNumDoors;
 }
 
 int CVehicleModelInfo::GetMaximumNumberOfPassengersFromNumberOfDoors(int modelId)
