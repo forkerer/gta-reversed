@@ -73,10 +73,22 @@ void CVehicleModelInfo::InjectHooks()
     ReversibleHooks::Install("CVehicleModelInfo", "StopUsingCommonVehicleTexDicationary", 0x4C75C0, &CVehicleModelInfo::StopUsingCommonVehicleTexDicationary);
     ReversibleHooks::Install("CVehicleModelInfo", "FindTextureCB", 0x4C7510, &CVehicleModelInfo::FindTextureCB);
     ReversibleHooks::Install("CVehicleModelInfo", "MoveObjectsCB", 0x4C7700, &CVehicleModelInfo::MoveObjectsCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "ResetEditableMaterials", 0x4C8460, &CVehicleModelInfo::ResetEditableMaterials);
     ReversibleHooks::Install("CVehicleModelInfo", "SetEditableMaterials", 0x4C8430, &CVehicleModelInfo::SetEditableMaterials);
     ReversibleHooks::Install("CVehicleModelInfo", "SetEditableMaterialsCB_RpMaterial", 0x4C8220, (RpMaterial*(*)(RpMaterial*, void*))(&CVehicleModelInfo::SetEditableMaterialsCB));
     ReversibleHooks::Install("CVehicleModelInfo", "SetEditableMaterialsCB_RpAtomic", 0x4C83E0, (RpAtomic * (*)(RpAtomic*, void*))(&CVehicleModelInfo::SetEditableMaterialsCB));
     ReversibleHooks::Install("CVehicleModelInfo", "StoreAtomicUsedMaterialsCB", 0x4C8B60, &CVehicleModelInfo::StoreAtomicUsedMaterialsCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "HideDamagedAtomicCB", 0x4C7720, &CVehicleModelInfo::HideDamagedAtomicCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "HideAllComponentsAtomicCB", 0x4C7790, &CVehicleModelInfo::HideAllComponentsAtomicCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "HasAlphaMaterialCB", 0x4C77C0, &CVehicleModelInfo::HasAlphaMaterialCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetAtomicRendererCB", 0x4C77E0, &CVehicleModelInfo::SetAtomicRendererCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetAtomicRendererCB_RealHeli", 0x4C7870, &CVehicleModelInfo::SetAtomicRendererCB_RealHeli);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetAtomicRendererCB_Plane", 0x4C7930, &CVehicleModelInfo::SetAtomicRendererCB_Plane);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetAtomicRendererCB_Boat", 0x4C79A0, &CVehicleModelInfo::SetAtomicRendererCB_Boat);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetAtomicRendererCB_Heli", 0x4C7A30, &CVehicleModelInfo::SetAtomicRendererCB_Heli);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetAtomicRendererCB_Train", 0x4C7AA0, &CVehicleModelInfo::SetAtomicRendererCB_Train);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetAtomicFlagCB", 0x4C7B90, &CVehicleModelInfo::SetAtomicFlagCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "ClearAtomicFlagCB", 0x4C7BB0, &CVehicleModelInfo::ClearAtomicFlagCB);
 
 // Other
     ReversibleHooks::Install("CVehicleModelInfo", "HELP_IsValidCompRule", 0x4C7E10, &IsValidCompRule);
@@ -240,11 +252,11 @@ void CVehicleModelInfo::SetAtomicRenderCallbacks()
     else if (m_nVehicleType == eVehicleType::VEHICLE_PLANE || m_nVehicleType == eVehicleType::VEHICLE_FPLANE)
         RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB_Plane, nullptr);
     else if (m_nVehicleType == eVehicleType::VEHICLE_BOAT)
-        RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB_Boat, nullptr);
+        RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB_Boat, m_pRwClump);
     else if (m_nVehicleType == eVehicleType::VEHICLE_HELI)
-        RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB_Heli, nullptr);
+        RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB_RealHeli, m_pRwClump);
     else
-        RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB, nullptr);
+        RpClumpForAllAtomics(m_pRwClump, CVehicleModelInfo::SetAtomicRendererCB, m_pRwClump);
 }
 
 void CVehicleModelInfo::SetVehicleComponentFlags(RwFrame* component, unsigned int flags)
@@ -728,7 +740,6 @@ void CVehicleModelInfo::StopUsingCommonVehicleTexDicationary()
     CVehicleModelInfo::SavedTextureFindCallback = nullptr;
 }
 
-// Converted from stdcall void CVehicleModelInfo::SetEditableMaterials(RpClump *clump) 0x4C8430
 void CVehicleModelInfo::SetEditableMaterials(RpClump* clump)
 {
     auto pEntry = gRestoreEntries;
@@ -736,68 +747,182 @@ void CVehicleModelInfo::SetEditableMaterials(RpClump* clump)
     pEntry->m_pAddress = nullptr;
 }
 
-// Converted from stdcall void CVehicleModelInfo::ResetEditableMaterials(RpClump *clump) 0x4C8460
 void CVehicleModelInfo::ResetEditableMaterials(RpClump* clump)
 {
-    ((void(__cdecl*)(RpClump*))0x4C8460)(clump);
+    auto pEntry = gRestoreEntries;
+    while (pEntry->m_pAddress) {
+        *(uint32_t*)pEntry->m_pAddress = (uint32_t)pEntry->m_pValue;
+        pEntry++;
+    }
 }
-
-// Converted from thiscall void CVehicleModelInfo::SetVehicleColour(unsigned char prim, unsigned char sec, unsigned char tert, unsigned char quat) 0x4C84B0
 
 RpAtomic* CVehicleModelInfo::HideDamagedAtomicCB(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C7720)(atomic, data);
+    auto pFrame = RpAtomicGetFrame(atomic);
+    auto pNodeName = GetFrameNodeName(pFrame);
+    if (strstr(pNodeName, "_dam")) {
+        RpAtomicSetFlags(atomic, 0);
+        CVisibilityPlugins::SetAtomicFlag(atomic, eAtomicComponentFlag::ATOMIC_IS_DAM_STATE);
+        return atomic;
+    }
+
+    if (strstr(pNodeName, "_ok"))
+        CVisibilityPlugins::SetAtomicFlag(atomic, eAtomicComponentFlag::ATOMIC_IS_OK_STATE);
+
+    return atomic;
 }
 
 RpAtomic* CVehicleModelInfo::HideAllComponentsAtomicCB(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C7790)(atomic, data);
+    auto uiData = reinterpret_cast<uint32_t>(data);
+    auto checkedFlags = uiData & CVisibilityPlugins::GetAtomicId(atomic);
+    if (checkedFlags)
+        RpAtomicSetFlags(atomic, 0);
+    else
+        RpAtomicSetFlags(atomic, RpAtomicFlag::rpATOMICRENDER);
+
+    return atomic;
 }
 
 RpMaterial* CVehicleModelInfo::HasAlphaMaterialCB(RpMaterial* material, void* data)
 {
-    return ((RpMaterial * (__cdecl*)(RpMaterial*, void*))0x4C77C0)(material, data);
+    if (RpMaterialGetColor(material)->alpha != 255) {
+        *reinterpret_cast<bool*>(data) = true;
+        return nullptr;
+    }
+
+    return material;
 }
 
 RpAtomic* CVehicleModelInfo::SetAtomicRendererCB(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C77E0)(atomic, data);
+    auto pNodeName = GetFrameNodeName(RpAtomicGetFrame(atomic));
+    if (strstr(pNodeName, "_vlo")) {
+        CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleReallyLowDetailCB);
+    }
+    else {
+        auto pGeometry = RpAtomicGetGeometry(atomic);
+        bool bHasAlpha = false;
+        RpGeometryForAllMaterials(pGeometry, CVehicleModelInfo::HasAlphaMaterialCB, &bHasAlpha);
+        if (bHasAlpha || !strncmp(pNodeName, "windscreen", 10))
+            CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleHiDetailAlphaCB);
+        else
+            CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleHiDetailCB);
+    }
+
+    CVehicleModelInfo::HideDamagedAtomicCB(atomic, nullptr);
+    return atomic;
 }
 
 RpAtomic* CVehicleModelInfo::SetAtomicRendererCB_RealHeli(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C7870)(atomic, data);
+    auto pNodeName = GetFrameNodeName(RpAtomicGetFrame(atomic));
+    if (!strcmp(pNodeName, "moving_rotor"))
+        CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderHeliRotorAlphaCB);
+    else if (!strcmp(pNodeName, "moving_rotor2"))
+        CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderHeliTailRotorAlphaCB);
+    else if (strstr(pNodeName, "_vlo")) {
+        CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleReallyLowDetailCB);
+    }
+    else {
+        auto pGeometry = RpAtomicGetGeometry(atomic);
+        bool bHasAlpha = false;
+        RpGeometryForAllMaterials(pGeometry, CVehicleModelInfo::HasAlphaMaterialCB, &bHasAlpha);
+        if (bHasAlpha || !strncmp(pNodeName, "windscreen", 10))
+            CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleHiDetailAlphaCB);
+        else
+            CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleHiDetailCB);
+    }
+
+    CVehicleModelInfo::HideDamagedAtomicCB(atomic, nullptr);
+    return atomic;
 }
 
 RpAtomic* CVehicleModelInfo::SetAtomicRendererCB_Plane(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C7930)(atomic, data);
+    auto pNodeName = GetFrameNodeName(RpAtomicGetFrame(atomic));
+    if (strstr(pNodeName, "_vlo")) {
+        CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleReallyLowDetailCB_BigVehicle);
+    }
+    else {
+        auto pGeometry = RpAtomicGetGeometry(atomic);
+        bool bHasAlpha = false;
+        RpGeometryForAllMaterials(pGeometry, CVehicleModelInfo::HasAlphaMaterialCB, &bHasAlpha);
+        if (bHasAlpha)
+            CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleHiDetailAlphaCB_BigVehicle);
+        else
+            CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleHiDetailCB_BigVehicle);
+    }
+
+    CVehicleModelInfo::HideDamagedAtomicCB(atomic, nullptr);
+    return atomic;
 }
 
 RpAtomic* CVehicleModelInfo::SetAtomicRendererCB_Boat(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C79A0)(atomic, data);
+    auto pNodeName = GetFrameNodeName(RpAtomicGetFrame(atomic));
+    if (!strcmp(pNodeName, "boat_hi"))
+        CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleHiDetailCB_Boat);
+    else if (strstr(pNodeName, "_vlo")) {
+        CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleLoDetailCB_Boat);
+    }
+    else {
+        auto pGeometry = RpAtomicGetGeometry(atomic);
+        bool bHasAlpha = false;
+        RpGeometryForAllMaterials(pGeometry, CVehicleModelInfo::HasAlphaMaterialCB, &bHasAlpha);
+        if (bHasAlpha)
+            CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleHiDetailAlphaCB_Boat);
+        else
+            CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleHiDetailCB_Boat);
+    }
+
+    CVehicleModelInfo::HideDamagedAtomicCB(atomic, nullptr);
+    return atomic;
 }
 
 RpAtomic* CVehicleModelInfo::SetAtomicRendererCB_Heli(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C7A30)(atomic, data);
+    auto pNodeName = GetFrameNodeName(RpAtomicGetFrame(atomic));
+    if (!strncmp(pNodeName, "toprotor", 8))
+        CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderHeliRotorAlphaCB);
+    else if (!strncmp(pNodeName, "rearrotor", 9))
+        CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderHeliTailRotorAlphaCB);
+    else
+        CVisibilityPlugins::SetAtomicRenderCallback(atomic, nullptr);
+
+    return atomic;
 }
 
 RpAtomic* CVehicleModelInfo::SetAtomicRendererCB_Train(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C7AA0)(atomic, data);
+    auto pNodeName = GetFrameNodeName(RpAtomicGetFrame(atomic));
+    if (strstr(pNodeName, "_vlo")) {
+        CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderVehicleReallyLowDetailCB_BigVehicle);
+    }
+    else {
+        auto pGeometry = RpAtomicGetGeometry(atomic);
+        bool bHasAlpha = false;
+        RpGeometryForAllMaterials(pGeometry, CVehicleModelInfo::HasAlphaMaterialCB, &bHasAlpha);
+        if (bHasAlpha)
+            CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderTrainHiDetailAlphaCB);
+        else
+            CVisibilityPlugins::SetAtomicRenderCallback(atomic, CVisibilityPlugins::RenderTrainHiDetailCB);
+    }
+
+    CVehicleModelInfo::HideDamagedAtomicCB(atomic, nullptr);
+    return atomic;
 }
 
 RwObject* CVehicleModelInfo::SetAtomicFlagCB(RwObject* object, void* data)
 {
-    return ((RwObject * (__cdecl*)(RwObject*, void*))0x4C7B90)(object, data);
+    CVisibilityPlugins::SetAtomicFlag(reinterpret_cast<RpAtomic*>(object), reinterpret_cast<uint16_t>(data));
+    return object;
 }
 
-// Converted from stdcall RwObject* CVehicleModelInfo::ClearAtomicFlagCB(RwObject *object, void *data) 0x4C7BB0
 RwObject* CVehicleModelInfo::ClearAtomicFlagCB(RwObject* object, void* data)
 {
-    return ((RwObject * (__cdecl*)(RwObject*, void*))0x4C7BB0)(object, data);
+    CVisibilityPlugins::ClearAtomicFlag(reinterpret_cast<RpAtomic*>(object), reinterpret_cast<uint16_t>(data));
+    return object;
 }
 
 // Converted from stdcall void CVehicleModelInfo::AddWheelUpgrade(int wheelSetNumber, int modelId) 0x4C8700

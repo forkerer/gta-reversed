@@ -334,8 +334,7 @@ public:
     // get vehicle second extra with rules. Returns extra id.
     int ChooseSecondComponent();
     // check if upgrade is available
-    bool IsUpgradeAvailable(VehicleUpgradePosn upgrade);
-    
+    bool IsUpgradeAvailable(VehicleUpgradePosn upgrade);    
     // set current vehicle colour for model
     void SetVehicleColour(unsigned char prim, unsigned char sec, unsigned char tert, unsigned char quat);
     // get color for car. variationShift determines how many color variations to skip. 
