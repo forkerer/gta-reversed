@@ -251,9 +251,8 @@ public:
 	static short (&ms_upgradeWheels)[NUM_WHEEL_UPGRADES][NUM_WHEELS];
 
 	// lights states for currently rendered car
-	// static char *ms_lightsOn[4];
     static constexpr int NUM_LIGHTS = 4;
-	static char (&ms_lightsOn)[NUM_LIGHTS];
+	static unsigned char(&ms_lightsOn)[NUM_LIGHTS];
 
 	// extras ids for next-spawned car
 	// static char ms_compsUsed[2];
@@ -335,8 +334,6 @@ public:
     void SetCustomCarPlateText(char* text);
     // remove some unused materials in model?
     void ReduceMaterialsInVehicle();
-    // setup lights states for currenly rendered vehicle
-    void SetupLightFlags(class CVehicle* vehicle);
     // setup vehicle model components
     void PreprocessHierarchy();
     // setup custom plate
@@ -348,6 +345,8 @@ public:
     // get num doors in this model
     int GetNumDoors();
 //Static methods
+    // setup lights states for currenly rendered vehicle
+    static void SetupLightFlags(class CVehicle* vehicle);
 	// destroying vehiclelights textures
 	static void ShutdownLightTexture();
 	// find remap texture with name

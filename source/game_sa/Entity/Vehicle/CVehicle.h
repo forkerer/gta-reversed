@@ -342,8 +342,8 @@ public:
         struct{
             unsigned char m_bRightFront : 1;
             unsigned char m_bLeftFront : 1;
-            unsigned char m_bLeftRear : 1;
             unsigned char m_bRightRear : 1;
+            unsigned char m_bLeftRear : 1;
         } m_renderLights;
     };
     RwTexture *m_pCustomCarPlate;
