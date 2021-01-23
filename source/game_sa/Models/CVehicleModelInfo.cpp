@@ -23,6 +23,8 @@ RwObjectNameIdAssocation* (&CVehicleModelInfo::ms_vehicleDescs)[NUM_VEHICLE_MODE
 RwTextureCallBackFind & CVehicleModelInfo::SavedTextureFindCallback = *(RwTextureCallBackFind*)0xB4E6A0;
 RwTexDictionary* &vehicleTxd = *(RwTexDictionary**)0xB4E688;
 RwFrame* &carFrame = *(RwFrame**)0xB4E6B8;
+RwSurfaceProperties& gLightSurfProps = *(RwSurfaceProperties*)0x8A645C;
+tRestoreEntry(&gRestoreEntries)[NUM_RESTORE_ENTRIES] = *(tRestoreEntry(*)[NUM_RESTORE_ENTRIES])0xB4DBE8;
 
 typedef CVehicleModelInfo::CVehicleStructure CVehicleStructure;
 
@@ -66,9 +68,14 @@ void CVehicleModelInfo::InjectHooks()
 // Static methods
     ReversibleHooks::Install("CVehicleModelInfo", "SetupLightFlags", 0x4C8C90, &CVehicleModelInfo::SetupLightFlags);
     ReversibleHooks::Install("CVehicleModelInfo", "ShutdownLightTexture", 0x4C7470, &CVehicleModelInfo::ShutdownLightTexture);
-    ReversibleHooks::Install("CVehicleModelInfo", "FindTextureCB", 0x4C7510, &CVehicleModelInfo::FindTextureCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "GetMaximumNumberOfPassengersFromNumberOfDoors", 0x4C89B0, &CVehicleModelInfo::GetMaximumNumberOfPassengersFromNumberOfDoors);
     ReversibleHooks::Install("CVehicleModelInfo", "UseCommonVehicleTexDicationary", 0x4C75A0, &CVehicleModelInfo::UseCommonVehicleTexDicationary);
     ReversibleHooks::Install("CVehicleModelInfo", "StopUsingCommonVehicleTexDicationary", 0x4C75C0, &CVehicleModelInfo::StopUsingCommonVehicleTexDicationary);
+    ReversibleHooks::Install("CVehicleModelInfo", "FindTextureCB", 0x4C7510, &CVehicleModelInfo::FindTextureCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "MoveObjectsCB", 0x4C7700, &CVehicleModelInfo::MoveObjectsCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetEditableMaterials", 0x4C8430, &CVehicleModelInfo::SetEditableMaterials);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetEditableMaterialsCB_RpMaterial", 0x4C8220, (RpMaterial*(*)(RpMaterial*, void*))(&CVehicleModelInfo::SetEditableMaterialsCB));
+    ReversibleHooks::Install("CVehicleModelInfo", "SetEditableMaterialsCB_RpAtomic", 0x4C83E0, (RpAtomic * (*)(RpAtomic*, void*))(&CVehicleModelInfo::SetEditableMaterialsCB));
     ReversibleHooks::Install("CVehicleModelInfo", "StoreAtomicUsedMaterialsCB", 0x4C8B60, &CVehicleModelInfo::StoreAtomicUsedMaterialsCB);
 
 // Other
@@ -76,6 +83,7 @@ void CVehicleModelInfo::InjectHooks()
     ReversibleHooks::Install("CVehicleModelInfo", "HELP_ChooseComponent", 0x4C7FB0, &::ChooseComponent);
     ReversibleHooks::Install("CVehicleModelInfo", "HELP_CountCompsInRule", 0x4C7F80, &CountCompsInRule);
     ReversibleHooks::Install("CVehicleModelInfo", "HELP_GetListOfComponentsNotUsedByRules", 0x4C7E50, &GetListOfComponentsNotUsedByRules);
+    ReversibleHooks::Install("CVehicleModelInfo", "HELP_RemoveWindowAlphaCB", 0x4C83B0, &RemoveWindowAlphaCB);
 }
 
 ModelInfoType CVehicleModelInfo::GetModelType()
@@ -531,22 +539,145 @@ void CVehicleModelInfo::SetupLightFlags(CVehicle* vehicle)
 
 int CVehicleModelInfo::GetMaximumNumberOfPassengersFromNumberOfDoors(int modelId)
 {
-    return ((int(__cdecl*)(int))0x4C89B0)(modelId);
+    auto pModelInfo = CModelInfo::GetModelInfo(modelId)->AsVehicleModelInfoPtr();
+    if (pModelInfo->IsBoat() || pModelInfo->IsTrailer())
+        return 0;
+
+    int iDoorsNum;
+    switch (modelId) {
+    case -1:
+        iDoorsNum = 3;
+        break;
+
+    case eModelID::MODEL_FIRETRUK:
+    case eModelID::MODEL_JOURNEY:
+        iDoorsNum = 2;
+        break;
+
+    case eModelID::MODEL_HUNTER:
+        iDoorsNum = 1;
+        break;
+
+    default:
+        iDoorsNum = pModelInfo->GetNumDoors();
+        if (iDoorsNum)
+            break;
+
+        if (pModelInfo->IsBike() || gHandlingDataMgr.m_aVehicleHandling[pModelInfo->m_nHandlingId].m_bTandemSeats) {
+            if (pModelInfo->m_pVehicleStruct->IsDummyActive(eVehicleDummies::DUMMY_SEAT_REAR))
+                return 1;
+
+            return 0;
+        }
+        else {
+            if (modelId == eModelID::MODEL_RCBANDIT || modelId == eModelID::MODEL_RCTIGER)
+                return 0;
+
+            return 1;
+        }
+    }
+
+    if (gHandlingDataMgr.m_aVehicleHandling[pModelInfo->m_nHandlingId].m_bTandemSeats)
+        return std::max(0, (iDoorsNum - 2) / 2);
+
+    if (modelId == eModelID::MODEL_COACH || modelId == eModelID::MODEL_BUS)
+        return 8;
+
+    return iDoorsNum - 1;
 }
 
-RpAtomic* CVehicleModelInfo::MoveObjectsCB(RwObject* object, void* data)
+RpAtomic* CVehicleModelInfo::MoveObjectsCB(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RwObject*, void*))0x4C7700)(object, data);
+    RpAtomicSetFrame(atomic, reinterpret_cast<RwFrame*>(data));
+    return atomic;
 }
 
 RpMaterial* CVehicleModelInfo::SetEditableMaterialsCB(RpMaterial* material, void* data)
 {
-    return ((RpMaterial * (__cdecl*)(RpMaterial*, void*))0x4C8220)(material, data);
+    auto ppEntries = reinterpret_cast<tRestoreEntry**>(data);
+
+    CRGBA color = *RpMaterialGetColor(material);
+    color.a = 0;
+
+    if (CVehicleModelInfo::ms_pRemapTexture
+        && RpMaterialGetTexture(material)
+        && RwTextureGetName(RpMaterialGetTexture(material))[0] == '#') {
+
+        (*ppEntries)->m_pAddress = &material->texture;
+        (*ppEntries)->m_pValue = material->texture;
+        (*ppEntries)++;
+
+        material->texture = CVehicleModelInfo::ms_pRemapTexture;
+    }
+
+    if (RpMaterialGetTexture(material) == CVehicleModelInfo::ms_pLightsTexture) {
+        int iLightIndex = -1;
+        if (color == CRGBA(255, 175, 0, 0))
+            iLightIndex = 0;
+        else if (color == CRGBA(0, 255, 200, 0))
+            iLightIndex = 1;
+        else if (color == CRGBA(185, 255, 0, 0))
+            iLightIndex = 2;
+        else if (color == CRGBA(255, 60, 0, 0))
+            iLightIndex = 3;
+
+        (*ppEntries)->m_pAddress = RpMaterialGetColor(material);
+        (*ppEntries)->m_pValue = *reinterpret_cast<void**>(RpMaterialGetColor(material));
+        (*ppEntries)++;
+
+        RpMaterialGetColor(material)->red = 255;
+        RpMaterialGetColor(material)->green = 255;
+        RpMaterialGetColor(material)->blue = 255;
+
+        if (iLightIndex != -1 && CVehicleModelInfo::ms_lightsOn[iLightIndex]) {
+            (*ppEntries)->m_pAddress = &material->texture;
+            (*ppEntries)->m_pValue = material->texture;
+            (*ppEntries)++;
+
+            (*ppEntries)->m_pAddress = RpMaterialGetSurfaceProperties(material);
+            (*ppEntries)->m_pValue = *(void**)RpMaterialGetSurfaceProperties(material);
+            (*ppEntries)++;
+
+            material->texture = CVehicleModelInfo::ms_pLightsOnTexture;
+            RpMaterialSetSurfaceProperties(material, &gLightSurfProps);
+        }
+    }
+    else {
+        int iColorIndex;
+        if (color == CRGBA(60, 255, 0, 0))
+            iColorIndex = CVehicleModelInfo::ms_currentCol[0];
+        else if (color == CRGBA(255, 0, 175, 0))
+            iColorIndex = CVehicleModelInfo::ms_currentCol[1];
+        else if (color == CRGBA(0, 255, 255, 0))
+            iColorIndex = CVehicleModelInfo::ms_currentCol[2];
+        else if (color == CRGBA(255, 0, 255, 0))
+            iColorIndex = CVehicleModelInfo::ms_currentCol[3];
+        else
+            return material;
+
+        (*ppEntries)->m_pAddress = RpMaterialGetColor(material);
+        (*ppEntries)->m_pValue = *reinterpret_cast<void**>(RpMaterialGetColor(material));
+        (*ppEntries)++;
+
+        auto& pColor = CVehicleModelInfo::ms_vehicleColourTable[iColorIndex];
+        RpMaterialGetColor(material)->red = pColor.r;
+        RpMaterialGetColor(material)->green = pColor.g;
+        RpMaterialGetColor(material)->blue = pColor.b;
+    }
+
+    return material;
 }
 
 RpAtomic* CVehicleModelInfo::SetEditableMaterialsCB(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C83E0)(atomic, data);
+    if (rwObjectTestFlags(atomic, RpAtomicFlag::rpATOMICRENDER) == 0)
+        return atomic;
+
+    if (CVisibilityPlugins::GetAtomicId(atomic) & eAtomicComponentFlag::ATOMIC_IS_DOOR_WINDOW_OPENED)
+        RpGeometryForAllMaterials(RpAtomicGetGeometry(atomic), RemoveWindowAlphaCB, data);
+
+    RpGeometryForAllMaterials(RpAtomicGetGeometry(atomic), CVehicleModelInfo::SetEditableMaterialsCB, data);
+    return atomic;
 }
 
 void CVehicleModelInfo::ShutdownLightTexture()
@@ -600,7 +731,9 @@ void CVehicleModelInfo::StopUsingCommonVehicleTexDicationary()
 // Converted from stdcall void CVehicleModelInfo::SetEditableMaterials(RpClump *clump) 0x4C8430
 void CVehicleModelInfo::SetEditableMaterials(RpClump* clump)
 {
-    ((void(__cdecl*)(RpClump*))0x4C8430)(clump);
+    auto pEntry = gRestoreEntries;
+    RpClumpForAllAtomics(clump, CVehicleModelInfo::SetEditableMaterialsCB, &pEntry);
+    pEntry->m_pAddress = nullptr;
 }
 
 // Converted from stdcall void CVehicleModelInfo::ResetEditableMaterials(RpClump *clump) 0x4C8460
@@ -908,4 +1041,23 @@ int GetListOfComponentsNotUsedByRules(unsigned int compRules, int numExtras, int
     }
 
     return iNumComps;
+}
+
+RpMaterial* RemoveWindowAlphaCB(RpMaterial* material, void* data)
+{
+    auto pColor = RpMaterialGetColor(material);
+    if (pColor->alpha == 255)
+        return material;
+
+    auto ppEntries = reinterpret_cast<tRestoreEntry**>(data);
+    (*ppEntries)->m_pAddress = RpMaterialGetColor(material);
+    (*ppEntries)->m_pValue = *reinterpret_cast<void**>(RpMaterialGetColor(material));
+    (*ppEntries)++;
+
+    pColor->red = 0;
+    pColor->green = 0;
+    pColor->blue = 0;
+    pColor->alpha = 0;
+
+    return material;
 }

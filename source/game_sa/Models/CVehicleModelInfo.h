@@ -33,6 +33,22 @@ enum eVehicleDummies
     DUMMY_VEH_GUN = 0xD,
 };
 
+enum eVehicleType {
+    VEHICLE_NONE = -1,
+    VEHICLE_AUTOMOBILE = 0,
+    VEHICLE_MTRUCK,
+    VEHICLE_QUAD,
+    VEHICLE_HELI,
+    VEHICLE_PLANE,
+    VEHICLE_BOAT,
+    VEHICLE_TRAIN,
+    VEHICLE_FHELI,
+    VEHICLE_FPLANE,
+    VEHICLE_BIKE,
+    VEHICLE_BMX,
+    VEHICLE_TRAILER
+};
+
 enum VehicleUpgradePosn {
 	UPGRADE_BONNET,
 	UPGRADE_BONNET_LEFT,
@@ -94,6 +110,12 @@ struct tVehicleComponentFlagsUnion {
     };
 };
 VALIDATE_SIZE(tVehicleComponentFlagsUnion, 0x4);
+
+struct tRestoreEntry {
+    void* m_pAddress;
+    void* m_pValue;
+};
+VALIDATE_SIZE(tRestoreEntry, 0x8);
 
 enum eComponentsRules {
     ALLOW_ALWAYS      = 1,
@@ -182,6 +204,13 @@ public:
         RpAtomic* m_apExtras[NUM_EXTRAS];
         unsigned char m_nNumExtras;
         unsigned int m_nMaskComponentsDamagable;
+
+    public: //Helpers
+        inline bool IsDummyActive(eVehicleDummies dummy) {
+            return m_avDummyPos[dummy].x != 0.0F
+                && m_avDummyPos[dummy].y != 0.0F
+                && m_avDummyPos[dummy].z != 0.0F;
+        }
 
     } *m_pVehicleStruct;
 
@@ -306,17 +335,7 @@ public:
     int ChooseSecondComponent();
     // check if upgrade is available
     bool IsUpgradeAvailable(VehicleUpgradePosn upgrade);
-    // change colors and settings of material according to vehicle color and lights states.  Data 
-    // contains pointer to restore entries
-    RpMaterial* SetEditableMaterialsCB(RpMaterial* material, void* data);
-    // execute SetEditableMaterialsCB(RpMaterial *, void *) for atomic materials and also remove
-    // vehicle window if needed. Data contains pointer to restore entries
-    RpAtomic* SetEditableMaterialsCB(RpAtomic* atomic, void* data);
-    // execute SetEditableMaterialsCB(RpAtomic *, void *) for atomics in clump. This one is called
-    // before vehicle rendering
-    void SetEditableMaterials(RpClump* clump);
-    // reset materials settings. This one is called after vehicle rendering
-    void ResetEditableMaterials(RpClump* clump);
+    
     // set current vehicle colour for model
     void SetVehicleColour(unsigned char prim, unsigned char sec, unsigned char tert, unsigned char quat);
     // get color for car. variationShift determines how many color variations to skip. 
@@ -356,7 +375,18 @@ public:
 	// stop using special finding callback
 	static void StopUsingCommonVehicleTexDicationary();
 	// set new parent frame for object. Data is actually RwFrame *
-	static RpAtomic *MoveObjectsCB(RwObject *object, void *data);
+	static RpAtomic *MoveObjectsCB(RpAtomic *atomic, void *data);
+    // change colors and settings of material according to vehicle color and lights states.  Data 
+    // contains pointer to restore entries
+    static RpMaterial* SetEditableMaterialsCB(RpMaterial* material, void* data);
+    // execute SetEditableMaterialsCB(RpMaterial *, void *) for atomic materials and also remove
+    // vehicle window if needed. Data contains pointer to restore entries
+    static RpAtomic* SetEditableMaterialsCB(RpAtomic* atomic, void* data);
+    // execute SetEditableMaterialsCB(RpAtomic *, void *) for atomics in clump. This one is called
+    // before vehicle rendering
+    static void SetEditableMaterials(RpClump* clump);
+    // reset materials settings. This one is called after vehicle rendering
+    static void ResetEditableMaterials(RpClump* clump);
 	// this is used to disable _dam atomic and "enable" _ok atomic at vehicle model setup. Data is unused
 	static RpAtomic *HideDamagedAtomicCB(RpAtomic *atomic, void *data);
 	// hide all atomics with state data (data is actually unsigned char)
@@ -409,7 +439,16 @@ public:
 	static RpAtomic *SetEnvMapCoeffAtomicCB(RpAtomic *atomic, void *data);
 	static void AssignRemapTxd(const char* name, std::int16_t txdSlot);
 
-    static RpAtomic* StoreAtomicUsedMaterialsCB(RpAtomic* atomic, void* data); // matList is RpMaterialList
+    static RpAtomic* StoreAtomicUsedMaterialsCB(RpAtomic* atomic, void* data); // data is RpMaterialList**
+
+// Helpers
+    inline bool IsBoat() { return m_nVehicleType == eVehicleType::VEHICLE_BOAT; }
+    inline bool IsTrailer() { return m_nVehicleType == eVehicleType::VEHICLE_TRAILER; }
+    inline bool IsBike() {
+        return m_nVehicleType == eVehicleType::VEHICLE_BMX
+            || m_nVehicleType == eVehicleType::VEHICLE_BIKE
+            || m_nVehicleType == eVehicleType::VEHICLE_QUAD;
+    }
 };
 VALIDATE_SIZE(CVehicleModelInfo::CVehicleStructure, 0x314);
 VALIDATE_SIZE(CVehicleModelInfo, 0x308);
@@ -418,6 +457,10 @@ static bool IsValidCompRule(int nRule);
 static int ChooseComponent(int rule, int comps);
 static int CountCompsInRule(int comps);
 static int GetListOfComponentsNotUsedByRules(unsigned int compRules, int numExtras, int* outList);
+static RpMaterial* RemoveWindowAlphaCB(RpMaterial* material, void* data); // data is RpMaterialList**
 
 extern RwTexDictionary* &vehicleTxd;
 extern RwFrame* &carFrame;
+extern RwSurfaceProperties& gLightSurfProps;
+static constexpr int NUM_RESTORE_ENTRIES = 256;
+extern tRestoreEntry(&gRestoreEntries)[NUM_RESTORE_ENTRIES];
