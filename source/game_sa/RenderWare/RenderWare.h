@@ -281,6 +281,7 @@ void RwTexDictionarySetFreeListCreateParams(RwInt32 blockSize, RwInt32 numBlocks
 RwTexDictionary* RwTexDictionaryCreate(void); // 0x7F3600
 RwBool RwTexDictionaryDestroy(RwTexDictionary* dict); // 0x7F36A0
 RwTexture* RwTextureCreate(RwRaster* raster); // 0x7F37C0
+RwTexture* RwTextureRead(char const* name, char const* maskName); // 0x7F3AC0
 RwBool RwTextureDestroy(RwTexture* texture); // 0x7F3820
 RwTexture* RwTextureSetRaster(RwTexture* texture, RwRaster* raster); // 0x7F35D0
 RwTexture* RwTexDictionaryAddTexture(RwTexDictionary* dict, RwTexture* texture); // 0x7F3980

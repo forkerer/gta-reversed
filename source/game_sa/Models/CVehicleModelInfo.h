@@ -68,32 +68,46 @@ enum VehicleUpgradePosn {
 	UPGRADE_NITRO,
 };
 
-enum eVehicleComponentFlags : unsigned int {
-    COMP_IS_LEFT             = 0x000020,
-    COMP_IS_RIGHT            = 0x000040,
-    COMP_IS_FRONT            = 0x000080,
+enum class eVehicleComponentFlags: unsigned int {
+    IS_DAMAGEABLE            = 0x00000002,
+    IS_DOUBLE_REAR_WHEEL     = 0x00000004,
+    IS_DUMMY                 = 0x00000008,
+    IS_DOOR                  = 0x00000010,
+    COMP_IS_LEFT             = 0x00000020,
+    COMP_IS_RIGHT            = 0x00000040,
+    COMP_IS_FRONT            = 0x00000080,
 
-    COMP_IS_REAR             = 0x000100,
-    COMP_HAS_ALPHA           = 0x000400,
-    COMP_CULL                = 0x001000,
-    COMP_IS_REAR_DOOR        = 0x002000,
-    COMP_IS_FRONT_DOOR       = 0x004000,
-    COMP_UNKNOWN             = 0x008000,
+    COMP_IS_REAR             = 0x00000100,
+    IS_EXTRA                 = 0x00000200,
+    COMP_HAS_ALPHA           = 0x00000400,
+    COMP_CULL                = 0x00001000,
+    COMP_IS_REAR_DOOR        = 0x00002000,
+    COMP_IS_FRONT_DOOR       = 0x00004000,
+    COMP_UNKNOWN             = 0x00008000,
 
-    COMP_DISABLE_REFLECTIONS = 0x040000,
-    COMP_RENDER_ALWAYS       = 0x400000,
+    IS_REAR_WHEEL            = 0x00010000,
+    IS_UPGRADE               = 0x00020000,
+    COMP_DISABLE_REFLECTIONS = 0x00040000,
+    IS_FRONT_WHEEL           = 0x00100000,
+    UNKN_3                   = 0x00200000,
+    COMP_RENDER_ALWAYS       = 0x00400000,
+    UNKN_4                   = 0x20000000,
 };
 struct tVehicleComponentFlagsUnion {
     union {
         unsigned int m_nFlags;
         struct {
-            unsigned int          : 5;
-            unsigned int bIsLeft  : 1;
-            unsigned int bIsRight : 1;
-            unsigned int bIsFront : 1;
+            unsigned int                   : 1;
+            unsigned int bIsDamageable     : 1;
+            unsigned int bDoubleRearWheels : 1;
+            unsigned int bIsDummy          : 1;
+            unsigned int bIsDoor           : 1;
+            unsigned int bIsLeft           : 1;
+            unsigned int bIsRight          : 1;
+            unsigned int bIsFront          : 1;
 
             unsigned int bIsRear      : 1;
-            unsigned int              : 1;
+            unsigned int bIsExtra     : 1;
             unsigned int bHasAlpha    : 1;
             unsigned int              : 1;
             unsigned int bCull        : 1;
@@ -101,11 +115,18 @@ struct tVehicleComponentFlagsUnion {
             unsigned int bIsFrontDoor : 1;
             unsigned int bUnknown     : 1;
 
-            unsigned int                     : 2;
+            unsigned int bIsRearWheel        : 1;
+            unsigned int bIsUpgrade          : 1;
             unsigned int bDisableReflections : 1;
-            unsigned int                     : 3;
+            unsigned int                     : 1;
+            unsigned int bIsFrontWheel       : 1;
+            unsigned int bUnkn3              : 1;
             unsigned int bRenderAlways       : 1;
+            unsigned int                     : 1;
 
+            unsigned int        : 5;
+            unsigned int bUnkn4 : 1;
+            unsigned int        : 2;
         };
     };
 };
@@ -374,7 +395,7 @@ public:
 	// stop using special finding callback
 	static void StopUsingCommonVehicleTexDicationary();
 	// set new parent frame for object. Data is actually RwFrame *
-	static RpAtomic *MoveObjectsCB(RpAtomic *atomic, void *data);
+	static RwObject* MoveObjectsCB(RwObject *object, void *data);
     // change colors and settings of material according to vehicle color and lights states.  Data 
     // contains pointer to restore entries
     static RpMaterial* SetEditableMaterialsCB(RpMaterial* material, void* data);
@@ -411,9 +432,9 @@ public:
 	// adds wheel upgrade. This one is called from LoadVehicleUpgrades()
 	static void AddWheelUpgrade(int wheelSetNumber, int modelId);
 	// gets num upgrades for this set
-	static int GetNumWheelUpgrades(int wheelSetNumber);
+	static int GetWheelUpgrade(int wheelSetNumber, int wheelUpgradeNumber);
 	// gets whell upgrade
-	static void GetWheelUpgrade(int wheelSetNumber, int wheelUpgradeNumber);
+	static int GetNumWheelUpgrades(int wheelSetNumber);
 	// do nothing
 	static void DeleteVehicleColourTextures();
 	// loads 'white' texture
@@ -457,9 +478,14 @@ static int ChooseComponent(int rule, int comps);
 static int CountCompsInRule(int comps);
 static int GetListOfComponentsNotUsedByRules(unsigned int compRules, int numExtras, int* outList);
 static RpMaterial* RemoveWindowAlphaCB(RpMaterial* material, void* data); // data is RpMaterialList**
+static RwObject* GetOkAndDamagedAtomicCB(RwObject* object, void* data); // data is &RpAtomic[2]
+static RpAtomic* atomicDefaultRenderCB(RpAtomic* atomic);
 
 extern RwTexDictionary* &vehicleTxd;
 extern RwFrame* &carFrame;
 extern RwSurfaceProperties& gLightSurfProps;
 static constexpr int NUM_RESTORE_ENTRIES = 256;
 extern tRestoreEntry(&gRestoreEntries)[NUM_RESTORE_ENTRIES];
+extern RwTexture*& gpWhiteTexture;
+extern float& fEnvMapDefaultCoeff;
+extern float& fRearDoubleWheelOffsetFactor;

@@ -7,12 +7,11 @@
 #pragma once
 #include "PluginBase.h"
 
-
 struct  RwObjectNameIdAssocation
 {
 	char *m_pName;
 	unsigned int m_dwHierarchyId;
-	unsigned int m_dwFlags;
+	unsigned int m_dwFlags; // see eVehicleComponentFlags
 };
 
 VALIDATE_SIZE(RwObjectNameIdAssocation, 0xC);
