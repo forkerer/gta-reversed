@@ -604,7 +604,7 @@ void CVehicleModelInfo::PreprocessHierarchy()
             }
         }
 
-        if (flags.bIsRearWheel || flags.bIsFrontWheel) {
+        if (flags.bIsMainWheel || flags.bIsFrontWheel) {
             auto searchStruct = tCompSearchStructById(pNameIdAssoc->m_dwHierarchyId, nullptr);
             RwFrameForAllChildren(RpClumpGetFrame(m_pRwClump), CClumpModelInfo::FindFrameFromIdCB, &searchStruct);
             if (searchStruct.m_pFrame) {
@@ -617,7 +617,7 @@ void CVehicleModelInfo::PreprocessHierarchy()
                     }
                 }
 
-                if (flags.bIsRearWheel)
+                if (flags.bIsMainWheel)
                     pRearWheelAtomic = reinterpret_cast<RpAtomic*>(GetFirstObject(pFrame));
                 else
                     pFrontWheelAtomic = reinterpret_cast<RpAtomic*>(GetFirstObject(pFrame));
@@ -661,9 +661,9 @@ void CVehicleModelInfo::PreprocessHierarchy()
 
         CVehicleModelInfo::SetVehicleComponentFlags(pFrame, pNameIdAssoc->m_dwFlags);
 
-        if (flags.bDoubleRearWheels || flags.bIsRearWheel) {
+        if (flags.bIsWheel || flags.bIsMainWheel) {
             if (pRearWheelAtomic) {
-                if (flags.bIsRearWheel) {
+                if (flags.bIsMainWheel) {
                     RwFrameForAllChildren(pFrame, CVehicleModelInfo::CollapseFramesCB, pFrame);
                     RwFrameUpdateObjects(pFrame);
                     CVisibilityPlugins::SetAtomicRenderCallback(pRearWheelAtomic, atomicDefaultRenderCB); // in android idb it's CVisibilityPlugins::RenderWheelAtomicCB
