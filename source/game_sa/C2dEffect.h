@@ -118,7 +118,7 @@ struct tEffectEnEx {
     union {
         unsigned char m_nFlags1;
         struct {
-            unsigned char bDoubleRearWheels : 1;
+            unsigned char bUnkn0 : 1;
             unsigned char bTimedEffect : 1;
         };
     };

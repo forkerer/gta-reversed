@@ -300,7 +300,7 @@ void CVehicleModelInfo::SetVehicleComponentFlags(RwFrame* component, unsigned in
     else if (flagsUnion.bIsRight)
         RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_IS_RIGHT);
 
-    if (flagsUnion.bUnknown && (pHandling->m_bIsHatchback || flagsUnion.bIsFrontDoor || flagsUnion.bIsRearDoor))
+    if (flagsUnion.bSwinging && (pHandling->m_bIsHatchback || flagsUnion.bIsFrontDoor || flagsUnion.bIsRearDoor))
         RwFrameForAllObjects(component, CVehicleModelInfo::SetAtomicFlagCB, (void*)eAtomicComponentFlag::ATOMIC_VEHCOMP_15);
 
     if (flagsUnion.bIsRearDoor)
@@ -561,13 +561,12 @@ int CVehicleModelInfo::GetNumDoors()
 void CVehicleModelInfo::PreprocessHierarchy()
 {
     m_nNumDoors = 0;
-    RpAtomic* pRearWheelAtomic = nullptr;
-    RpAtomic* pFrontWheelAtomic = nullptr;
+    RpAtomic* pMainWheelAtomic = nullptr;
+    RpAtomic* pTrainBogieAtomic = nullptr;
     auto& pHandling = gHandlingDataMgr.m_aVehicleHandling[m_nHandlingId];
     RwObjectNameIdAssocation* pNameIdAssoc = CVehicleModelInfo::ms_vehicleDescs[m_nVehicleType];
     while (pNameIdAssoc->m_pName) {
-        tVehicleComponentFlagsUnion flags;
-        flags.m_nFlags = pNameIdAssoc->m_dwFlags;
+        auto flags = pNameIdAssoc->AsFlagsUnion();
 
         if (flags.bIsDummy || flags.bIsExtra || flags.bIsUpgrade) {
             auto searchStruct = tCompSearchStructByName(pNameIdAssoc->m_pName, nullptr);
@@ -604,7 +603,7 @@ void CVehicleModelInfo::PreprocessHierarchy()
             }
         }
 
-        if (flags.bIsMainWheel || flags.bIsFrontWheel) {
+        if (flags.bIsMainWheel || flags.bIsTrainFrontBogie) {
             auto searchStruct = tCompSearchStructById(pNameIdAssoc->m_dwHierarchyId, nullptr);
             RwFrameForAllChildren(RpClumpGetFrame(m_pRwClump), CClumpModelInfo::FindFrameFromIdCB, &searchStruct);
             if (searchStruct.m_pFrame) {
@@ -618,9 +617,9 @@ void CVehicleModelInfo::PreprocessHierarchy()
                 }
 
                 if (flags.bIsMainWheel)
-                    pRearWheelAtomic = reinterpret_cast<RpAtomic*>(GetFirstObject(pFrame));
+                    pMainWheelAtomic = reinterpret_cast<RpAtomic*>(GetFirstObject(pFrame));
                 else
-                    pFrontWheelAtomic = reinterpret_cast<RpAtomic*>(GetFirstObject(pFrame));
+                    pTrainBogieAtomic = reinterpret_cast<RpAtomic*>(GetFirstObject(pFrame));
             }
         }
 
@@ -629,8 +628,7 @@ void CVehicleModelInfo::PreprocessHierarchy()
 
     pNameIdAssoc = CVehicleModelInfo::ms_vehicleDescs[m_nVehicleType];
     while (pNameIdAssoc->m_pName) {
-        tVehicleComponentFlagsUnion flags;
-        flags.m_nFlags = pNameIdAssoc->m_dwFlags;
+        auto flags = pNameIdAssoc->AsFlagsUnion();
 
         if (flags.bIsDummy || flags.bIsExtra || flags.bIsUpgrade) {
             pNameIdAssoc++;
@@ -662,21 +660,21 @@ void CVehicleModelInfo::PreprocessHierarchy()
         CVehicleModelInfo::SetVehicleComponentFlags(pFrame, pNameIdAssoc->m_dwFlags);
 
         if (flags.bIsWheel || flags.bIsMainWheel) {
-            if (pRearWheelAtomic) {
+            if (pMainWheelAtomic) {
                 if (flags.bIsMainWheel) {
                     RwFrameForAllChildren(pFrame, CVehicleModelInfo::CollapseFramesCB, pFrame);
                     RwFrameUpdateObjects(pFrame);
-                    CVisibilityPlugins::SetAtomicRenderCallback(pRearWheelAtomic, atomicDefaultRenderCB); // in android idb it's CVisibilityPlugins::RenderWheelAtomicCB
+                    CVisibilityPlugins::SetAtomicRenderCallback(pMainWheelAtomic, atomicDefaultRenderCB); // in android idb it's CVisibilityPlugins::RenderWheelAtomicCB
                 }
                 else {
-                    auto pClone = RpAtomicClone(pRearWheelAtomic);
+                    auto pClone = RpAtomicClone(pMainWheelAtomic);
                     RpAtomicSetFrame(pClone, pFrame);
                     RpClumpAddAtomic(m_pRwClump, pClone);
                     if (pNameIdAssoc->m_dwHierarchyId != CAR_WHEEL_RF
                         && pNameIdAssoc->m_dwHierarchyId != CAR_WHEEL_LF
                         && pHandling.m_bDoubleRwheels) {
 
-                        auto pClone2 = RpAtomicClone(pRearWheelAtomic);
+                        auto pClone2 = RpAtomicClone(pMainWheelAtomic);
                         auto pNewFrame = RwFrameCreate();
                         RpAtomicSetFrame(pClone2, pNewFrame);
                         RwFrameAddChild(pFrame, pNewFrame);
@@ -692,8 +690,8 @@ void CVehicleModelInfo::PreprocessHierarchy()
                 }
             }
         }
-        else if (flags.bUnkn3 && pFrontWheelAtomic) {
-            auto pClone = RpAtomicClone(pFrontWheelAtomic);
+        else if (flags.bIsTrainRearBogie && pTrainBogieAtomic) {
+            auto pClone = RpAtomicClone(pTrainBogieAtomic);
             RpAtomicSetFrame(pClone, pFrame);
             RpClumpAddAtomic(m_pRwClump, pClone);
             CVisibilityPlugins::SetAtomicRenderCallback(pClone, atomicDefaultRenderCB);
