@@ -684,7 +684,8 @@ void CVehicleModelInfo::PreprocessHierarchy()
                         *RwMatrixGetUp(pMatrix)    = { 0.0F, 1.0F, 0.0F };
                         *RwMatrixGetAt(pMatrix)    = { 0.0F, 0.0F, 1.0F };
                         *RwMatrixGetPos(pMatrix)   = { fOffset, 0.0F, 0.0F };
-                        pMatrix->flags = rwMATRIXINTERNALIDENTITY | rwMATRIXTYPEORTHONORMAL;
+                        pMatrix->flags |= (rwMATRIXINTERNALIDENTITY | rwMATRIXTYPEORTHONORMAL);
+                        RpClumpAddAtomic(m_pRwClump, pClone2);
                         CVisibilityPlugins::SetAtomicRenderCallback(pClone2, atomicDefaultRenderCB); // in android idb it's CVisibilityPlugins::RenderWheelAtomicCB
                     }
                 }
