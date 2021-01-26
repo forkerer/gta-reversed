@@ -12,7 +12,6 @@ CPool<CPtrNodeSingleLink>*& CPools::ms_pPtrNodeSingleLinkPool = *(CPool<CPtrNode
 CPool<CPtrNodeDoubleLink>*& CPools::ms_pPtrNodeDoubleLinkPool = *(CPool<CPtrNodeDoubleLink>**)0xB74488;
 CPool<CEntryInfoNode>*& CPools::ms_pEntryInfoNodePool = *(CPool<CEntryInfoNode>**)0xB7448C;
 CPool<CPointRoute>*& CPools::ms_pPointRoutePool = *(CPool<CPointRoute>**)0xB744B0;
-CPool<CVehicleModelInfo::CVehicleStructure>*& CPools::m_pInfoPool = *(CPool<CVehicleModelInfo::CVehicleStructure> **)0xB4E680;
 
 void CPools::CheckPoolsEmpty()
 {

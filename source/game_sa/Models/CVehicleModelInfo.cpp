@@ -30,6 +30,7 @@ float& fEnvMapDefaultCoeff = *(float*)0x8A7780;
 float& fRearDoubleWheelOffsetFactor = *(float*)0x8A7784;
 
 typedef CVehicleModelInfo::CVehicleStructure CVehicleStructure;
+CPool<CVehicleModelInfo::CVehicleStructure>*& CVehicleModelInfo::CVehicleStructure::m_pInfoPool = *(CPool<CVehicleModelInfo::CVehicleStructure> **)0xB4E680;
 
 void CVehicleModelInfo::InjectHooks()
 {
@@ -97,13 +98,20 @@ void CVehicleModelInfo::InjectHooks()
     ReversibleHooks::Install("CVehicleModelInfo", "GetNumWheelUpgrades", 0x4C8740, &CVehicleModelInfo::GetNumWheelUpgrades);
     ReversibleHooks::Install("CVehicleModelInfo", "GetWheelUpgrade", 0x4C8750, &CVehicleModelInfo::GetWheelUpgrade);
     ReversibleHooks::Install("CVehicleModelInfo", "DeleteVehicleColourTextures", 0x4C8770, &CVehicleModelInfo::DeleteVehicleColourTextures);
-    ReversibleHooks::Install("CVehicleModelInfo", "LoadEnvironmentMaps", 0x4C8780, &CVehicleModelInfo::LoadEnvironmentMaps);
     ReversibleHooks::Install("CVehicleModelInfo", "ShutdownEnvironmentMaps", 0x4C87D0, &CVehicleModelInfo::ShutdownEnvironmentMaps);
     ReversibleHooks::Install("CVehicleModelInfo", "GetMatFXEffectMaterialCB", 0x4C8810, &CVehicleModelInfo::GetMatFXEffectMaterialCB);
     ReversibleHooks::Install("CVehicleModelInfo", "SetEnvironmentMapCB", 0x4C8840, &CVehicleModelInfo::SetEnvironmentMapCB);
     ReversibleHooks::Install("CVehicleModelInfo", "SetEnvMapCoeffCB", 0x4C88B0, &CVehicleModelInfo::SetEnvMapCoeffCB);
     ReversibleHooks::Install("CVehicleModelInfo", "SetRenderPipelinesCB", 0x4C88F4, &CVehicleModelInfo::SetRenderPipelinesCB);
     ReversibleHooks::Install("CVehicleModelInfo", "CollapseFramesCB", 0x4C8E30, &CVehicleModelInfo::CollapseFramesCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetEnvironmentMapAtomicCB", 0x4C9410, &CVehicleModelInfo::SetEnvironmentMapAtomicCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "SetEnvMapCoeffAtomicCB", 0x4C9430, &CVehicleModelInfo::SetEnvMapCoeffAtomicCB);
+    ReversibleHooks::Install("CVehicleModelInfo", "AssignRemapTxd", 0x4C9360, &CVehicleModelInfo::AssignRemapTxd);
+
+// Setup
+    ReversibleHooks::Install("CVehicleModelInfo", "SetupCommonData", 0x5B8F00, &CVehicleModelInfo::SetupCommonData);
+    ReversibleHooks::Install("CVehicleModelInfo", "LoadVehicleColours", 0x5B6890, &CVehicleModelInfo::LoadVehicleColours);
+    ReversibleHooks::Install("CVehicleModelInfo", "LoadEnvironmentMaps", 0x4C8780, &CVehicleModelInfo::LoadEnvironmentMaps);
 
 // Other
     ReversibleHooks::Install("CVehicleModelInfo", "HELP_IsValidCompRule", 0x4C7E10, &IsValidCompRule);
@@ -113,6 +121,17 @@ void CVehicleModelInfo::InjectHooks()
     ReversibleHooks::Install("CVehicleModelInfo", "HELP_RemoveWindowAlphaCB", 0x4C83B0, &RemoveWindowAlphaCB);
     ReversibleHooks::Install("CVehicleModelInfo", "HELP_GetOkAndDamagedAtomicCB", 0x4C7BD0, &GetOkAndDamagedAtomicCB);
     ReversibleHooks::Install("CVehicleModelInfo", "HELP_atomicDefaultRenderCB", 0x7323C0, &atomicDefaultRenderCB);
+}
+
+CVehicleModelInfo::CVehicleModelInfo() : CClumpModelInfo()
+{
+    m_pVehicleStruct = nullptr;
+    m_nNumColorVariations = 0;
+    m_nFlags = 0;
+    m_dwAnimBlockIndex = -1;
+    memset(m_anUpgrades, 0xFF, sizeof(m_anUpgrades));
+    for (int i = 0; i < 4; ++i)
+        m_anRemapTxds[i] = -1;
 }
 
 ModelInfoType CVehicleModelInfo::GetModelType()
@@ -1107,19 +1126,6 @@ int CVehicleModelInfo::GetNumWheelUpgrades(int wheelSetNumber)
 void CVehicleModelInfo::DeleteVehicleColourTextures()
 {}
 
-void CVehicleModelInfo::LoadEnvironmentMaps()
-{
-    auto iParticleTxd = CTxdStore::FindTxdSlot("particle");
-    CTxdStore::PushCurrentTxd();
-    CTxdStore::SetCurrentTxd(iParticleTxd);
-    if (!gpWhiteTexture) {
-        gpWhiteTexture = RwTextureRead("white", nullptr);
-        RwTextureGetName(gpWhiteTexture)[0] = '@';
-        RwTextureSetFilterMode(gpWhiteTexture, RwTextureFilterMode::rwFILTERLINEAR);
-    }
-    CTxdStore::PopCurrentTxd();
-}
-
 void CVehicleModelInfo::ShutdownEnvironmentMaps()
 {
     static bool bEnvMapsLoaded = false; //Not used anywhere else
@@ -1185,17 +1191,33 @@ RwFrame* CVehicleModelInfo::CollapseFramesCB(RwFrame* frame, void* data)
 
 RpAtomic* CVehicleModelInfo::SetEnvironmentMapAtomicCB(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C9410)(atomic, data);
+    RpGeometryForAllMaterials(RpAtomicGetGeometry(atomic), CVehicleModelInfo::SetEnvironmentMapCB, data);
+    return atomic;
 }
 
 RpAtomic* CVehicleModelInfo::SetEnvMapCoeffAtomicCB(RpAtomic* atomic, void* data)
 {
-    return ((RpAtomic * (__cdecl*)(RpAtomic*, void*))0x4C9430)(atomic, data);
+    RpGeometryForAllMaterials(RpAtomicGetGeometry(atomic), CVehicleModelInfo::SetEnvMapCoeffCB, data);
+    return atomic;
 }
 
 void CVehicleModelInfo::AssignRemapTxd(const char* name, std::int16_t txdSlot)
 {
-    plugin::Call<0x4C9360, const char*, std::int16_t>(name, txdSlot);
+    auto iLen = strlen(name);
+    if (!isdigit(name[iLen - 1]))
+        return;
+
+    auto iLastIndex = iLen - 2;
+    while (isdigit(name[iLastIndex]))
+        --iLastIndex;
+
+    char buffer[24];
+    strncpy(buffer, name, iLastIndex + 1);
+    buffer[iLastIndex + 1] = '\0';
+
+    auto pModelInfo = CModelInfo::GetModelInfo(buffer, 400, 630);
+    if (pModelInfo && pModelInfo->GetModelType() == ModelInfoType::MODEL_INFO_VEHICLE)
+        pModelInfo->AsVehicleModelInfoPtr()->AddRemap(txdSlot);
 }
 
 RpAtomic* CVehicleModelInfo::StoreAtomicUsedMaterialsCB(RpAtomic* atomic, void* data)
@@ -1215,6 +1237,203 @@ RpAtomic* CVehicleModelInfo::StoreAtomicUsedMaterialsCB(RpAtomic* atomic, void* 
         _rpMaterialListAppendMaterial(matList, pMesh->material);
     }
     return atomic;
+}
+
+void CVehicleModelInfo::SetupCommonData()
+{
+    CVehicleModelInfo::LoadVehicleColours();
+    CLoadingScreen::NewChunkLoaded();
+    CVehicleModelInfo::LoadVehicleUpgrades();
+    CLoadingScreen::NewChunkLoaded();
+    CVehicleModelInfo::LoadEnvironmentMaps();
+    CLoadingScreen::NewChunkLoaded();
+
+    auto iTxd = CTxdStore::FindTxdSlot("vehicle");
+    if (iTxd == -1)
+        iTxd = CTxdStore::AddTxdSlot("vehicle");
+
+    CTxdStore::LoadTxd(iTxd, "MODELS\\GENERIC\\VEHICLE.TXD");
+    CTxdStore::AddRef(iTxd);
+
+    if (iTxd != -1)
+        vehicleTxd = CTxdStore::ms_pTxdPool->GetAt(iTxd)->m_pRwDictionary;
+
+    CVehicleModelInfo::ms_pLightsTexture = RwTexDictionaryFindNamedTexture(vehicleTxd, "vehiclelights128");
+    CVehicleModelInfo::ms_pLightsOnTexture = RwTexDictionaryFindNamedTexture(vehicleTxd, "vehiclelightson128");
+    CVehicleModelInfo::CVehicleStructure::m_pInfoPool = new CPool<CVehicleModelInfo::CVehicleStructure>(50, "VehicleStruct");
+    CCarFXRenderer::InitialiseDirtTexture();
+}
+
+void CVehicleModelInfo::LoadVehicleColours()
+{
+    char buffer[1024];
+    auto pDatFile = CFileMgr::OpenFile("DATA\\CARCOLS.DAT", "r");
+    auto pCurColor = CVehicleModelInfo::ms_vehicleColourTable;
+
+    int iLastMode = 0;
+    int iCurMode = 0;
+    while (CFileMgr::ReadLine(pDatFile, buffer, 1024)) {
+        auto iStartInd = 0;
+        while (iStartInd < 10 && buffer[iStartInd] && buffer[iStartInd] <= ' ')
+            ++iStartInd;
+
+        auto pLineStart = &buffer[iStartInd];
+        auto iLength = 0;
+        while (pLineStart[iLength] && pLineStart[iLength] != '\n') {
+            if (pLineStart[iLength] == ',' || pLineStart[iLength] == '\r')
+                pLineStart[iLength] = ' ';
+
+            ++iLength;
+        }
+        pLineStart[iLength] = '\0';
+
+        if (!pLineStart[0] || pLineStart[0] == '#')
+            continue;
+
+        if (!iLastMode) {
+            if (!strncmp(pLineStart, "col", 3)) {
+                iLastMode = 1;
+                iCurMode = 1;
+            }
+            else if (!strncmp(pLineStart, "car4", 4)) {
+                iLastMode = 3;
+                iCurMode = 3;
+            }
+            else if (!strncmp(pLineStart, "car", 3)) {
+                iLastMode = 2;
+                iCurMode = 2;
+            }
+            continue;
+        }
+
+        if (!strncmp(pLineStart, "end", 3)) {
+            iLastMode = 0;
+            iCurMode = 0;
+            continue;
+        }
+
+        if (iLastMode == 1) {
+            uint32_t red, green, blue;
+            sscanf(buffer, "%d %d %d", &red, &green, &blue);
+            pCurColor->Set(red, green, blue, 255);
+            auto pLineEnd = pLineStart;
+            while (*pLineEnd != '#') // Seems redundant(?)
+                pLineEnd++;
+
+            pCurColor++;
+            continue;
+        }
+
+        uint32_t colorBuffer[8][4];
+        if (iLastMode == 2)
+        {
+            char modelName[64];
+            auto iNumRead = sscanf(buffer, "%s %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+                modelName,
+                &colorBuffer[0][0],
+                &colorBuffer[0][1],
+                &colorBuffer[1][0],
+                &colorBuffer[1][1],
+                &colorBuffer[2][0],
+                &colorBuffer[2][1],
+                &colorBuffer[3][0],
+                &colorBuffer[3][1],
+                &colorBuffer[4][0],
+                &colorBuffer[4][1],
+                &colorBuffer[5][0],
+                &colorBuffer[5][1],
+                &colorBuffer[6][0],
+                &colorBuffer[6][1],
+                &colorBuffer[7][0],
+                &colorBuffer[7][1]);
+
+            auto pModelInfo = CModelInfo::GetModelInfo(modelName, nullptr)->AsVehicleModelInfoPtr();
+            auto iNumVariations = (iNumRead - 1) / 2;
+            pModelInfo->m_nNumColorVariations = iNumVariations;
+
+            for (int32_t i = 0; i < iNumVariations; ++i) {
+                pModelInfo->m_anPrimaryColors[i]    = colorBuffer[i][0];
+                pModelInfo->m_anSecondaryColors[i]  = colorBuffer[i][1];
+                pModelInfo->m_anTertiaryColors[i]   = 0;
+                pModelInfo->m_anQuaternaryColors[i] = 0;
+            }
+
+            iLastMode = iCurMode;
+            continue;
+        }
+
+        if (iLastMode == 3) {
+            char modelName[64];
+            auto iNumRead = sscanf(buffer, "%s %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+                modelName,
+                &colorBuffer[0][0],
+                &colorBuffer[0][1],
+                &colorBuffer[0][2],
+                &colorBuffer[0][3],
+                &colorBuffer[1][0],
+                &colorBuffer[1][1],
+                &colorBuffer[1][2],
+                &colorBuffer[1][3],
+                &colorBuffer[2][0],
+                &colorBuffer[2][1],
+                &colorBuffer[2][2],
+                &colorBuffer[2][3],
+                &colorBuffer[3][0],
+                &colorBuffer[3][1],
+                &colorBuffer[3][2],
+                &colorBuffer[3][3],
+                &colorBuffer[4][0],
+                &colorBuffer[4][1],
+                &colorBuffer[4][2],
+                &colorBuffer[4][3],
+                &colorBuffer[5][0],
+                &colorBuffer[5][1],
+                &colorBuffer[5][2],
+                &colorBuffer[5][3],
+                &colorBuffer[6][0],
+                &colorBuffer[6][1],
+                &colorBuffer[6][2],
+                &colorBuffer[6][3],
+                &colorBuffer[7][0],
+                &colorBuffer[7][1],
+                &colorBuffer[7][2],
+                &colorBuffer[7][3]);
+
+            auto pModelInfo = CModelInfo::GetModelInfo(modelName, nullptr)->AsVehicleModelInfoPtr();
+            auto iNumVariations = (iNumRead - 1) / 4;
+            pModelInfo->m_nNumColorVariations = iNumVariations;
+
+            for (int32_t i = 0; i < iNumVariations; ++i) {
+                pModelInfo->m_anPrimaryColors[i]    = colorBuffer[i][0];
+                pModelInfo->m_anSecondaryColors[i]  = colorBuffer[i][1];
+                pModelInfo->m_anTertiaryColors[i]   = colorBuffer[i][2];
+                pModelInfo->m_anQuaternaryColors[i] = colorBuffer[i][3];
+            }
+
+            iLastMode = iCurMode;
+            continue;
+        }
+    }
+
+    CFileMgr::CloseFile(pDatFile);
+}
+
+void CVehicleModelInfo::LoadVehicleUpgrades()
+{
+    plugin::Call<0x5B6890>();
+}
+
+void CVehicleModelInfo::LoadEnvironmentMaps()
+{
+    auto iParticleTxd = CTxdStore::FindTxdSlot("particle");
+    CTxdStore::PushCurrentTxd();
+    CTxdStore::SetCurrentTxd(iParticleTxd);
+    if (!gpWhiteTexture) {
+        gpWhiteTexture = RwTextureRead("white", nullptr);
+        RwTextureGetName(gpWhiteTexture)[0] = '@';
+        RwTextureSetFilterMode(gpWhiteTexture, RwTextureFilterMode::rwFILTERLINEAR);
+    }
+    CTxdStore::PopCurrentTxd();
 }
 
 void CVehicleModelInfo::CLinkedUpgradeList::AddUpgradeLink(std::int16_t upgrade1, std::int16_t upgrade2)
@@ -1265,12 +1484,12 @@ CVehicleModelInfo::CVehicleStructure::~CVehicleStructure()
 
 void* CVehicleModelInfo::CVehicleStructure::operator new(unsigned int size)
 {
-    return CPools::m_pInfoPool->New();
+    return CVehicleModelInfo::CVehicleStructure::m_pInfoPool->New();
 }
 
 void CVehicleModelInfo::CVehicleStructure::operator delete(void* data)
 {
-    CPools::m_pInfoPool->Delete(reinterpret_cast<CVehicleStructure*>(data));
+    CVehicleModelInfo::CVehicleStructure::m_pInfoPool->Delete(reinterpret_cast<CVehicleModelInfo::CVehicleStructure*>(data));
 }
 
 bool IsValidCompRule(int nRule)

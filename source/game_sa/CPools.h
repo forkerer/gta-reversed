@@ -39,7 +39,6 @@ public:
     static CPool<CPtrNodeDoubleLink>       *&ms_pPtrNodeDoubleLinkPool;
     static CPool<CEntryInfoNode>           *&ms_pEntryInfoNodePool;
     static CPool<CPointRoute>              *&ms_pPointRoutePool;
-    static CPool<CVehicleModelInfo::CVehicleStructure>*& m_pInfoPool;
 
     // dummy function; returns "-1"
     static int CheckBuildingAtomics();

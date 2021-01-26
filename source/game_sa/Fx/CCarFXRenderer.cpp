@@ -15,6 +15,11 @@ void CCarFXRenderer::CustomCarPipeClumpSetup(RpClump* pClump)
     plugin::Call<0x5D5B40, RpClump*>(pClump);
 }
 
+void CCarFXRenderer::InitialiseDirtTexture()
+{
+    plugin::Call<0x5D5BC0>();
+}
+
 RpAtomic* CCarFXRenderer::SetCustomFXAtomicRenderPipelinesVMICB(RpAtomic* pAtomic, void* data)
 {
     return plugin::CallAndReturn<RpAtomic*, 0x5D5B60, RpAtomic*, void*>(pAtomic, data);

@@ -121,6 +121,8 @@ VALIDATE_SIZE(UpgradePosnDesc, 0x20);
 
 class CVehicleModelInfo : public CClumpModelInfo {
 public:
+    CVehicleModelInfo();
+public:
 	RpMaterial *m_pPlateMaterial;
 	char m_szPlateText[8];
 	char field_30;
@@ -161,6 +163,9 @@ public:
         RpAtomic* m_apExtras[NUM_EXTRAS];
         unsigned char m_nNumExtras;
         unsigned int m_nMaskComponentsDamagable;
+
+    public:
+        static CPool<CVehicleModelInfo::CVehicleStructure>*& m_pInfoPool;
 
     public: //Helpers
         inline bool IsDummyActive(eVehicleDummies dummy) {
@@ -373,9 +378,7 @@ public:
 	static int GetNumWheelUpgrades(int wheelSetNumber);
 	// do nothing
 	static void DeleteVehicleColourTextures();
-	// loads 'white' texture
-	static void LoadEnvironmentMaps();
-	// unloads 'white' texture
+    // unloads 'white' texture
 	static void ShutdownEnvironmentMaps();
 	// gets mat effect of this material. Data is actually int *
 	static RpMaterial *GetMatFXEffectMaterialCB(RpMaterial *material, void *data);
@@ -394,8 +397,14 @@ public:
 	// setup environment map intensity for atomic with data (unsigned int)
 	static RpAtomic *SetEnvMapCoeffAtomicCB(RpAtomic *atomic, void *data);
 	static void AssignRemapTxd(const char* name, std::int16_t txdSlot);
-
     static RpAtomic* StoreAtomicUsedMaterialsCB(RpAtomic* atomic, void* data); // data is RpMaterialList**
+
+    static void SetupCommonData();
+    static void LoadVehicleColours();
+    static void LoadVehicleUpgrades();
+	// loads 'white' texture
+    static void LoadEnvironmentMaps();
+
 
 // Helpers
     inline bool IsBoat() { return m_nVehicleType == eVehicleType::VEHICLE_BOAT; }
