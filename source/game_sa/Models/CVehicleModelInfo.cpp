@@ -628,18 +628,21 @@ void CVehicleModelInfo::PreprocessHierarchy()
             RwFrameForAllChildren(RpClumpGetFrame(m_pRwClump), CClumpModelInfo::FindFrameFromIdCB, &searchStruct);
             if (searchStruct.m_pFrame) {
                 auto pFrame = searchStruct.m_pFrame;
+                auto bNoChild = false;
                 while (!GetFirstObject(pFrame)) {
                     pFrame = GetFirstChild(pFrame);
                     if (!pFrame) {
-                        pNameIdAssoc++;
-                        continue;
+                        bNoChild = true;
+                        break;
                     }
                 }
 
-                if (flags.bIsMainWheel)
-                    pMainWheelAtomic = reinterpret_cast<RpAtomic*>(GetFirstObject(pFrame));
-                else
-                    pTrainBogieAtomic = reinterpret_cast<RpAtomic*>(GetFirstObject(pFrame));
+                if (!bNoChild) {
+                    if (flags.bIsMainWheel)
+                        pMainWheelAtomic = reinterpret_cast<RpAtomic*>(GetFirstObject(pFrame));
+                    else
+                        pTrainBogieAtomic = reinterpret_cast<RpAtomic*>(GetFirstObject(pFrame));
+                }
             }
         }
 
