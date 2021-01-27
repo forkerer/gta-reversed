@@ -173,7 +173,8 @@ void CAtomicModelInfo::SetupVehicleUpgradeFlags(char const* name)
         {"rbmp_",   0xD},
         {"misc_a_", 0x14},
         {"misc_b_", 0x15},
-        {"misc_c_", 0x16}
+        {"misc_c_", 0x16},
+        {nullptr, 0}
     };
 
     const tVehicleComponentFlag aChassisComps[] = {
@@ -186,28 +187,35 @@ void CAtomicModelInfo::SetupVehicleUpgradeFlags(char const* name)
         {"fbb_",      0xA},
         {"bbb_",      0xB},
         {"lgt_",      0xC},
-        {"aRf_",      0xE},
+        {"rf_",       0xE},
         {"nto_",      0xF},
         {"hydralics", 0x10},
         {"stereo",    0x11},
+        {nullptr, 0}
     };
 
-    for (const auto& chassis : aChassisComps) {
-        if (strncmp(chassis.m_ucName, name, strlen(chassis.m_ucName)))
+    auto pChassis = aChassisComps;
+    while (pChassis->m_ucName) {
+        if (strncmp(pChassis->m_ucName, name, strlen(pChassis->m_ucName))) {
+            ++pChassis;
             continue;
+        }
 
         bUseCommonVehicleDictionary = true;
-        nCarmodId = chassis.m_nFlag;
+        nCarmodId = pChassis->m_nFlag;
         return;
     }
 
-    for (const auto& dummy : aDummyComps) {
-        if (strncmp(dummy.m_ucName, name, strlen(dummy.m_ucName)))
+    auto pDummy = aDummyComps;
+    while (pDummy->m_ucName) {
+        if (strncmp(pDummy->m_ucName, name, strlen(pDummy->m_ucName))) {
+            ++pDummy;
             continue;
+        }
 
         bUseCommonVehicleDictionary = true;
         bUsesVehDummy = true;
-        nCarmodId = dummy.m_nFlag;  
+        nCarmodId = pDummy->m_nFlag;
         return;
     }
 }
