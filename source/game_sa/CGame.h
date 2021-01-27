@@ -11,7 +11,7 @@
 #include "CColModel.h"
 #include "CEntity.h"
 
-class  CGame {
+class CGame {
 public:
     //! Current number of area
      static char(&aDatFile)[32]; // static char aDatFile[32]
@@ -40,7 +40,6 @@ public:
      static void InitialiseWhenRestarting();
      static void Process();
      static void ReInitGameObjectVariables();
-     static void InitModelIndices();
     //! dummy function
      static void ReloadIPLs();
      static void ShutDownForRestart();

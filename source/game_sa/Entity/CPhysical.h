@@ -86,7 +86,7 @@ public:
             unsigned int bOnSolidSurface : 1;
             unsigned int bBroken : 1;
             unsigned int bProcessCollisionEvenIfStationary : 1; // ref @ 0x6F5CF0
-            unsigned int b13 : 1;
+            unsigned int bIsPedClimbing : 1; // only used for peds
             unsigned int bDontApplySpeed : 1;
             unsigned int b15 : 1;
             unsigned int bProcessingShift : 1;
@@ -232,6 +232,10 @@ public:
     bool CheckCollision_SimpleCar();
 
     void ResetMoveSpeed() { m_vecMoveSpeed = CVector(); }
+    float GetMass(const CVector& pos, const CVector& dir) {
+        return 1.0f / (CrossProduct(pos, dir).SquaredMagnitude() / m_fTurnMass +
+            1.0f / m_fMass);
+    }
 };
 
 VALIDATE_SIZE(CPhysical, 0x138);

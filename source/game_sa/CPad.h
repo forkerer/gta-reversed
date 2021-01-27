@@ -232,6 +232,8 @@ public:
     void ProcessPCSpecificStuff();
     void StopShaking(short arg0);
     static CPad* GetPad(int padNumber);
+    int16_t GetCarGunLeftRight();
+    int16_t GetCarGunUpDown();
     short GetSteeringLeftRight();
     short GetSteeringUpDown();
     short GetPedWalkLeftRight();
@@ -291,6 +293,7 @@ public:
     bool IsCtrlJustDown();
     bool IsStandardKeyPressed(std::uint8_t key);
     bool IsCtrlPressed();
+    static bool ResetCheats();
 };
 
 VALIDATE_SIZE(CPad, 0x134);
