@@ -68,11 +68,18 @@ enum VehicleUpgradePosn {
 	UPGRADE_NITRO,
 };
 
-enum eCarColLineType {
+enum class eCarColLineType : unsigned int {
     IGNORED = 0,
     GLOBAL_RGB = 1,
     CAR_2COL = 2,
     CAR_4COL = 3
+};
+
+enum class eCarModsLineType : unsigned int {
+    IGNORED = 0,
+    LINK = 1,
+    MODS = 2,
+    WHEEL = 3
 };
 
 struct tRestoreEntry {

@@ -111,6 +111,7 @@ void CVehicleModelInfo::InjectHooks()
 // Setup
     ReversibleHooks::Install("CVehicleModelInfo", "SetupCommonData", 0x5B8F00, &CVehicleModelInfo::SetupCommonData);
     ReversibleHooks::Install("CVehicleModelInfo", "LoadVehicleColours", 0x5B6890, &CVehicleModelInfo::LoadVehicleColours);
+    ReversibleHooks::Install("CVehicleModelInfo", "LoadVehicleUpgrades", 0x5B65A0, &CVehicleModelInfo::LoadVehicleUpgrades);
     ReversibleHooks::Install("CVehicleModelInfo", "LoadEnvironmentMaps", 0x4C8780, &CVehicleModelInfo::LoadEnvironmentMaps);
 
 // Other
@@ -1291,7 +1292,7 @@ void CVehicleModelInfo::LoadVehicleColours()
         if (!pLineStart[0] || pLineStart[0] == '#')
             continue;
 
-        if (!iLastMode) {
+        if (iLastMode == eCarColLineType::IGNORED) {
             if (!strncmp(pLineStart, "col", 3)) {
                 iLastMode = eCarColLineType::GLOBAL_RGB;
                 iCurMode = eCarColLineType::GLOBAL_RGB;
@@ -1421,7 +1422,93 @@ void CVehicleModelInfo::LoadVehicleColours()
 
 void CVehicleModelInfo::LoadVehicleUpgrades()
 {
-    plugin::Call<0x5B65A0>();
+    for (int i = 0; i < NUM_WHEELS; ++i)
+        CVehicleModelInfo::ms_numWheelUpgrades[i] = 0;;
+
+    auto pDatFile = CFileMgr::OpenFile("DATA\\CARMODS.DAT", "r");
+    char* pLine;
+    eCarModsLineType iLineType = eCarModsLineType::IGNORED;
+    while ((pLine = CFileLoader::LoadLine(pDatFile))) {
+        if (!pLine[0] || pLine[0] == '#')
+            continue;
+
+        if (iLineType == eCarModsLineType::IGNORED) {
+            if (!strncmp(pLine, "link", 4))
+                iLineType = eCarModsLineType::LINK;
+            else if (!strncmp(pLine, "mods", 4))
+                iLineType = eCarModsLineType::MODS;
+            else if (!strncmp(pLine, "wheel", 5))
+                iLineType = eCarModsLineType::WHEEL;
+
+            continue;
+        }
+
+        if (!strncmp(pLine, "end", 3)) {
+            iLineType = eCarModsLineType::IGNORED;
+            continue;
+        }
+
+        switch (iLineType) {
+        case eCarModsLineType::LINK: {
+            int32_t iModelId1 = -1, iModelId2 = -1;
+            auto pToken = strtok(pLine, " \t,");
+            if (pToken) {
+                auto pModel1 = static_cast<CAtomicModelInfo*>(CModelInfo::GetModelInfo(pToken, &iModelId1));
+                pModel1->SetupVehicleUpgradeFlags(pToken);
+
+                auto pNextToken = strtok(nullptr, " \t,");
+                auto pModel2 = static_cast<CAtomicModelInfo*>(CModelInfo::GetModelInfo(pNextToken, &iModelId2));
+                pModel2->SetupVehicleUpgradeFlags(pNextToken);
+
+                CVehicleModelInfo::ms_linkedUpgrades.AddUpgradeLink(iModelId1, iModelId2);
+                break;
+            }
+        }
+
+        case eCarModsLineType::MODS: {
+            auto pToken = strtok(pLine, " \t,");
+            if (!pToken)
+                break;
+
+            int32_t iModelId = -1;
+            auto pModelInfo = CModelInfo::GetModelInfo(pToken, &iModelId)->AsVehicleModelInfoPtr();
+            auto pNextToken = strtok(nullptr, " \t,");
+            auto pUpgrade = pModelInfo->m_anUpgrades;
+            while (pNextToken) {
+                auto pAtomicModelInfo = static_cast<CAtomicModelInfo*>(CModelInfo::GetModelInfo(pNextToken, &iModelId));
+                pAtomicModelInfo->SetupVehicleUpgradeFlags(pNextToken);
+                *pUpgrade = iModelId;
+                ++pUpgrade;
+                pNextToken = strtok(nullptr, " \t,");
+            }
+
+            auto pHydraulicsAtomicInfo = static_cast<CAtomicModelInfo*>(CModelInfo::GetModelInfo("hydralics", &iModelId));
+            pHydraulicsAtomicInfo->SetupVehicleUpgradeFlags("hydralics");
+            *pUpgrade = iModelId;
+            pUpgrade++;
+
+            auto pStereoAtomicInfo = static_cast<CAtomicModelInfo*>(CModelInfo::GetModelInfo("stereo", &iModelId));
+            pStereoAtomicInfo->SetupVehicleUpgradeFlags("stereo");
+            *pUpgrade = iModelId;
+            break;
+        }
+
+        case eCarModsLineType::WHEEL: {
+            int32_t iModelId = -1, iWheelSet;
+            sscanf(pLine, "%d", &iWheelSet);
+            strtok(pLine, " \t,");
+            char* pToken;
+            while ((pToken = strtok(nullptr, " \t,"))) {
+                auto pWheelModelInfo = static_cast<CAtomicModelInfo*>(CModelInfo::GetModelInfo(pToken, &iModelId));
+                pWheelModelInfo->SetupVehicleUpgradeFlags(pToken);
+                CVehicleModelInfo::AddWheelUpgrade(iWheelSet, iModelId);
+                break;
+            }
+        }
+        }
+    }
+
+    CFileMgr::CloseFile(pDatFile);
 }
 
 void CVehicleModelInfo::LoadEnvironmentMaps()
