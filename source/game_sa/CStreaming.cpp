@@ -477,7 +477,7 @@ bool CStreaming::ConvertBufferToObject(unsigned char* pFileBuffer, int modelId)
         CTxdStore::SetCurrentTxd(pBaseModelInfo->m_nTxdIndex);
 
         bool bFileLoaded = false;
-        if (pBaseModelInfo->GetRwModelType() == RWMODEL_INFO_ATOMIC) {
+        if (pBaseModelInfo->GetRwModelType() == rpATOMIC) {
             RtDict* pRtDictionary = nullptr;
             RwChunkHeaderInfo chunkHeaderInfo;
             RwStreamReadChunkHeaderInfo(pRwStream, &chunkHeaderInfo);

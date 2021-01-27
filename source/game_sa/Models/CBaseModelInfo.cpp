@@ -226,10 +226,10 @@ C2dEffect *CBaseModelInfo::Get2dEffect(int index)
     auto uiStoredEffectsCount = m_n2dfxCount;
     RpGeometry* pGeometry = nullptr;
     if (m_pRwObject) {
-        if (GetRwModelType() == RwModelInfoType::RWMODEL_INFO_ATOMIC) {
+        if (GetRwModelType() == rpATOMIC) {
             pGeometry = RpAtomicGetGeometry(m_pRwAtomic);
         }
-        else if (GetRwModelType() == RwModelInfoType::RWMODEL_INFO_CLUMP) {
+        else if (GetRwModelType() == rpCLUMP) {
             auto pAtomic = Get2DEffectAtomic(m_pRwClump);
             if (pAtomic) {
                 pGeometry = RpAtomicGetGeometry(pAtomic);
