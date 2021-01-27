@@ -1260,6 +1260,7 @@ void CVehicleModelInfo::SetupCommonData()
 
     CVehicleModelInfo::ms_pLightsTexture = RwTexDictionaryFindNamedTexture(vehicleTxd, "vehiclelights128");
     CVehicleModelInfo::ms_pLightsOnTexture = RwTexDictionaryFindNamedTexture(vehicleTxd, "vehiclelightson128");
+    CLoadingScreen::NewChunkLoaded();
     CVehicleModelInfo::CVehicleStructure::m_pInfoPool = new CPool<CVehicleModelInfo::CVehicleStructure>(50, "VehicleStruct");
     CCarFXRenderer::InitialiseDirtTexture();
 }
@@ -1270,8 +1271,8 @@ void CVehicleModelInfo::LoadVehicleColours()
     auto pDatFile = CFileMgr::OpenFile("DATA\\CARCOLS.DAT", "r");
     auto pCurColor = CVehicleModelInfo::ms_vehicleColourTable;
 
-    int iLastMode = 0;
-    int iCurMode = 0;
+    eCarColLineType iLastMode = eCarColLineType::IGNORED;
+    eCarColLineType iCurMode = eCarColLineType::IGNORED;
     while (CFileMgr::ReadLine(pDatFile, buffer, 1024)) {
         auto iStartInd = 0;
         while (iStartInd < 10 && buffer[iStartInd] && buffer[iStartInd] <= ' ')
@@ -1292,27 +1293,27 @@ void CVehicleModelInfo::LoadVehicleColours()
 
         if (!iLastMode) {
             if (!strncmp(pLineStart, "col", 3)) {
-                iLastMode = 1;
-                iCurMode = 1;
+                iLastMode = eCarColLineType::GLOBAL_RGB;
+                iCurMode = eCarColLineType::GLOBAL_RGB;
             }
             else if (!strncmp(pLineStart, "car4", 4)) {
-                iLastMode = 3;
-                iCurMode = 3;
+                iLastMode = eCarColLineType::CAR_4COL;
+                iCurMode = eCarColLineType::CAR_4COL;
             }
             else if (!strncmp(pLineStart, "car", 3)) {
-                iLastMode = 2;
-                iCurMode = 2;
+                iLastMode = eCarColLineType::CAR_2COL;
+                iCurMode = eCarColLineType::CAR_2COL;
             }
             continue;
         }
 
         if (!strncmp(pLineStart, "end", 3)) {
-            iLastMode = 0;
-            iCurMode = 0;
+            iLastMode = eCarColLineType::IGNORED;
+            iCurMode = eCarColLineType::IGNORED;
             continue;
         }
 
-        if (iLastMode == 1) {
+        if (iLastMode == eCarColLineType::GLOBAL_RGB) {
             uint32_t red, green, blue;
             sscanf(buffer, "%d %d %d", &red, &green, &blue);
             pCurColor->Set(red, green, blue, 255);
@@ -1325,7 +1326,7 @@ void CVehicleModelInfo::LoadVehicleColours()
         }
 
         uint32_t colorBuffer[8][4];
-        if (iLastMode == 2)
+        if (iLastMode == eCarColLineType::CAR_2COL)
         {
             char modelName[64];
             auto iNumRead = sscanf(buffer, "%s %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
@@ -1362,7 +1363,7 @@ void CVehicleModelInfo::LoadVehicleColours()
             continue;
         }
 
-        if (iLastMode == 3) {
+        if (iLastMode == eCarColLineType::CAR_4COL) {
             char modelName[64];
             auto iNumRead = sscanf(buffer, "%s %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
                 modelName,
@@ -1420,7 +1421,7 @@ void CVehicleModelInfo::LoadVehicleColours()
 
 void CVehicleModelInfo::LoadVehicleUpgrades()
 {
-    plugin::Call<0x5B6890>();
+    plugin::Call<0x5B65A0>();
 }
 
 void CVehicleModelInfo::LoadEnvironmentMaps()

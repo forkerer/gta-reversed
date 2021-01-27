@@ -68,6 +68,13 @@ enum VehicleUpgradePosn {
 	UPGRADE_NITRO,
 };
 
+enum eCarColLineType {
+    IGNORED = 0,
+    GLOBAL_RGB = 1,
+    CAR_2COL = 2,
+    CAR_4COL = 3
+};
+
 struct tRestoreEntry {
     void* m_pAddress;
     void* m_pValue;
