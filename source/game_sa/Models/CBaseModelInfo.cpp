@@ -232,7 +232,7 @@ C2dEffect *CBaseModelInfo::Get2dEffect(int index)
         else if (GetRwModelType() == RwModelInfoType::RWMODEL_INFO_CLUMP) {
             auto pAtomic = Get2DEffectAtomic(m_pRwClump);
             if (pAtomic) {
-                pGeometry = RpAtomicGetGeometry(m_pRwAtomic);
+                pGeometry = RpAtomicGetGeometry(pAtomic);
             }
         }
 

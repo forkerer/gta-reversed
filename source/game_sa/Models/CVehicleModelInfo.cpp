@@ -1502,8 +1502,8 @@ void CVehicleModelInfo::LoadVehicleUpgrades()
                 auto pWheelModelInfo = static_cast<CAtomicModelInfo*>(CModelInfo::GetModelInfo(pToken, &iModelId));
                 pWheelModelInfo->SetupVehicleUpgradeFlags(pToken);
                 CVehicleModelInfo::AddWheelUpgrade(iWheelSet, iModelId);
-                break;
             }
+            break;
         }
         }
     }
