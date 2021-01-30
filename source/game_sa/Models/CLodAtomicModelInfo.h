@@ -6,8 +6,8 @@ class CLodAtomicModelInfo : public CAtomicModelInfo
 public:
     CLodAtomicModelInfo();
 public:
-    __int16 field_20;
-    __int16 field_22;
+    int16_t field_20;
+    int16_t field_22;
 
 public:
     static void InjectHooks();
