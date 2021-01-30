@@ -42,3 +42,8 @@ void CColStore::RemoveCol(int colNum)
 {
     return plugin::Call<0x410730, int>(colNum);
 }
+
+void CColStore::RemoveRef(int colNum)
+{
+    plugin::Call<0x4107D0, int>(colNum);
+}

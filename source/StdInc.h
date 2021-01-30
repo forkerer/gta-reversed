@@ -179,7 +179,7 @@
 #include "game_sa\CModelInfoAccelerator.h"
 #include "game_sa\CMotionBlurStreaks.h"
 #include "game_sa\CNodeAddress.h"
-#include "game_sa\CObjectInfo.h"
+#include "game_sa\CObjectData.h"
 #include "game_sa\common.h"
 #include "game_sa\CCustomRoadsignMgr.h"
 #include "game_sa\CompressedVector.h"

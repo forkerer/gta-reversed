@@ -94,6 +94,11 @@ inline bool operator==(const CVector& vec, float equalTo) {
     return vec.x == equalTo && vec.y == equalTo && vec.z == equalTo;
 }
 
+inline bool operator==(const CVector& vecLeft, const CVector& vecRight)
+{
+    return vecLeft.x == vecRight.x && vecLeft.y == vecRight.y && vecLeft.z == vecRight.z;
+}
+
 inline CVector operator*(const CVector& vec, float multiplier) {
     return CVector(vec.x * multiplier, vec.y * multiplier, vec.z * multiplier);
 }

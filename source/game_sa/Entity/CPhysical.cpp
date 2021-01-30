@@ -1400,7 +1400,7 @@ void CPhysical::DettachEntityFromEntity(float x, float y, float z, bool bApplyTu
     CWorld::Add(this);
     if (physicalFlags.bDisableCollisionForce) {
         CObject* pThisObject = static_cast<CObject*>(this);
-        CObjectInfo* pThisObjectInfo = pThisObject->m_pObjectInfo;
+        CObjectData* pThisObjectInfo = pThisObject->m_pObjectInfo;
         if (m_nType != ENTITY_TYPE_OBJECT || pThisObjectInfo->m_fMass >= 99998.0f)
         {
             physicalFlags.bCollidable = true;
@@ -2973,7 +2973,7 @@ bool CPhysical::ApplyCollision(CEntity* pTheEntity, CColPoint* pColPoint, float*
                         return ApplyCollision(pEntity, pColPoint, pThisDamageIntensity);
                     }
 
-                    CObjectInfo* pEntityObjectInfo = pEntityObject->m_pObjectInfo;
+                    CObjectData* pEntityObjectInfo = pEntityObject->m_pObjectInfo;
                     if (pEntityObjectInfo->m_fUprootLimit >= 9999.0f || *pThisDamageIntensity <= pEntityObjectInfo->m_fUprootLimit)
                     {
                         return ApplyCollision(pEntity, pColPoint, pThisDamageIntensity);
@@ -3041,7 +3041,7 @@ bool CPhysical::ApplyCollision(CEntity* pTheEntity, CColPoint* pColPoint, float*
 
                     *pEntityDamageIntensity = *pThisDamageIntensity;
 
-                    CObjectInfo* pEntityObjectInfo = pEntityObject->m_pObjectInfo;
+                    CObjectData* pEntityObjectInfo = pEntityObject->m_pObjectInfo;
 
                     float fObjectDamageMultiplier = 1.0f;
                     if (m_nType == ENTITY_TYPE_VEHICLE && pThisVehicle->m_vehicleSubType == VEHICLE_BIKE)

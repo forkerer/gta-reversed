@@ -8,7 +8,7 @@
 
 #include "PluginBase.h"
 #include "CPhysical.h"
-#include "CObjectInfo.h"
+#include "CObjectData.h"
 
 enum eObjectCreatedBy {
     OBJECT_UNKNOWN = 0,
@@ -55,7 +55,7 @@ public:
             unsigned int bIsPhotographed : 1;
             unsigned int bIsLiftable : 1;
             unsigned int bIsDoorMoving : 1;
-            unsigned int bbIsDoorOpen : 1;
+            unsigned int bIsDoorOpen : 1;
 
             unsigned int bHasNoModel : 1;
             unsigned int bIsScaled : 1;
@@ -90,7 +90,7 @@ public:
     float           m_fHealth;
     float           m_fDoorStartAngle; // this is used for door objects
     float           m_fScale;
-    CObjectInfo    *m_pObjectInfo;
+    CObjectData    *m_pObjectInfo;
     class CFire     *m_pFire; // CFire *
     short           m_wScriptTriggerIndex;
     short           m_wRemapTxd; // this is used for detached car parts
@@ -102,6 +102,9 @@ public:
 
     static unsigned short& nNoTempObjects;
     static float& fDistToNearestTree;
+
+public:
+    static void InjectHooks();
 
     CObject* Constructor();
     // class functions

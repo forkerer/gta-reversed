@@ -9,6 +9,10 @@
 unsigned short& CObject::nNoTempObjects = *(unsigned short*)(0xBB4A70);
 float& CObject::fDistToNearestTree = *(float*)0x8D0A20;
 
+void CObject::InjectHooks()
+{
+}
+
 CObject::CObject() : CPhysical()
 {
     m_pDummyObject = nullptr;
@@ -204,7 +208,8 @@ void CObject::LockDoor() {
 // Converted from thiscall void CObject::Init(void) 0x59F840
 void CObject::Init() {
     ((void(__thiscall*)(CObject*))0x59F840)(this);
-    m_nType = eEntityType::ENTITY_TYPE_OBJECT;
+    /*m_nType = eEntityType::ENTITY_TYPE_OBJECT;
+    m_pObjectInfo = CObjectData::*/
 }
 
 // Converted from thiscall void CObject::DoBurnEffect(void) 0x59FB50

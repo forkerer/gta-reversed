@@ -47,6 +47,8 @@ void InjectHooksMain(void)
     CEntity::InjectHooks();;
     CPhysical::InjectHooks();
     CRenderer::InjectHooks();
+    CObject::InjectHooks();
+    CObjectData::InjectHooks();
     CVisibilityPlugins::InjectHooks();
     CPed::InjectHooks();
     CPedIntelligence::InjectHooks();

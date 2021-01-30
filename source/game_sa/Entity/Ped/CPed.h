@@ -131,7 +131,7 @@ class CVehicle;
 
 class  CPed : public CPhysical {
 protected:
-    CPed(plugin::dummy_func_t) : CPhysical(plugin::dummy), m_aWeapons{ plugin::dummy, plugin::dummy, plugin::dummy,
+    CPed(plugin::dummy_func_t) : CPhysical(), m_aWeapons{ plugin::dummy, plugin::dummy, plugin::dummy,
         plugin::dummy, plugin::dummy, plugin::dummy, plugin::dummy, plugin::dummy, plugin::dummy, plugin::dummy,
         plugin::dummy, plugin::dummy, plugin::dummy } {}
 public:
