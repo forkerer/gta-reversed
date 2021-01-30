@@ -1361,7 +1361,7 @@ void CAutomobile::ProcessCarWheelPair(int leftWheel, int rightWheel, float steer
             }
             m_wheelColPoint[leftWheel].m_nSurfaceTypeA = SURFACE_WHEELBASE;
             float adhesion = g_surfaceInfos->GetAdhesiveLimit(&m_wheelColPoint[leftWheel]) * traction;
-            if (m_nStatus != STATUS_PLAYER)
+            if (m_nStatus == STATUS_PLAYER)
             {
                 adhesion *= g_surfaceInfos->GetWetMultiplier(m_wheelColPoint[leftWheel].m_nSurfaceTypeB);
                 adhesion *= std::min(suspensionBias * m_pHandlingData->m_fSuspensionForceLevel * 4.0f * (1.0f - m_fWheelsSuspensionCompression[leftWheel]), 2.0f);
@@ -1447,9 +1447,11 @@ void CAutomobile::ProcessCarWheelPair(int leftWheel, int rightWheel, float steer
                 m_aWheelState[rightWheel] = wheelState;
         }
     }
-    if (!bFront && !handlingFlags.bNosInst && m_doingBurnout && driveWheels) {
-        if (m_aWheelState[CARWHEEL_REAR_LEFT] == WHEEL_STATE_SPINNING ||
-            m_aWheelState[CARWHEEL_REAR_RIGHT] == WHEEL_STATE_SPINNING)
+    if (!bFront && !handlingFlags.bNosInst) {
+        if (m_doingBurnout
+            && driveWheels
+            && (m_aWheelState[CARWHEEL_REAR_LEFT] == WHEEL_STATE_SPINNING ||
+                m_aWheelState[CARWHEEL_REAR_RIGHT] == WHEEL_STATE_SPINNING))
         {
             m_fNitroValue += CTimer::ms_fTimeStep * 0.001f;
             m_fNitroValue = std::min(m_fNitroValue, 3.0f);
