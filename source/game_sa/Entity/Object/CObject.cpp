@@ -9,11 +9,94 @@
 unsigned short& CObject::nNoTempObjects = *(unsigned short*)(0xBB4A70);
 float& CObject::fDistToNearestTree = *(float*)0x8D0A20;
 
-CObject::CObject() : CPhysical(plugin::dummy)
+CObject::CObject() : CPhysical()
 {
     m_pDummyObject = nullptr;
-    Init();
+    CObject::Init();
     m_nObjectType = eObjectCreatedBy::OBJECT_UNKNOWN;
+}
+
+CObject::CObject(int modelId, bool bCreate) : CPhysical()
+{
+    m_pDummyObject = nullptr;
+    if (bCreate)
+        CEntity::SetModelIndex(modelId);
+    else
+        CEntity::SetModelIndexNoCreate(modelId);
+
+    CObject::Init();
+}
+
+CObject::CObject(CDummyObject* pDummyObj) : CPhysical()
+{
+    CEntity::SetModelIndexNoCreate(pDummyObj->m_nModelIndex);
+    if (pDummyObj->m_pRwObject)
+        CEntity::AttachToRwObject(pDummyObj->m_pRwObject, true);
+    else
+        CPlaceable::SetMatrix(*pDummyObj->GetMatrix());
+
+    pDummyObj->DetachFromRwObject();
+    CObject::Init();
+
+    m_nIplIndex = pDummyObj->m_nIplIndex;
+    m_nAreaCode = pDummyObj->m_nAreaCode;
+    m_bRenderDamaged = pDummyObj->m_bRenderDamaged;
+
+    
+    if (m_pRwObject)
+    {
+        auto pAtomic = m_pRwAtomic;
+        if (RwObjectGetType(m_pRwObject) != rpATOMIC)
+            pAtomic = GetFirstAtomic(m_pRwClump);
+
+        if (!CCustomBuildingRenderer::IsCBPCPipelineAttached(pAtomic))
+            m_bLightObject = true;
+    }
+}
+
+CObject::~CObject()
+{
+    if (objectFlags.b0x200000 || objectFlags.b0x100000)
+    {
+        const auto iIndex = CTheScripts::ScriptsForBrains.m_aScriptForBrains[m_wScriptTriggerIndex].m_nIMGindex + RESOURCE_ID_SCM;
+        CStreaming::SetMissionDoesntRequireModel(iIndex);
+        objectFlags.b0x100000 = false;
+        objectFlags.b0x200000 = false;
+        CTheScripts::RemoveFromWaitingForScriptBrainArray(this, m_wScriptTriggerIndex);
+        m_wScriptTriggerIndex = -1;
+    }
+
+    if (objectFlags.bHasNoModel)
+    {
+        const auto colModel = CModelInfo::GetModelInfo((m_nModelIndex))->GetColModel();
+        CColStore::RemoveRef(colModel->m_boundSphere.m_nMaterial); //This seems weird, maybe BUG or Union field?
+    }
+
+    CRadar::ClearBlipForEntity(eBlipType::BLIP_OBJECT, CPools::ms_pObjectPool->GetRef(this));
+
+    if (m_nRefModelIndex != -1)
+        CModelInfo::GetModelInfo(m_nRefModelIndex)->RemoveRef();
+
+    if (m_wRemapTxd != -1)
+        CTxdStore::RemoveRef(m_wRemapTxd);
+
+    if (IsTemporary() && CObject::nNoTempObjects)
+        --CObject::nNoTempObjects;
+
+    CObject::RemoveFromControlCodeList();
+    if (m_nModelIndex == ModelIndices::MI_TRAINCROSSING1)
+    {
+        const auto& pDummyPos = m_pDummyObject->GetPosition();
+        ThePaths.SetLinksBridgeLights(pDummyPos.x - 12.0F, pDummyPos.x + 12.0F, pDummyPos.y - 12.0F, pDummyPos.y + 12.0F, false);
+    }
+
+    if (m_pFire)
+        m_pFire->Extinguish();
+}
+
+void* CObject::operator new(unsigned int size)
+{
+    return CPools::ms_pObjectPool->New();
 }
 
 CObject* CObject::Constructor()
@@ -46,10 +129,7 @@ void CObject::SetRelatedDummy(CDummyObject* relatedDummy) {
     ((void(__thiscall*)(CObject*, CDummyObject*))0x59F160)(this, relatedDummy);
 }
 
-void* CObject::operator new(unsigned int size)
-{
-    return plugin::CallAndReturn<void*, 0x5A1EE0, unsigned int>(size);
-}
+
 
 // Converted from cdecl void CObject::SetMatrixForTrainCrossing(CMatrix *matrix,float) 0x59F200
 void CObject::SetMatrixForTrainCrossing(CMatrix* matrix, float arg1) {
@@ -124,6 +204,7 @@ void CObject::LockDoor() {
 // Converted from thiscall void CObject::Init(void) 0x59F840
 void CObject::Init() {
     ((void(__thiscall*)(CObject*))0x59F840)(this);
+    m_nType = eEntityType::ENTITY_TYPE_OBJECT;
 }
 
 // Converted from thiscall void CObject::DoBurnEffect(void) 0x59FB50

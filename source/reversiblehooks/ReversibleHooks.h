@@ -16,7 +16,7 @@ struct SHookContent {
     unsigned char possibleNops[52 - sizeof(jumpOpCode) - sizeof(jumpLocation)] = { 0 };
 };
 #pragma pack(pop)
-static_assert(sizeof(SHookContent) == 0x34, "Incorrect struct size: SHookContent");
+VALIDATE_SIZE(SHookContent, 0x34);
 
 struct SReversibleHook {
     bool m_bIsHooked = false;

@@ -20,9 +20,17 @@ enum eObjectCreatedBy {
     OBJECT_MISSION2 = 6
 };
 
+
+
 class CDummyObject;
 
 class CObject : public CPhysical {
+public:
+    CObject();
+    CObject(int modelId, bool bCreate);
+    CObject(CDummyObject* pDummyObj);
+    ~CObject();
+    static void* operator new(unsigned int size);
 public:
     void           *m_pControlCodeList;
     unsigned char   m_nObjectType; // see enum eObjectCreatedBy
@@ -32,13 +40,13 @@ public:
         struct 
         {
             unsigned int bIsPickup : 1;
-            unsigned int b02 : 1;
+            unsigned int b0x02 : 1;
             unsigned int bPickupPropertyForSale : 1;
             unsigned int bPickupInShopOutOfStock : 1;
             unsigned int bGlassBroken : 1;
-            unsigned int b06 : 1;
+            unsigned int b0x20 : 1;
             unsigned int bIsExploded : 1;
-            unsigned int b08 : 1;
+            unsigned int b0x80 : 1;
 
             unsigned int bIsLampPost : 1;
             unsigned int bIsTargatable : 1;
@@ -53,19 +61,19 @@ public:
             unsigned int bIsScaled : 1;
             unsigned int bCanBeAttachedToMagnet : 1;
             unsigned int bDamaged : 1;
-            unsigned int b21 : 1;
-            unsigned int b22 : 1;
+            unsigned int b0x100000 : 1;
+            unsigned int b0x200000 : 1;
             unsigned int bFadingIn : 1; // works only for objects with type 2 (OBJECT_MISSION)
             unsigned int bAffectedByColBrightness : 1;
 
-            unsigned int b25 : 1;
+            unsigned int b0x01000000 : 1;
             unsigned int bDoNotRender : 1;
             unsigned int bFadingIn2 : 1;
-            unsigned int b28 : 1;
-            unsigned int b29 : 1;
-            unsigned int b30 : 1;
-            unsigned int b31 : 1;
-            unsigned int b32 : 1;
+            unsigned int b0x08000000 : 1;
+            unsigned int b0x10000000 : 1;
+            unsigned int b0x20000000 : 1;
+            unsigned int b0x40000000 : 1;
+            unsigned int b0x80000000 : 1;
         } objectFlags;
         unsigned int m_nObjectFlags;
     };
@@ -95,7 +103,6 @@ public:
     static unsigned short& nNoTempObjects;
     static float& fDistToNearestTree;
 
-    CObject();
     CObject* Constructor();
     // class functions
 
@@ -132,16 +139,16 @@ public:
     bool CanBeUsedToTakeCoverBehind();
     static class CObject* Create(int modelIndex);
     static class CObject* Create(CDummyObject* dummyObject);
-    void ProcessControlLogic();
-
-    // static functions
-    static void* operator new(unsigned int size);
+    void ProcessControlLogic();    
 
     static void SetMatrixForTrainCrossing(CMatrix* matrix, float arg1);
     static void TryToFreeUpTempObjects(int numObjects);
     static void DeleteAllTempObjects();
     static void DeleteAllMissionObjects();
     static void DeleteAllTempObjectsInArea(CVector point, float radius);
+
+    //Helpers
+    inline bool IsTemporary() const { return m_nObjectType == eObjectCreatedBy::OBJECT_TEMPORARY; }
 };
 
 VALIDATE_SIZE(CObject, 0x17C);

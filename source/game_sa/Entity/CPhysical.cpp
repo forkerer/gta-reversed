@@ -76,13 +76,39 @@ void CPhysical::InjectHooks()
     ReversibleHooks::Install("CPhysical", "PositionAttachedEntity", 0x546FF0, &CPhysical::PositionAttachedEntity);
 }
 
+CPhysical::CPhysical() : CEntity()
+{
+    m_pCollisionList.m_pNode = nullptr;
+    CPlaceable::AllocateStaticMatrix();
+    GetMatrix()->SetUnity();
+
+    m_fMass = 1.0F;
+    m_fTurnMass = 1.0F;
+    m_fVelocityFrequency = 1.0F;
+    m_fAirResistance = 0.1F;
+    m_pMovingList = nullptr;
+    m_bFakePhysics = false;
+    m_nNumEntitiesCollided = 0;
+    memset(m_apCollidedEntities, 0, sizeof(m_apCollidedEntities));
+    m_nPieceType = 0;
+    m_fDamageIntensity = 0.0F;
+    m_pDamageEntity = nullptr;
+    m_bUsesCollision = true;
+    m_fMovingSpeed = 0.0F;
+    m_pAttachedTo = nullptr;
+    m_pEntityIgnoredCollision = nullptr;
+    m_fDynamicLighting = 0.0F;
+    m_pShadowData = nullptr;
+    field_38 = 100.0F;
+    m_fContactSurfaceBrightness = 1.0F;
+
+    m_nPhysicalFlags = 0;
+    physicalFlags.bApplyGravity = true;
+}
+
 void CPhysical::Add()
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    plugin::CallMethod<0x544A30, CPhysical*>(this);
-#else
     CPhysical::Add_Reversed();
-#endif
 }
 
 void CPhysical::Add_Reversed()
