@@ -897,7 +897,7 @@ void CEntity::UpdateRwFrame()
     if (!m_pRwObject)
         return;
 
-    RwFrameUpdateObjects((RwFrame*)rwObjectGetParent(m_pRwObject));
+    RwFrameUpdateObjects(static_cast<RwFrame*>(rwObjectGetParent(m_pRwObject)));
 }
 
 // Converted from thiscall void CEntity::UpdateRpHAnim(void) 0x532B20

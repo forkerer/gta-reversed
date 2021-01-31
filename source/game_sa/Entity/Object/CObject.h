@@ -16,7 +16,7 @@ enum eObjectCreatedBy {
     OBJECT_MISSION = 2,
     OBJECT_TEMPORARY = 3,
     OBJECT_TYPE_CUTSCENE = 4,
-    OBJECT_TYPE_HAND = 5,
+    OBJECT_TYPE_HAND = 5, // Also escalator step, consider different name
     OBJECT_MISSION2 = 6
 };
 
@@ -31,6 +31,7 @@ public:
     CObject(CDummyObject* pDummyObj);
     ~CObject();
     static void* operator new(unsigned int size);
+    static void* operator new(unsigned int size, int iPoolRef);
     static void operator delete(void* pObj);
 public:
     void           *m_pControlCodeList;
@@ -47,7 +48,7 @@ public:
             unsigned int bGlassBroken : 1;
             unsigned int b0x20 : 1;
             unsigned int bIsExploded : 1;
-            unsigned int b0x80 : 1;
+            unsigned int bChangesVehColor : 1;
 
             unsigned int bIsLampPost : 1;
             unsigned int bIsTargatable : 1;
@@ -119,6 +120,7 @@ public:
     bool SetupLighting() override;
     void RemoveLighting(bool bRemove) override;
 
+private:
     // Virtual implementations
     void SetIsStatic_Reversed(bool isStatic);
     void CreateRwObject_Reversed();
@@ -130,6 +132,10 @@ public:
     void Render_Reversed();
     bool SetupLighting_Reversed();
     void RemoveLighting_Reversed(bool bRemove);
+
+public:
+    bool Load();
+    bool Save();
 
     void ProcessGarageDoorBehaviour();
     bool CanBeDeleted();

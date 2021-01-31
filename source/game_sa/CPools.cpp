@@ -13,6 +13,12 @@ CPool<CPtrNodeDoubleLink>*& CPools::ms_pPtrNodeDoubleLinkPool = *(CPool<CPtrNode
 CPool<CEntryInfoNode>*& CPools::ms_pEntryInfoNodePool = *(CPool<CEntryInfoNode>**)0xB7448C;
 CPool<CPointRoute>*& CPools::ms_pPointRoutePool = *(CPool<CPointRoute>**)0xB744B0;
 
+void CPools::InjectHooks()
+{
+    ReversibleHooks::Install("CPools", "LoadObjectPool", 0x5D4A40, &CPools::LoadObjectPool);
+    ReversibleHooks::Install("CPools", "MakeSureSlotInObjectPoolIsEmpty", 0x550080, &CPools::MakeSureSlotInObjectPoolIsEmpty);
+}
+
 int CPools::CheckBuildingAtomics() {
     return plugin::CallAndReturn<int, 0x550170>();
 }
@@ -64,7 +70,24 @@ bool CPools::Load() {
 
 // Converted from cdecl bool CPools::LoadObjectPool(void) 0x5D4A40
 bool CPools::LoadObjectPool() {
-    return plugin::CallAndReturn<bool, 0x5D4A40>();
+    int32_t iNumObjects = 0;
+    CGenericGameStorage::LoadDataFromWorkBuffer(&iNumObjects, 4);
+    for (int32_t i = 0; i < iNumObjects; ++i)
+    {
+        int32_t iPoolRef = 0, iModelId = 0;
+        CGenericGameStorage::LoadDataFromWorkBuffer(&iPoolRef, 4);
+        CGenericGameStorage::LoadDataFromWorkBuffer(&iModelId, 4);
+
+        auto* pObjInPool = CPools::ms_pObjectPool->GetAtRefNoChecks(iPoolRef);
+        if (pObjInPool)
+            CPopulation::ConvertToDummyObject(pObjInPool);
+
+        auto* pNewObj = new(iPoolRef) CObject(iModelId, false);
+        pNewObj->Load();
+        CWorld::Add(pNewObj);
+    }
+
+    return true;
 }
 
 // Converted from cdecl bool CPools::LoadPedPool(void) 0x5D2D70
@@ -79,7 +102,27 @@ bool CPools::LoadVehiclePool() {
 
 // Converted from cdecl void CPools::MakeSureSlotInObjectPoolIsEmpty(int slot) 0x550080
 void CPools::MakeSureSlotInObjectPoolIsEmpty(int slot) {
-    plugin::Call<0x550080, int>(slot);
+    if (CPools::ms_pObjectPool->IsFreeSlotAtIndex(slot))
+        return;
+
+    auto* pExistingObj = CPools::ms_pObjectPool->GetAt(slot);
+    if (pExistingObj->IsTemporary())
+    {
+        CWorld::Remove(pExistingObj);
+        delete pExistingObj;
+    }
+    else if (CProjectileInfo::RemoveIfThisIsAProjectile(pExistingObj))
+    {
+        auto pNewObj = new CObject(pExistingObj->m_nModelIndex, false);
+        CWorld::Remove(pExistingObj);
+        CPools::ms_pObjectPool->CopyItem(pNewObj, pExistingObj);
+        CWorld::Add(pNewObj);
+
+        pExistingObj->m_pRwObject = nullptr;
+        delete pExistingObj;
+
+        pNewObj->m_pReferences = nullptr;
+    }
 }
 
 // Converted from cdecl bool CPools::Save(void) 0x5D0880

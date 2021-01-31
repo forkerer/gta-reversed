@@ -14,6 +14,7 @@ void InjectHooksMain(void)
     CDebug::InjectHooks();
     InjectCommonHooks();
     CGame::InjectHooks();
+    CPools::InjectHooks();
     CPad::InjectHooks();
     CVector2D::InjectHooks();
     CQuaternion::InjectHooks();
@@ -29,6 +30,7 @@ void InjectHooksMain(void)
     CStreaming::InjectHooks();
     InjectCdStreamHooks();
     CReferences::InjectHooks();
+    CPopulation::InjectHooks();
     CModelInfo::InjectHooks();
     CModelInfoAccelerator::InjectHooks();
     CBaseModelInfo::InjectHooks();
@@ -49,6 +51,8 @@ void InjectHooksMain(void)
     CRenderer::InjectHooks();
     CObject::InjectHooks();
     CObjectData::InjectHooks();
+    CObjectSaveStructure::InjectHooks();
+    CCompressedMatrixNotAligned::InjectHooks();
     CVisibilityPlugins::InjectHooks();
     CPed::InjectHooks();
     CPedIntelligence::InjectHooks();

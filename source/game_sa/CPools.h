@@ -40,6 +40,9 @@ public:
     static CPool<CEntryInfoNode>           *&ms_pEntryInfoNodePool;
     static CPool<CPointRoute>              *&ms_pPointRoutePool;
 
+public:
+    static void InjectHooks();
+
     // dummy function; returns "-1"
     static int CheckBuildingAtomics();
     static void CheckPoolsEmpty();

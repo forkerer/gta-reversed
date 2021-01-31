@@ -11,6 +11,7 @@
 
 class  CDummyObject : public CDummy {
 public:
+    void UpdateFromObject(CObject* pObject);
 };
 
 

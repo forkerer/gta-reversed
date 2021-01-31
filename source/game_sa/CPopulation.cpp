@@ -41,6 +41,11 @@ bool& CPopulation::bInPoliceStation = *(bool*)0xC0FCB6;
 unsigned int& CPopulation::NumMiamiViceCops = *(unsigned int*)0xC0FCB8;
 unsigned int& CPopulation::CurrentWorldZone = *(unsigned int*)0xC0FCBC;
 
+void CPopulation::InjectHooks()
+{
+    ReversibleHooks::Install("CPopulation", "ConvertToDummyObject", 0x614670, &CPopulation::ConvertToDummyObject);
+}
+
 // Converted from cdecl int CPopulation::FindPedRaceFromName(char *modelName) 0x5B6D40
 int CPopulation::FindPedRaceFromName(char* modelName) {
     return ((int(__cdecl*)(char*))0x5B6D40)(modelName);
@@ -308,7 +313,27 @@ void CPopulation::ConvertToRealObject(CDummyObject* dummyObject) {
 
 // Converted from cdecl void CPopulation::ConvertToDummyObject(CObject *object) 0x614670
 void CPopulation::ConvertToDummyObject(CObject* object) {
-    ((void(__cdecl*)(CObject*))0x614670)(object);
+    auto* pDummy = object->m_pDummyObject;
+    if (pDummy)
+    {
+        if (!CPopulation::TestRoomForDummyObject(object))
+            return;
+
+        pDummy->m_bIsVisible = true;
+        pDummy->UpdateFromObject(object);
+    }
+
+    if (object->IsObject())
+    {
+        auto* pModelInfo = CModelInfo::GetModelInfo(object->m_nModelIndex)->AsAtomicModelInfoPtr();
+        if (pModelInfo && pModelInfo->IsGlassType1())
+            pDummy->m_bIsVisible = false;
+    }
+
+    CWorld::Remove(object);
+    delete object;
+    if (pDummy)
+        CWorld::Add(pDummy);
 }
 
 // Converted from cdecl bool CPopulation::AddToPopulation(float,float,float,float) 0x614720

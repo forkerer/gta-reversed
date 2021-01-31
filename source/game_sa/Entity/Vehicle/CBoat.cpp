@@ -1022,7 +1022,7 @@ void CBoat::BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion)
 RwObject* GetBoatAtomicObjectCB(RwObject* object, void* data)
 {
     if (RpAtomicGetFlags(object) & rpATOMICRENDER)
-        *reinterpret_cast<RpAtomic**>(data) = reinterpret_cast<RpAtomic*>(object);
+        *static_cast<RpAtomic**>(data) = reinterpret_cast<RpAtomic*>(object);
 
     return object;
 }

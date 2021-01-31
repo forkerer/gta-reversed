@@ -16,7 +16,12 @@ void CObject::InjectHooks()
     ReversibleHooks::Install("CObject", "CreateRwObject", 0x59F110, &CObject::CreateRwObject_Reversed);
     ReversibleHooks::Install("CObject", "ProcessControl", 0x5A2130, &CObject::ProcessControl_Reversed);
     ReversibleHooks::Install("CObject", "Teleport", 0x5A17B0, &CObject::Teleport_Reversed);
+    ReversibleHooks::Install("CObject", "PreRender", 0x59FD50, &CObject::PreRender_Reversed);
+    ReversibleHooks::Install("CObject", "Render", 0x59F180, &CObject::Render_Reversed);
+    ReversibleHooks::Install("CObject", "SetupLighting", 0x554FA0, &CObject::SetupLighting_Reversed);
+    ReversibleHooks::Install("CObject", "RemoveLighting", 0x553E10, &CObject::RemoveLighting_Reversed);
     ReversibleHooks::Install("CObject", "SpecialEntityPreCollisionStuff", 0x59FEE0, &CObject::SpecialEntityPreCollisionStuff_Reversed);
+    ReversibleHooks::Install("CObject", "SpecialEntityCalcCollisionSteps", 0x5A02E0, &CObject::SpecialEntityCalcCollisionSteps_Reversed);
 
 // CLASS
     ReversibleHooks::Install("CObject", "Init", 0x59F840, &CObject::Init);
@@ -110,6 +115,11 @@ CObject::~CObject()
 void* CObject::operator new(unsigned int size)
 {
     return CPools::ms_pObjectPool->New();
+}
+
+void* CObject::operator new(unsigned size, int iPoolRef)
+{
+    return CPools::ms_pObjectPool->New(iPoolRef);
 }
 
 void CObject::operator delete(void* pObj)
@@ -431,7 +441,82 @@ unsigned char CObject::SpecialEntityCalcCollisionSteps(bool* bProcessCollisionBe
 }
 unsigned char CObject::SpecialEntityCalcCollisionSteps_Reversed(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2)
 {
-    return plugin::CallMethodAndReturn<unsigned char, 0x5A02E0, CObject*, bool*, bool*>(this, bProcessCollisionBeforeSettingTimeStep, unk2);
+    if (physicalFlags.bDisableZ
+        || m_pObjectInfo->m_nSpecialColResponseCase == eObjectSpecialColResponseCases::COL_SPECIAL_RESPONSE_GRENADE)
+    {
+        auto* pColModel = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel();
+        const auto fMove = m_vecMoveSpeed.SquaredMagnitude() * pow(CTimer::ms_fTimeStep, 2.0F);
+        if (fMove >= pow(pColModel->GetBoundRadius(), 2.0F))
+            return static_cast<uint8_t>(ceil(sqrt(fMove) / pColModel->GetBoundRadius()));
+
+        return 1;
+    }
+
+    if (!physicalFlags.bDisableMoveForce)
+    {
+        if (physicalFlags.bInfiniteMass)
+        {
+            auto pColModel = CEntity::GetColModel();
+            auto vecMin = Multiply3x3(m_matrix, &pColModel->GetBoundingBox().m_vecMin);
+            auto vecSpeed = CPhysical::GetSpeed(vecMin);
+            const auto fMove = vecSpeed.SquaredMagnitude() * pow(CTimer::ms_fTimeStep, 2.0F);
+            if (fMove >= 0.0225F) // pow(0.15F, 2.0F)
+                return static_cast<uint8_t>(ceil(sqrt(fMove) / 0.15F));
+
+            return 1;
+        }
+
+        if (IsTemporary() && !objectFlags.bIsLiftable)
+            return 1;
+
+        if (m_pObjectInfo->m_nSpecialColResponseCase == eObjectSpecialColResponseCases::COL_SPECIAL_RESPONSE_LAMPOST)
+        {
+            auto* pColModel = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel();
+
+            auto vecMin = CVector(0.0F, 0.0F, pColModel->GetBoundingBox().m_vecMin.z);
+            vecMin = Multiply3x3(m_matrix, &vecMin);
+            vecMin = CPhysical::GetSpeed(vecMin);
+
+            auto vecMax = CVector(0.0F, 0.0F, pColModel->GetBoundingBox().m_vecMax.z);
+            vecMax = Multiply3x3(m_matrix, &vecMax);
+            vecMax = CPhysical::GetSpeed(vecMax);
+
+            auto& vecUsed = vecMin.SquaredMagnitude() >= vecMax.SquaredMagnitude() ? vecMin : vecMax;
+            const auto fMove = vecUsed.SquaredMagnitude() * pow(CTimer::ms_fTimeStep, 2.0F);
+            if (fMove >= 0.09F)
+                return static_cast<uint8_t>(ceil(sqrt(fMove) / 0.3F));
+
+            return 1;
+        }
+
+        if (objectFlags.bIsLiftable
+            || m_pObjectInfo->m_nSpecialColResponseCase == eObjectSpecialColResponseCases::COL_SPECIAL_RESPONSE_SMALLBOX
+            || m_pObjectInfo->m_nSpecialColResponseCase == eObjectSpecialColResponseCases::COL_SPECIAL_RESPONSE_FENCEPART)
+        {
+            auto* pColModel = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel();
+            const auto vecSize = pColModel->GetBoundingBox().m_vecMax - pColModel->GetBoundingBox().m_vecMin;
+            const auto fEdge = std::max({ vecSize.x, vecSize.y, vecSize.z }) / 2.0F;
+            const auto fMove = m_vecMoveSpeed.SquaredMagnitude() * pow(CTimer::ms_fTimeStep, 2.0F);
+            if (fMove >= pow(fEdge, 2.0F))
+                return static_cast<uint8_t>(ceil(sqrt(fMove) / fEdge));
+
+            return 1;
+        }
+
+        const auto fMove = m_vecMoveSpeed.SquaredMagnitude() * pow(CTimer::ms_fTimeStep, 2.0F);
+        if (fMove >= 0.09F)
+            return static_cast<uint8_t>(ceil(sqrt(fMove) / 0.3F));
+
+        return 1;
+    }
+
+    auto& pBox = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel()->GetBoundingBox();
+    auto fLongest = std::max({ pBox.m_vecMax.x, pBox.m_vecMax.y, -pBox.m_vecMin.x, -pBox.m_vecMin.y });
+    const auto fMove = fabs(fLongest * m_vecTurnSpeed.z);
+    if (fMove > 0.1F)
+        return static_cast<uint8_t>(ceil(fMove * 10.0F));
+
+    return 1;
 }
 
 void CObject::PreRender()
@@ -440,7 +525,41 @@ void CObject::PreRender()
 }
 void CObject::PreRender_Reversed()
 {
-    plugin::CallMethod<0x59FD50, CObject*>(this);
+    if (objectFlags.bAffectedByColBrightness)
+        CObject::GetLightingFromCollisionBelow();
+
+    if (m_dwBurnTime > CTimer::m_snTimeInMilliseconds)
+        CObject::DoBurnEffect();
+
+    if (!m_pAttachedTo)
+    {
+        const auto fDay = static_cast<float>(m_nDayBrightness) / 30.0F;
+        const auto fNight = static_cast<float>(m_nNightBrightness) / 30.0F;
+        m_fContactSurfaceBrightness = lerp(fDay, fNight, CCustomBuildingDNPipeline::m_fDNBalanceParam);
+    }
+
+    if (m_pRwObject && RwObjectGetType(m_pRwObject) == rpCLUMP && objectFlags.bFadingIn)
+    {
+        auto iAlpha = CVisibilityPlugins::GetClumpAlpha(m_pRwClump) - 16;
+        iAlpha = std::max(0, iAlpha);
+        CVisibilityPlugins::SetClumpAlpha(m_pRwClump, iAlpha);
+    }
+
+    CEntity::PreRender();
+
+    if (m_fScale != 1.0F || objectFlags.bIsScaled)
+    {
+        auto vecScale = CVector(m_fScale, m_fScale, m_fScale);
+        CEntity::UpdateRW();
+        RwMatrixScale(CEntity::GetModellingMatrix(), &vecScale, RwOpCombineType::rwCOMBINEPRECONCAT);
+        CEntity::UpdateRwFrame();
+        objectFlags.bIsScaled = true;
+        if (objectFlags.bIsScaled)
+            objectFlags.bIsScaled = false; //BUG? It's unsetting the flag straight after setting it
+    }
+
+    if (m_pRwObject && RwObjectGetType(m_pRwObject) == rpCLUMP)
+        CEntity::UpdateRpHAnim();
 }
 
 void CObject::Render()
@@ -449,7 +568,18 @@ void CObject::Render()
 }
 void CObject::Render_Reversed()
 {
-    plugin::CallMethod<0x59F180, CObject*>(this);
+    if (objectFlags.bDoNotRender)
+        return;
+
+    const auto iRefModel = m_nRefModelIndex;
+    if (iRefModel != -1 && IsTemporary() && objectFlags.bChangesVehColor)
+    {
+        auto* vehModelInfo = CModelInfo::GetModelInfo(iRefModel)->AsVehicleModelInfoPtr();
+        CVehicleModelInfo::ms_pRemapTexture = m_pRemapTexture;
+        vehModelInfo->SetVehicleColour(m_nCarColor[0], m_nCarColor[1], m_nCarColor[2], m_nCarColor[3]);
+    }
+
+    CEntity::Render();
 }
 
 bool CObject::SetupLighting()
@@ -458,7 +588,19 @@ bool CObject::SetupLighting()
 }
 bool CObject::SetupLighting_Reversed()
 {
-    return plugin::CallMethodAndReturn<bool, 0x554FA0, CObject*>(this);
+    if (physicalFlags.bDestroyed)
+    {
+        WorldReplaceNormalLightsWithScorched(Scene.m_pRpWorld, 0.18F);
+        return true;
+    }
+
+    if (m_bLightObject)
+    {
+        ActivateDirectional();
+        return CRenderer::SetupLightingForEntity(this);
+    }
+
+    return false;
 }
 
 void CObject::RemoveLighting(bool bRemove)
@@ -467,7 +609,37 @@ void CObject::RemoveLighting(bool bRemove)
 }
 void CObject::RemoveLighting_Reversed(bool bRemove)
 {
-    plugin::CallMethod<0x553E10, CObject*, bool>(this, bRemove);
+    if (!bRemove)
+        return;
+
+    if (!physicalFlags.bDestroyed)
+        CPointLights::RemoveLightsAffectingObject();
+
+    SetAmbientColours();
+    DeActivateDirectional();
+}
+
+//0x5D2870 - Deserializes object from save storage buffer
+bool CObject::Load()
+{
+    int32_t iSaveStructSize; // unused
+    CObjectSaveStructure saveStruct;
+    CGenericGameStorage::LoadDataFromWorkBuffer(&iSaveStructSize, 4);
+    CGenericGameStorage::LoadDataFromWorkBuffer(&saveStruct, sizeof(saveStruct));
+    saveStruct.Extract(this);
+    return true;
+}
+
+//0x5D2830 - Serializes object to save storage buffer
+bool CObject::Save()
+{
+    CObjectSaveStructure saveStruct;
+    saveStruct.Construct(this);
+
+    auto iStructSize = sizeof(CObjectSaveStructure);
+    CGenericGameStorage::SaveDataToWorkBuffer(&iStructSize, 4);
+    CGenericGameStorage::SaveDataToWorkBuffer(&saveStruct, iStructSize);
+    return true;
 }
 
 // Converted from thiscall void CObject::ProcessGarageDoorBehaviour(void) 0x44A4D0
