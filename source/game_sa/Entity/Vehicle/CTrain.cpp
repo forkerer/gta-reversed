@@ -238,13 +238,7 @@ void CTrain::ProcessControl_Reversed()
     }
 
     CVector vecOldTrainPosition = GetPosition();
-
-    float fOldTrainHeading = m_placement.m_fHeading;
-    if (m_matrix)
-    {
-        fOldTrainHeading = atan2(-GetForward().x, GetForward().y);
-    }
-
+    float fOldTrainHeading = GetHeading();
 
     float fTotalTrackLength = arrTotalTrackLength[m_nTrackId];
     CTrainNode* pTrainNodes = pTrackNodes[m_nTrackId];
@@ -756,12 +750,7 @@ void CTrain::ProcessControl_Reversed()
         m_fContactSurfaceBrightness = fTrainNodeLighting;
         m_vecMoveSpeed = (1.0f / CTimer::ms_fTimeStep) * (GetPosition() - vecOldTrainPosition);
 
-        float fNewTrainHeading = m_placement.m_fHeading;
-        if (m_matrix)
-        {
-            fNewTrainHeading = atan2(-GetForward().x, GetForward().y);
-        }
-
+        float fNewTrainHeading = GetHeading();
         float fHeading = fNewTrainHeading - fOldTrainHeading;
         if (fHeading <= 3.1415927f)
         {
