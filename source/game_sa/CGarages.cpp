@@ -14,3 +14,8 @@ void CGarages::TriggerMessage(char* cTagMsg, short wMsgMin, unsigned short ucTim
 {
     plugin::Call<0x447B80, char*, short, unsigned short, short>(cTagMsg, wMsgMin, ucTime, wMsgMax);
 }
+
+bool CGarages::IsModelIndexADoor(int nModelIndex)
+{
+    return plugin::CallAndReturn<bool, 0x448AF0, int>(nModelIndex);
+}

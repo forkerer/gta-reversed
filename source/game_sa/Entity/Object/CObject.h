@@ -31,6 +31,7 @@ public:
     CObject(CDummyObject* pDummyObj);
     ~CObject();
     static void* operator new(unsigned int size);
+    static void operator delete(void* pObj);
 public:
     void           *m_pControlCodeList;
     unsigned char   m_nObjectType; // see enum eObjectCreatedBy
@@ -78,7 +79,7 @@ public:
         unsigned int m_nObjectFlags;
     };
     unsigned char   m_nColDamageEffect; // see eObjectColDamageEffect
-    unsigned char   m_nStoredColDamageEffect; // see eObjectSpecialColResponseCases
+    unsigned char   m_nSpecialColResponseCase; // see eObjectSpecialColResponseCases
     char field_146;
     char            m_nGarageDoorGarageIndex;
     unsigned char   m_nLastWeaponDamage;
@@ -105,9 +106,6 @@ public:
 
 public:
     static void InjectHooks();
-
-    CObject* Constructor();
-    // class functions
 
     //Virtual
     void SetIsStatic(bool isStatic) override;

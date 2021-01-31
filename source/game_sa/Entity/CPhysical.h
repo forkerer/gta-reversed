@@ -64,8 +64,9 @@ enum eEntityAltCollision : unsigned short
 };
 
 class CPhysical : public CEntity {
-protected:
+public:
     CPhysical();
+    ~CPhysical() override;
 public:
     float field_38;
     unsigned int m_nLastCollisionTime;

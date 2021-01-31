@@ -17,4 +17,5 @@ public:
     static void Init();
     static void PrintMessages();
     static void TriggerMessage(char* cTagMsg, short wMsgMin, unsigned short ucTime, short wMsgMax);
+    static bool IsModelIndexADoor(int nModelIndex);
 };

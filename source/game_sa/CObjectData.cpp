@@ -40,7 +40,7 @@ void CObjectData::Initialise(char* fileName, bool bUnused)
     pDefault4.m_nSpecialColResponseCase = eObjectSpecialColResponseCases::COL_SPECIAL_RESPONSE_GRENADE;
 
     CFileMgr::SetDir(gta_empty_string);
-    auto pFile = CFileMgr::OpenFile(fileName, "rb");
+    auto* pFile = CFileMgr::OpenFile(fileName, "rb");
     char* pLine;
     auto iFirstFreeInd = 5;
     while((pLine = CFileLoader::LoadLine(pFile)))
@@ -141,7 +141,7 @@ void CObjectData::Initialise(char* fileName, bool bUnused)
 
 void CObjectData::SetObjectData(int dwModelIndex, CObject& pObject)
 {
-    const auto pModelInfo = CModelInfo::GetModelInfo(dwModelIndex);
+    auto* const pModelInfo = CModelInfo::GetModelInfo(dwModelIndex);
     if (pModelInfo->m_nObjectInfoIndex == -1)
     {
         pObject.m_fMass = 99999.0F;

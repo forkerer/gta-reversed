@@ -217,6 +217,7 @@
 #include "game_sa\CQueuedMode.h"
 #include "game_sa\CRadar.h"
 #include "game_sa\CRealTimeShadow.h"
+#include "game_sa\CRealTimeShadowManager.h";
 #include "game_sa\CReference.h"
 #include "game_sa\CReferences.h"
 #include "game_sa\CRegisteredCorona.h"

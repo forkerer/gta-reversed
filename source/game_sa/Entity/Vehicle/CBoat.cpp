@@ -970,11 +970,10 @@ void CBoat::BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion)
     if (!pMovingCompAtomic)
         return;
 
-    auto pObject = reinterpret_cast<CObject*>(CObject::operator new(sizeof(CObject)));
+    auto pObject = new CObject();
     if (!pObject)
         return;
 
-    pObject->Constructor();
     pObject->SetModelIndexNoCreate(379);
     pObject->RefModelInfo(m_nModelIndex);
 

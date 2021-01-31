@@ -7,38 +7,6 @@ Do not delete this comment block. Respect others' work!
 
 #include "StdInc.h"
 
-CEntity::CEntity() : CPlaceable()
-{
-    m_nStatus = eEntityStatus::STATUS_PLAYER;
-    m_nType = eEntityType::ENTITY_TYPE_BUILDING;
-
-    m_nFlags = 0;
-    m_bIsVisible = true;
-    m_bBackfaceCulled = true;
-
-    m_nScanCode = 0;
-    m_nAreaCode = 0;
-    m_nModelIndex = 0xFFFF;
-    m_pRwObject = nullptr;
-    m_nIplIndex = 0;
-    m_nRandomSeed = rand();
-    m_pReferences = nullptr;
-    m_pStreamingLink = nullptr;
-    m_nNumLodChildren = 0;
-    m_nNumLodChildrenRendered = 0;
-    m_pLod = nullptr;
-}
-
-// Ready to be used once classes further down in hierarchy are made compatible with that
-//CEntity::~CEntity()
-//{
-//    if (m_pLod)
-//        m_pLod->m_nNumLodChildren--;
-//
-//    CEntity::DeleteRwObject();
-//    CEntity::ResolveReferences();
-//}
-
 void CEntity::InjectHooks()
 {
 //Virtual
@@ -111,6 +79,37 @@ void CEntity::InjectHooks()
 //Statics
     ReversibleHooks::Install("CEntity", "MaterialUpdateUVAnimCB", 0x532D70, &MaterialUpdateUVAnimCB);
     ReversibleHooks::Install("CEntity", "IsEntityPointerValid", 0x533310, &IsEntityPointerValid);
+}
+
+CEntity::CEntity() : CPlaceable()
+{
+    m_nStatus = eEntityStatus::STATUS_PLAYER;
+    m_nType = eEntityType::ENTITY_TYPE_BUILDING;
+
+    m_nFlags = 0;
+    m_bIsVisible = true;
+    m_bBackfaceCulled = true;
+
+    m_nScanCode = 0;
+    m_nAreaCode = 0;
+    m_nModelIndex = 0xFFFF;
+    m_pRwObject = nullptr;
+    m_nIplIndex = 0;
+    m_nRandomSeed = rand();
+    m_pReferences = nullptr;
+    m_pStreamingLink = nullptr;
+    m_nNumLodChildren = 0;
+    m_nNumLodChildrenRendered = 0;
+    m_pLod = nullptr;
+}
+
+CEntity::~CEntity()
+{
+    if (m_pLod)
+        m_pLod->m_nNumLodChildren--;
+
+    CEntity::DeleteRwObject();
+    CEntity::ResolveReferences();
 }
 
 void CEntity::Add()

@@ -11,6 +11,7 @@ float& CObject::fDistToNearestTree = *(float*)0x8D0A20;
 
 void CObject::InjectHooks()
 {
+    ReversibleHooks::Install("CObject", "Init", 0x59F840, &CObject::Init);
 }
 
 CObject::CObject() : CPhysical()
@@ -49,7 +50,7 @@ CObject::CObject(CDummyObject* pDummyObj) : CPhysical()
     
     if (m_pRwObject)
     {
-        auto pAtomic = m_pRwAtomic;
+        auto* pAtomic = m_pRwAtomic;
         if (RwObjectGetType(m_pRwObject) != rpATOMIC)
             pAtomic = GetFirstAtomic(m_pRwClump);
 
@@ -72,7 +73,7 @@ CObject::~CObject()
 
     if (objectFlags.bHasNoModel)
     {
-        const auto colModel = CModelInfo::GetModelInfo((m_nModelIndex))->GetColModel();
+        auto* const colModel = CModelInfo::GetModelInfo((m_nModelIndex))->GetColModel();
         CColStore::RemoveRef(colModel->m_boundSphere.m_nMaterial); //This seems weird, maybe BUG or Union field?
     }
 
@@ -103,9 +104,9 @@ void* CObject::operator new(unsigned int size)
     return CPools::ms_pObjectPool->New();
 }
 
-CObject* CObject::Constructor()
+void CObject::operator delete(void* pObj)
 {
-    return plugin::CallMethodAndReturn<CObject*, 0x5A1D10, CObject*>(this);
+    CPools::ms_pObjectPool->Delete(static_cast<CObject*>(pObj));
 }
 
 void CObject::SetIsStatic(bool isStatic)
@@ -207,9 +208,107 @@ void CObject::LockDoor() {
 
 // Converted from thiscall void CObject::Init(void) 0x59F840
 void CObject::Init() {
-    ((void(__thiscall*)(CObject*))0x59F840)(this);
-    /*m_nType = eEntityType::ENTITY_TYPE_OBJECT;
-    m_pObjectInfo = CObjectData::*/
+    m_nType = eEntityType::ENTITY_TYPE_OBJECT;
+    m_pObjectInfo = &CObjectData::GetDefault();
+    m_nColDamageEffect = eObjectColDamageEffect::COL_DAMAGE_EFFECT_NONE;
+    m_nSpecialColResponseCase = eObjectSpecialColResponseCases::COL_SPECIAL_RESPONSE_NONE;
+    m_nObjectType = eObjectCreatedBy::OBJECT_GAME;
+    SetIsStatic(true);
+
+    m_nObjectFlags &= 0x0FC040000;
+    objectFlags.bCanBeAttachedToMagnet = true;
+
+    if (m_nModelIndex == 0xFFFF)
+    {
+        objectFlags.bHasNoModel = false;
+    }
+    else
+    {
+        CObjectData::SetObjectData(m_nModelIndex, *this);
+        auto *pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+        if (pModelInfo->GetColModel()->m_boundSphere.m_bFlag0x01)
+        {
+            CColStore::AddRef(pModelInfo->GetColModel()->m_boundSphere.m_nMaterial);
+            objectFlags.bHasNoModel = true;
+
+            auto *pAtomicInfo = pModelInfo->AsAtomicModelInfoPtr();
+            if (pAtomicInfo && pAtomicInfo->SwaysInWind() && !physicalFlags.bDisableCollisionForce)
+            {
+                auto& pBndBox = pModelInfo->GetColModel()->GetBoundingBox();
+                m_vecCentreOfMass.z = pBndBox.m_vecMin.z + (pBndBox.m_vecMax.z - pBndBox.m_vecMin.z) * 0.2F;
+            }
+        }
+    }
+
+    if (physicalFlags.bDisableMoveForce)
+    {
+        auto* pColData = CEntity::GetColModel()->m_pColData;
+        if (pColData)
+            pColData->m_nNumSpheres = 0;
+    }
+
+    m_fHealth = 1000.0F;
+    m_fDoorStartAngle = -1001.0F;
+    m_dwRemovalTime = 0;
+    m_nBonusValue = 0;
+    m_wCostValue = 0;
+    for (auto& col : m_nCarColor)
+        col = 0;
+
+    m_nRefModelIndex = -1;
+    m_nGarageDoorGarageIndex = -1;
+    m_nLastWeaponDamage = -1;
+    m_pFire = nullptr;
+
+    if (m_nModelIndex == ModelIndices::MI_BUOY)
+        physicalFlags.bTouchingWater = true;
+
+    if (m_nModelIndex != 0xFFFF && CModelInfo::GetModelInfo(m_nModelIndex)->GetModelType() == ModelInfoType::MODEL_INFO_WEAPON)
+        m_bLightObject = true;
+
+    if (m_nModelIndex == ModelIndices::MI_MLAMPPOST
+        || m_nModelIndex == ModelIndices::MI_TRAFFICLIGHTS_MIAMI
+        || m_nModelIndex == ModelIndices::MI_TRAFFICLIGHTS_VEGAS
+        || m_nModelIndex == ModelIndices::MI_TRAFFICLIGHTS_TWOVERTICAL
+        || m_nModelIndex == ModelIndices::MI_SINGLESTREETLIGHTS1
+        || m_nModelIndex == ModelIndices::MI_SINGLESTREETLIGHTS2
+        || m_nModelIndex == ModelIndices::MI_SINGLESTREETLIGHTS3
+        || m_nModelIndex == ModelIndices::MI_DOUBLESTREETLIGHTS
+        || m_nModelIndex != 0xFFFF && CModelInfo::GetModelInfo(m_nModelIndex)->AsAtomicModelInfoPtr() && CModelInfo::GetModelInfo(m_nModelIndex)->SwaysInWind())
+    {
+        objectFlags.bIsLampPost = true;
+    }
+    else
+    {
+        objectFlags.bIsLampPost = false;
+    }
+
+    objectFlags.bIsTargatable = false;
+    physicalFlags.bAttachedToEntity = false;
+
+    m_nAreaCode = eAreaCodes::AREA_CODE_13;
+    m_wRemapTxd = -1;
+    m_pRemapTexture = nullptr;
+    m_pControlCodeList = nullptr;
+
+    if (m_nModelIndex == ModelIndices::MI_SAMSITE
+        || m_nModelIndex == ModelIndices::MI_SAMSITE2
+        || m_nModelIndex == ModelIndices::MI_TRAINCROSSING
+        || m_nModelIndex == ModelIndices::MI_TRAINCROSSING1
+        || m_nModelIndex == ModelIndices::MI_MAGNOCRANE
+        || m_nModelIndex == ModelIndices::MI_CRANETROLLEY
+        || m_nModelIndex == ModelIndices::MI_QUARRYCRANE_ARM
+        || CGarages::IsModelIndexADoor(static_cast<int16_t>(m_nModelIndex)))
+    {
+        CObject::AddToControlCodeList();
+    }
+
+    m_dwBurnTime = 0;
+    m_fScale = 1.0F;
+
+    m_nDayBrightness = 0x8;
+    m_nNightBrightness = 0x4;
+    m_wScriptTriggerIndex = -1;
 }
 
 // Converted from thiscall void CObject::DoBurnEffect(void) 0x59FB50

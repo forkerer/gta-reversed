@@ -106,6 +106,14 @@ CPhysical::CPhysical() : CEntity()
     physicalFlags.bApplyGravity = true;
 }
 
+CPhysical::~CPhysical()
+{
+    if (m_pShadowData)
+        g_realTimeShadowMan.ReturnRealTimeShadow(m_pShadowData);
+
+    m_pCollisionList.Flush();
+}
+
 void CPhysical::Add()
 {
     CPhysical::Add_Reversed();

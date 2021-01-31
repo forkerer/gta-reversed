@@ -18,7 +18,7 @@ class  CEntity : public CPlaceable {
 protected:
     CEntity(plugin::dummy_func_t) : CPlaceable(plugin::dummy) {}
     CEntity();
-    //~CEntity() override;
+    ~CEntity() override;
 public:
     union {
         struct RwObject *m_pRwObject;
