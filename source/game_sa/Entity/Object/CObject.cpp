@@ -11,6 +11,13 @@ float& CObject::fDistToNearestTree = *(float*)0x8D0A20;
 
 void CObject::InjectHooks()
 {
+// VIRTUAL
+    ReversibleHooks::Install("CObject", "SetIsStatic", 0x5A0760, &CObject::SetIsStatic_Reversed);
+    ReversibleHooks::Install("CObject", "CreateRwObject", 0x59F110, &CObject::CreateRwObject_Reversed);
+
+    ReversibleHooks::Install("CObject", "Teleport", 0x5A17B0, &CObject::Teleport_Reversed);
+
+// CLASS
     ReversibleHooks::Install("CObject", "Init", 0x59F840, &CObject::Init);
 }
 
@@ -113,11 +120,69 @@ void CObject::SetIsStatic(bool isStatic)
 {
     return SetIsStatic_Reversed(isStatic);
 }
-
 void CObject::SetIsStatic_Reversed(bool isStatic)
 {
-    plugin::CallMethod<0x5A0760, CObject*, bool>(this, isStatic);
+    m_bIsStatic = isStatic;
+    physicalFlags.b31 = false;
+    if (!isStatic && (physicalFlags.bDisableMoveForce && m_fDoorStartAngle < -1000.0F))
+        m_fDoorStartAngle = GetHeading();
 }
+
+void CObject::CreateRwObject()
+{
+    CObject::CreateRwObject_Reversed();
+}
+void CObject::CreateRwObject_Reversed()
+{
+    CEntity::CreateRwObject();
+}
+
+void CObject::ProcessControl()
+{
+    CObject::ProcessControl_Reversed();
+}
+void CObject::ProcessControl_Reversed()
+{
+}
+
+void CObject::Teleport(CVector destination, bool resetRotation)
+{
+    CObject::Teleport_Reversed(destination, resetRotation);
+}
+void CObject::Teleport_Reversed(CVector destination, bool resetRotation)
+{
+    CWorld::Remove(this);
+    SetPosn(destination);
+    CEntity::UpdateRW();
+    CEntity::UpdateRwFrame();
+    CWorld::Add(this);
+}
+
+void CObject::SpecialEntityPreCollisionStuff(CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled,
+    bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck)
+{
+}
+
+unsigned char CObject::SpecialEntityCalcCollisionSteps(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2)
+{
+}
+
+void CObject::PreRender()
+{
+}
+
+void CObject::Render()
+{
+}
+
+bool CObject::SetupLighting()
+{
+}
+
+void CObject::RemoveLighting(bool bRemove)
+{
+}
+
 
 // Converted from thiscall void CObject::ProcessGarageDoorBehaviour(void) 0x44A4D0
 void CObject::ProcessGarageDoorBehaviour() {

@@ -109,7 +109,27 @@ public:
 
     //Virtual
     void SetIsStatic(bool isStatic) override;
+    void CreateRwObject() override;
+    void ProcessControl() override;
+    void Teleport(CVector destination, bool resetRotation) override;
+    void SpecialEntityPreCollisionStuff(CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck) override;
+    unsigned char SpecialEntityCalcCollisionSteps(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2) override;
+    void PreRender() override;
+    void Render() override;
+    bool SetupLighting() override;
+    void RemoveLighting(bool bRemove) override;
+
+    // Virtual implementations
     void SetIsStatic_Reversed(bool isStatic);
+    void CreateRwObject_Reversed();
+    void ProcessControl_Reversed();
+    void Teleport_Reversed(CVector destination, bool resetRotation);
+    void SpecialEntityPreCollisionStuff_Reversed(CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck);
+    unsigned char SpecialEntityCalcCollisionSteps_Reversed(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2);
+    void PreRender_Reversed();
+    void Render_Reversed();
+    bool SetupLighting_Reversed();
+    void RemoveLighting_Reversed(bool bRemove);
 
     void ProcessGarageDoorBehaviour();
     bool CanBeDeleted();

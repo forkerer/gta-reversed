@@ -519,12 +519,8 @@ int CPhysical::ProcessEntityCollision(CPhysical* entity, CColPoint* colpoint) {
 }
 
 int CPhysical::ProcessEntityCollision_Reversed(CPhysical* entity, CColPoint* colpoint) {
-    if (!entity->m_matrix) {
-        entity->AllocateMatrix();
-        entity->m_placement.UpdateMatrix(entity->m_matrix);
-    }
     CColModel* pColModel = CModelInfo::ms_modelInfoPtrs[m_nModelIndex]->GetColModel();
-    int totalColPointsToProcess = CCollision::ProcessColModels(*m_matrix, *pColModel, *entity->m_matrix, *entity->GetColModel(), colpoint, nullptr, nullptr, false);
+    int totalColPointsToProcess = CCollision::ProcessColModels(*m_matrix, *pColModel, *entity->GetMatrix(), *entity->GetColModel(), colpoint, nullptr, nullptr, false);
     if (totalColPointsToProcess > 0) {
         AddCollisionRecord(entity);
         if (entity->m_nType != ENTITY_TYPE_BUILDING)
@@ -1395,12 +1391,8 @@ void CPhysical::DettachEntityFromEntity(float x, float y, float z, bool bApplyTu
     vecDetachOffsetMatrix.ResetOrientation();
     vecDetachOffsetMatrix.RotateZ(y);
     vecDetachOffsetMatrix.RotateX(x);
-    if (!m_pAttachedTo->m_matrix) {
-        m_pAttachedTo->AllocateMatrix();
-        m_pAttachedTo->m_placement.UpdateMatrix(m_pAttachedTo->m_matrix);
-    }
 
-    vecDetachOffsetMatrix *= *m_pAttachedTo->m_matrix;
+    vecDetachOffsetMatrix *= *m_pAttachedTo->GetMatrix();
     CVector vecForce = vecDetachOffsetMatrix.GetForward() * z;
     CWorld::Remove(this);
     SetIsStatic(false);
@@ -2426,11 +2418,7 @@ void CPhysical::PositionAttachedEntity()
 
         CMatrix attachedEntityMatrix;
         CMatrix attachedEntityRotationMatrix;
-        if (!m_pAttachedTo->m_matrix) {
-            m_pAttachedTo->AllocateMatrix();
-            m_pAttachedTo->m_placement.UpdateMatrix(m_pAttachedTo->m_matrix);
-        }
-        CMatrix attachedToEntityMatrix (*m_pAttachedTo->m_matrix);
+        CMatrix attachedToEntityMatrix (*m_pAttachedTo->GetMatrix());
         if (m_pAttachedTo->m_nType != ENTITY_TYPE_VEHICLE || pAttachedToVehicle->m_vehicleType != VEHICLE_BIKE) {
             if (m_nType == ENTITY_TYPE_OBJECT && m_pAttachedTo->m_nModelIndex == MODEL_FORKLIFT) {
                 RwFrame* carPart = pAttachedToAutmobile->m_aCarNodes[CAR_MISC_A];
@@ -5136,12 +5124,7 @@ bool CPhysical::ProcessCollisionSectorList_SimpleCar(CRepeatSector* pRepeatSecto
         CPed* pPedEntity = static_cast<CPed*>(pEntity);
         bool isLampTouchingGround = false;
         if (pEntity->IsObject() && pObjectEntity->objectFlags.bIsLampPost) {
-            if (!pEntity->m_matrix)
-            {
-                pEntity->AllocateMatrix();
-                pEntity->m_placement.UpdateMatrix(pEntity->m_matrix);
-            }
-            if (pEntity->GetUp().z < 0.66f)
+            if (pEntity->GetMatrix()->GetUp().z < 0.66f)
                 isLampTouchingGround = true;
         }
 
@@ -5340,12 +5323,7 @@ void CPhysical::AttachEntityToEntity(CPhysical* pEntityAttachTo, CVector* vecAtt
     CPhysical* pOldEntityAttachedTo = m_pAttachedTo;
     m_pAttachedTo = pEntityAttachTo;
     m_pAttachedTo->RegisterReference(reinterpret_cast<CEntity**>(&m_pAttachedTo));
-    if (!m_pAttachedTo->m_matrix) {
-        m_pAttachedTo->AllocateMatrix();
-        m_pAttachedTo->m_placement.UpdateMatrix(m_pAttachedTo->m_matrix);
-    }
-
-    CMatrix entityAttachedtoMatrix(*m_pAttachedTo->m_matrix);
+    CMatrix entityAttachedtoMatrix(*m_pAttachedTo->GetMatrix());
     CAutomobile* pAttachedToAutoMobile = static_cast<CAutomobile*>(m_pAttachedTo);
     if (m_nType == ENTITY_TYPE_OBJECT && m_pAttachedTo->m_nModelIndex == MODEL_FORKLIFT) {
         RwFrame* pCarMiscAFrame = pAttachedToAutoMobile->m_aCarNodes[CAR_MISC_A];
