@@ -170,9 +170,17 @@ public:
 
     //Helpers
     inline bool IsTemporary() const { return m_nObjectType == eObjectCreatedBy::OBJECT_TEMPORARY; }
+    inline bool IsCraneMovingPart() const
+    {
+        return m_nModelIndex == ModelIndices::MI_CRANE_MAGNET
+            || m_nModelIndex == ModelIndices::MI_CRANE_HARNESS
+            || m_nModelIndex == ModelIndices::MI_MINI_MAGNET
+            || m_nModelIndex == ModelIndices::MI_WRECKING_BALL;
+    }
 };
-
 VALIDATE_SIZE(CObject, 0x17C);
+
+bool isCraneMagned(int modelId);
 
 bool IsObjectPointerValid_NotInWorld(CObject* object);
 bool IsObjectPointerValid(CObject* object);
