@@ -405,8 +405,8 @@ public:
      int InitialiseScriptableComponents();
      bool IsExtraEntityToIgnore(CEntity *entity);
      bool IsItTimeForNewcam(int CamSequence, int StartTime);
-     bool IsSphereVisible(CVector const *origin, float radius, RwMatrixTag *transformMatrix);
-     bool IsSphereVisible(CVector const *origin, float radius);
+     bool IsSphereVisible(CVector const& origin, float radius, RwMatrixTag *transformMatrix);
+     bool IsSphereVisible(CVector const& origin, float radius);
      void LerpFOV(float zoomInFactor, float zoomOutFactor, float timelimit, bool bEase);
      void LoadPathSplines(int pFile);
      void Process();

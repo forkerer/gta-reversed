@@ -84,6 +84,7 @@ bool WaterCreatureManager_c::CanAddWaterCreatureAtPos(int nCreatureType, CVector
             if (DistanceBetweenPointsSquared(vecObjPos, vecPos) <= info.m_fMinDistFromSameCreature)
                 return false;
         }
+        pCur = m_createdList.GetNext(pCur);
     }
     return true;
 }
@@ -132,9 +133,9 @@ void WaterCreatureManager_c::Update(float fTimestep)
             auto vecCreationPos = TheCamera.GetPosition() + vecDirection * fDist;
 
             float fWaterDepth, fWaterLevel;
-            if (!TheCamera.IsSphereVisible(&vecCreationPos, 3.0F)
+            if (!TheCamera.IsSphereVisible(vecCreationPos, 3.0F)
                 && CWaterLevel::GetWaterDepth(vecCreationPos, &fWaterDepth, &fWaterLevel, nullptr)
-                && fWaterLevel > 4.5F)
+                && fWaterDepth > 4.5F)
             {
                 const auto nType = WaterCreatureManager_c::GetRandomWaterCreatureId();
                 if (WaterCreatureManager_c::CanAddWaterCreatureAtPos(nType, vecCreationPos))
