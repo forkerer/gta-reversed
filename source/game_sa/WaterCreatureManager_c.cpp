@@ -32,8 +32,9 @@ void WaterCreatureManager_c::Exit()
     auto* pCur = m_createdList.GetHead();
     while (pCur)
     {
+        auto* pNext = m_createdList.GetNext(pCur);
         pCur->Exit();
-        pCur = m_createdList.GetNext(pCur);
+        pCur = pNext;
     }
 
     m_freeList.RemoveAll();
@@ -60,12 +61,13 @@ void WaterCreatureManager_c::TryToFreeUpWaterCreatures(int numToFree)
     int32_t iCounter = 0;
     while (iCounter < numToFree && pCur)
     {
+        auto* pNext = m_createdList.GetNext(pCur);
         if (pCur->m_pObject->m_bOffscreen && pCur->m_pFollowedCreature)
         {
             pCur->Exit();
             ++iCounter;
         }
-        pCur = m_createdList.GetNext(pCur);
+        pCur = pNext;
     }
 }
 
@@ -108,11 +110,13 @@ void WaterCreatureManager_c::TryToExitGroup(WaterCreature_c* pCreature)
 
     const auto& vecCamPos = TheCamera.GetPosition();
     for(int32_t i = 0; i < iCounter; ++i)
-    {
-        auto& pCreature = apCreatures[i];
-        if (DistanceBetweenPoints(vecCamPos, pCreature->GetObject()->GetPosition()) >= 60.0F)
-            pCreature->m_bShouldBeDeleted = true;
-    }
+        if (DistanceBetweenPoints(vecCamPos, apCreatures[i]->GetObject()->GetPosition()) < 60.0F)
+            return; // Jump out of function if any of the creatures in group aren't out of camera reach.
+                    // All fishes in group have to be destroyed at once as no to leave any of them with dangling pointers
+
+
+    for (int32_t i = 0; i < iCounter; ++i)
+        apCreatures[i]->m_bShouldBeDeleted = true;
 }
 
 void WaterCreatureManager_c::Update(float fTimestep)
@@ -165,17 +169,19 @@ void WaterCreatureManager_c::Update(float fTimestep)
     auto* pCur = m_createdList.GetHead();
     while (pCur)
     {
+        auto* pNext = m_createdList.GetNext(pCur);
         pCur->Update(fTimestep);
-        pCur = m_createdList.GetNext(pCur);
+        pCur = pNext;
     }
 
     // Remove creatures queued for removal
     pCur = m_createdList.GetHead();
     while (pCur)
     {
+        auto* pNext = m_createdList.GetNext(pCur);
         if (pCur->m_bShouldBeDeleted)
             pCur->Exit();
 
-        pCur = m_createdList.GetNext(pCur);
+        pCur = pNext;
     }
 }

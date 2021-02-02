@@ -82,7 +82,8 @@ void WaterCreature_c::Exit()
     g_waterCreatureMan.m_createdList.RemoveItem(this);
     g_waterCreatureMan.m_freeList.AddItem(this);
     CWorld::Remove(m_pObject);
-    delete m_pObject;
+    if (m_pObject)
+        delete m_pObject;
     m_pObject = nullptr;
     --CObject::nNoTempObjects;
 }
@@ -232,7 +233,7 @@ void WaterCreature_c::Update(float fTimeStep)
         }
 
         const auto vecForward = m_pObject->GetForwardVector();
-        m_pObject->SetPosn(m_pObject->GetPosition() + vecForward * fTimeStep);
+        m_pObject->SetPosn(m_pObject->GetPosition() + vecForward * fTimeStep * fCurSpeed);
     }
 
     if (WaterCreature_c::IsJellyfish())
@@ -240,7 +241,7 @@ void WaterCreature_c::Update(float fTimeStep)
         auto& vecJellyPos = m_pObject->GetPosition();
         float fWaterLevel;
         if (CWaterLevel::GetWaterLevel(vecJellyPos.x, vecJellyPos.y, vecJellyPos.z, &fWaterLevel, true, nullptr))
-            m_pObject->SetPosn(vecJellyPos + CVector(0.0F, 0.0F, fWaterLevel - 0.2F));
+            m_pObject->SetPosn(CVector(vecJellyPos.x, vecJellyPos.y, fWaterLevel - 0.2F));
     }
 
     m_pObject->UpdateRW();
