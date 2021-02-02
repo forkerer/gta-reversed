@@ -34,7 +34,7 @@ public:
     int               m_nSize;
     int               m_nFirstFree;
     bool              m_bOwnsAllocations;
-    bool field_11;
+    bool              m_bIsLocked; // Seemingly not used anywhere, only toggled on/off
 
     // Default constructor for statically allocated pools
     CPool() {

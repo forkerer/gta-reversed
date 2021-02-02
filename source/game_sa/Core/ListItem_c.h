@@ -16,8 +16,8 @@
 class ListItem_c
 {
 protected:
-	ListItem_c *next;
-	ListItem_c *prev;
+	ListItem_c *m_pPrev;
+	ListItem_c *m_pNext;
 
 protected:
 	ListItem_c(void);

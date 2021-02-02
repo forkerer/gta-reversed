@@ -93,6 +93,8 @@
 #include "game_sa\CPedDamageResponseCalculator.h"
 #include "game_sa\CPedDamageResponse.h"
 #include "game_sa\CWaterLevel.h"
+#include "game_sa\WaterCreature_c.h"
+#include "game_sa\WaterCreatureManager_c.h"
 #include "game_sa\InlineFunctions.h"
 #include "HookSystem.h"
 #include "reversiblehooks\ReversibleHooks.h"

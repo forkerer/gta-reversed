@@ -899,8 +899,18 @@ bool CObject::CanBeUsedToTakeCoverBehind() {
     return ((bool(__thiscall*)(CObject*))0x5A1B60)(this);
 }
 
-CObject* CObject::Create(int modelIndex) {
+CObject* CObject::Create(int modelIndex, bool bUnused) {
     return ((CObject * (__cdecl*)(int))0x5A1F60)(modelIndex);
+
+    CPools::ms_pObjectPool->m_bIsLocked = true;
+    auto* pObj = new CObject(modelIndex, false); //BUG? most likely the unused parameter was supposed to be passed to the constructor
+    CPools::ms_pObjectPool->m_bIsLocked = false;
+
+    if (pObj)
+        return pObj;
+
+    CObject::TryToFreeUpTempObjects(5);
+    WaterCreat
 }
 
 CObject* CObject::Create(CDummyObject* dummyObject) {

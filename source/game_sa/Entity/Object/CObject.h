@@ -164,9 +164,12 @@ public:
 
     void GrabObjectToCarryWithRope(CPhysical* attachTo);
     bool CanBeUsedToTakeCoverBehind();
-    static class CObject* Create(int modelIndex);
-    static class CObject* Create(CDummyObject* dummyObject);
     void ProcessControlLogic();    
+
+// Static
+public:
+    static class CObject* Create(int modelIndex, bool bUnused);
+    static class CObject* Create(CDummyObject* dummyObject);
 
     static void SetMatrixForTrainCrossing(CMatrix* matrix, float arg1);
     static void TryToFreeUpTempObjects(int numObjects);
