@@ -1228,10 +1228,10 @@ void CEntity::CreateEffects()
             auto pSignAtomic = CCustomRoadsignMgr::CreateRoadsignAtomic(pEffect->roadsign.m_vecSize.x,
                 pEffect->roadsign.m_vecSize.y,
                 uiNumLines,
-                pEffect->roadsign.m_pText[0],
-                pEffect->roadsign.m_pText[16],
-                pEffect->roadsign.m_pText[32],
-                pEffect->roadsign.m_pText[48],
+                &pEffect->roadsign.m_pText[0],
+                &pEffect->roadsign.m_pText[16],
+                &pEffect->roadsign.m_pText[32],
+                &pEffect->roadsign.m_pText[48],
                 uiLettersPerLine,
                 uiPalleteId);
 

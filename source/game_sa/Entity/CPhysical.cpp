@@ -263,7 +263,7 @@ void CPhysical::ProcessCollision_Reversed()
 {
     m_fMovingSpeed = 0.0f;
     physicalFlags.bProcessingShift = false;
-    physicalFlags.bIsPedClimbing = false;
+    physicalFlags.b13 = false;
     if (m_bUsesCollision && !physicalFlags.bDisableSimpleCollision)  {
         if (m_nStatus == STATUS_SIMPLE) {
             if (CheckCollision_SimpleCar() && m_nStatus == STATUS_SIMPLE) {
@@ -363,7 +363,7 @@ void CPhysical::ProcessCollision_Reversed()
             ApplySpeed();
             m_matrix->Reorthogonalise();
             physicalFlags.bProcessingShift = false;
-            physicalFlags.bIsPedClimbing = false;
+            physicalFlags.b13 = false;
             physicalFlags.b17 = true;
             bool bOldUsesCollision = m_bUsesCollision;
             m_bUsesCollision = false;
@@ -376,7 +376,7 @@ void CPhysical::ProcessCollision_Reversed()
                 m_bIsStuck = false;
                 m_bIsInSafePosition = true;
                 physicalFlags.bProcessCollisionEvenIfStationary = false;
-                physicalFlags.bIsPedClimbing = false;
+                physicalFlags.b13 = false;
                 m_fElasticity = fOldElasticity;
                 m_fMovingSpeed = DistanceBetweenPoints(oldEntityMatrix.GetPosition(), GetPosition());
                 RemoveAndAdd();
@@ -432,7 +432,7 @@ void CPhysical::ProcessCollision_Reversed()
         ApplySpeed();
         m_matrix->Reorthogonalise();
         physicalFlags.bProcessingShift = false;
-        physicalFlags.bIsPedClimbing = false;
+        physicalFlags.b13 = false;
         if (m_vecMoveSpeed.x != 0.0f
             || m_vecMoveSpeed.y != 0.0f
             || m_vecMoveSpeed.z != 0.0f
@@ -458,7 +458,7 @@ void CPhysical::ProcessCollision_Reversed()
         m_bIsStuck = false;
         m_bIsInSafePosition = true;
         physicalFlags.bProcessCollisionEvenIfStationary = false;
-        physicalFlags.bIsPedClimbing = false;
+        physicalFlags.b13 = false;
         m_fElasticity = fOldElasticity;
         m_fMovingSpeed = DistanceBetweenPoints(oldEntityMatrix.GetPosition(), GetPosition());
         RemoveAndAdd();
@@ -489,7 +489,7 @@ bool CPhysical::TestCollision(bool bApplySpeed) {
 bool CPhysical::TestCollision_Reversed(bool bApplySpeed) {
     CMatrix entityMatrix(*m_matrix);
     physicalFlags.b17 = true;
-    physicalFlags.bIsPedClimbing = true;
+    physicalFlags.b13 = true;
     bool bOldUsescollision = m_bUsesCollision;
     m_bUsesCollision = false;
     bool bTestForBlockedPositions = false;
@@ -503,7 +503,7 @@ bool CPhysical::TestCollision_Reversed(bool bApplySpeed) {
     bool bCheckCollision = CheckCollision();
     m_bUsesCollision = bOldUsescollision;
     physicalFlags.b17 = false;
-    physicalFlags.bIsPedClimbing = false;
+    physicalFlags.b13 = false;
     *(CMatrix*)m_matrix = entityMatrix;
     if (bTestForBlockedPositions)
         pPed->bTestForBlockedPositions = true;
@@ -2276,7 +2276,7 @@ bool CPhysical::ProcessShiftSectorList(int sectorX, int sectorY)
 
                         if (m_nType == ENTITY_TYPE_PED)
                         {
-                            physicalFlags.bIsPedClimbing = true;
+                            physicalFlags.b13 = true;
                         }
 
                         if (!bCollidedEntityCollisionIgnored && !bCollisionDisabled)
@@ -4422,7 +4422,7 @@ bool CPhysical::ProcessCollisionSectorList(int sectorX, int sectorY)
                 bCollidedEntityUnableToMove = false;
                 bThisOrCollidedEntityStuck = false;
 
-                physicalFlags.bIsPedClimbing = false;
+                physicalFlags.b13 = false;
 
                 if (pEntity->m_nType == ENTITY_TYPE_BUILDING)
                 {
@@ -5384,7 +5384,7 @@ bool CPhysical::CheckCollision()
     if (m_nType == ENTITY_TYPE_PED)
     {
         CPed* pPed = static_cast<CPed*>(this);
-        if (!m_pAttachedTo && !physicalFlags.b17 && !physicalFlags.bProcessingShift && !physicalFlags.bIsPedClimbing) {
+        if (!m_pAttachedTo && !physicalFlags.b17 && !physicalFlags.bProcessingShift && !physicalFlags.b13) {
             pPed->m_standingOnEntity = nullptr;
             if (pPed->bIsStanding) {
                 pPed->bIsStanding = false;
@@ -5398,7 +5398,7 @@ bool CPhysical::CheckCollision()
                 char nHeightForPos = pTaskClimb->m_nHeightForPos;
                 if (nHeightForPos == CLIMB_GRAB || nHeightForPos == CLIMB_PULLUP 
                     || nHeightForPos == CLIMB_STANDUP || nHeightForPos == CLIMB_VAULT) {
-                    physicalFlags.bIsPedClimbing = true;
+                    physicalFlags.b13 = true;
                 }
             }
         }
