@@ -20,8 +20,8 @@ protected:
 	ListItem_c *m_pNext;
 
 protected:
-	ListItem_c(void);
-	~ListItem_c(void);
+	ListItem_c();
+	~ListItem_c();
 
 friend class List_c;
 };

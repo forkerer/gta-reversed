@@ -23,7 +23,7 @@ public:
 public:
     ListItem_c* m_pHead;
     ListItem_c* m_pTail;
-    unsigned int m_nCount;
+    uint32_t m_nCount;
 
 public:
     static void InjectHooks();
@@ -44,7 +44,7 @@ public:
     void RemoveAll();
 
     // Get number of items in the list
-    int32_t GetNumItems();
+    uint32_t GetNumItems();
 
     // Append item to the list
     void AppendItem(ListItem_c* pItem);

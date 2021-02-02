@@ -1,16 +1,6 @@
 #pragma once
 #include "WaterCreature_c.h"
 
-enum eWaterCreatureType : unsigned char {
-    FISH1,
-    FISH2,
-    FISH3,
-    JELLYFISH1,
-    JELLYFISH2,
-    TURTLE,
-    DOLPHIN
-};
-
 struct WaterCreatureInfo
 {
     uint16_t* m_pModelId;
@@ -21,8 +11,8 @@ struct WaterCreatureInfo
     float m_fMinDistFromSameCreature;
     float m_fMinDistFromFollowed;
     float m_fMaxDistFromFollowed;
-    float m_fMinAngle;
-    float m_fMaxAngle;
+    float m_fMinSpeed;
+    float m_fMaxSpeed;
     float m_fMaxHeadingChange;
     float m_fChanceToRandomizeRotation;
     float m_fSpeed;
@@ -39,7 +29,7 @@ public:
     WaterCreature_c m_aCreatures[NUM_WATER_CREATURES];
     TList_c<WaterCreature_c> m_freeList;
     TList_c<WaterCreature_c> m_createdList;
-    int m_nUnk4;
+    int m_nLastCreationCheckTime;
 
 public:
     static void InjectHooks();
@@ -53,8 +43,11 @@ public:
     void Update(float fTimestep);
 
 public:
+    static const WaterCreatureInfo& GetCreatureInfo(int nType) { return ms_waterCreatureInfos[nType]; }
+
+public:
     static constexpr int NUM_WATER_CREATURE_INFOS = 7;
-    static WaterCreatureInfo(&ms_waterCreatureInfos)[NUM_WATER_CREATURE_INFOS];
+    static WaterCreatureInfo(&ms_waterCreatureInfos)[NUM_WATER_CREATURE_INFOS]; // Access using GetCreatureInfo()
 };
 
 extern WaterCreatureManager_c& g_waterCreatureMan;

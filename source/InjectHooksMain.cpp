@@ -186,6 +186,8 @@ void InjectHooksMain(void)
     CSprite2d::InjectHooks();
     CCheat::InjectHooks();
     CBirds::InjectHooks();
+    WaterCreature_c::InjectHooks();
+    WaterCreatureManager_c::InjectHooks();
     C2dEffect::InjectHooks();
     COcclusion::InjectHooks();
 

@@ -101,7 +101,7 @@ void List_c::RemoveAll()
     m_nCount = 0;
 }
 
-int32_t List_c::GetNumItems()
+uint32_t List_c::GetNumItems()
 {
     return m_nCount;
 }

@@ -25,6 +25,9 @@ void CObject::InjectHooks()
 
 // CLASS
     ReversibleHooks::Install("CObject", "Init", 0x59F840, &CObject::Init);
+
+// STATIC
+    ReversibleHooks::Install("CObject", "Create", 0x5A1F60, static_cast<CObject*(*)(int, bool)>(&CObject::Create));
 }
 
 CObject::CObject() : CPhysical()
@@ -900,8 +903,6 @@ bool CObject::CanBeUsedToTakeCoverBehind() {
 }
 
 CObject* CObject::Create(int modelIndex, bool bUnused) {
-    return ((CObject * (__cdecl*)(int))0x5A1F60)(modelIndex);
-
     CPools::ms_pObjectPool->m_bIsLocked = true;
     auto* pObj = new CObject(modelIndex, false); //BUG? most likely the unused parameter was supposed to be passed to the constructor
     CPools::ms_pObjectPool->m_bIsLocked = false;
@@ -910,7 +911,10 @@ CObject* CObject::Create(int modelIndex, bool bUnused) {
         return pObj;
 
     CObject::TryToFreeUpTempObjects(5);
-    WaterCreat
+    g_waterCreatureMan.TryToFreeUpWaterCreatures(5);
+
+    return new CObject(modelIndex, false);
+
 }
 
 CObject* CObject::Create(CDummyObject* dummyObject) {

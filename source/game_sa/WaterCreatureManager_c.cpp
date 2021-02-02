@@ -5,6 +5,13 @@ WaterCreatureInfo(&WaterCreatureManager_c::ms_waterCreatureInfos)[NUM_WATER_CREA
 
 void WaterCreatureManager_c::InjectHooks()
 {
+    ReversibleHooks::Install("WaterCreatureManager_c", "Init", 0x6E3F90, &WaterCreatureManager_c::Init);
+    ReversibleHooks::Install("WaterCreatureManager_c", "Exit", 0x6E3FD0, &WaterCreatureManager_c::Exit);
+    ReversibleHooks::Install("WaterCreatureManager_c", "Update", 0x6E4F10, &WaterCreatureManager_c::Update);
+    ReversibleHooks::Install("WaterCreatureManager_c", "GetRandomWaterCreatureId", 0x6E4040, &WaterCreatureManager_c::GetRandomWaterCreatureId);
+    ReversibleHooks::Install("WaterCreatureManager_c", "CanAddWaterCreatureAtPos", 0x6E4510, &WaterCreatureManager_c::CanAddWaterCreatureAtPos);
+    ReversibleHooks::Install("WaterCreatureManager_c", "TryToFreeUpWaterCreatures", 0x6E40E0, &WaterCreatureManager_c::TryToFreeUpWaterCreatures);
+    ReversibleHooks::Install("WaterCreatureManager_c", "TryToExitGroup", 0x6E45B0, &WaterCreatureManager_c::TryToExitGroup);
 }
 
 
@@ -16,37 +23,158 @@ bool WaterCreatureManager_c::Init()
     for (auto i = 0; i < NUM_WATER_CREATURES; ++i)
         m_freeList.AddItem(&m_aCreatures[i]);
 
-    m_nUnk4 = 0;
+    m_nLastCreationCheckTime = 0;
     return true;
 }
 
 void WaterCreatureManager_c::Exit()
 {
-    auto* pCur = m_createdList.GetTail();
+    auto* pCur = m_createdList.GetHead();
     while (pCur)
     {
-        auto pPrev = m_createdList.GetPrev(pCur);
-        m_createdList.RemoveItem(pCur);
-        m_
+        pCur->Exit();
+        pCur = m_createdList.GetNext(pCur);
     }
+
+    m_freeList.RemoveAll();
 }
 
 int WaterCreatureManager_c::GetRandomWaterCreatureId()
 {
+    auto nRand = CGeneral::GetRandomNumberInRange(0, 100);
+    if (nRand < 80)
+        return CGeneral::GetRandomNumberInRange(0, 3); // Small fish
+
+    if (nRand < 90)
+        return CGeneral::GetRandomNumberInRange(3, 5); // Jelly fish
+
+    if (nRand < 97)
+        return eWaterCreatureType::TURTLE;
+
+    return eWaterCreatureType::DOLPHIN;
 }
 
 void WaterCreatureManager_c::TryToFreeUpWaterCreatures(int numToFree)
 {
+    auto* pCur = m_createdList.GetHead();
+    int32_t iCounter = 0;
+    while (iCounter < numToFree && pCur)
+    {
+        if (pCur->m_pObject->m_bOffscreen && pCur->m_pFollowedCreature)
+        {
+            pCur->Exit();
+            ++iCounter;
+        }
+        pCur = m_createdList.GetNext(pCur);
+    }
 }
 
 bool WaterCreatureManager_c::CanAddWaterCreatureAtPos(int nCreatureType, CVector vecPos)
 {
+    auto* pCur = m_createdList.GetHead();
+    if (!pCur)
+        return true;
+
+    const auto& info = WaterCreatureManager_c::GetCreatureInfo(nCreatureType); // Originally not assigned by reference, but copied to stack
+    while (pCur)
+    {
+        if (pCur->m_nCreatureType == nCreatureType && !pCur->m_pFollowedCreature)
+        {
+            const auto& vecObjPos = pCur->GetObject()->GetPosition();
+            if (DistanceBetweenPointsSquared(vecObjPos, vecPos) <= info.m_fMinDistFromSameCreature)
+                return false;
+        }
+    }
+    return true;
 }
 
 void WaterCreatureManager_c::TryToExitGroup(WaterCreature_c* pCreature)
 {
+    auto* pExitCreature = pCreature->m_pFollowedCreature ? pCreature->m_pFollowedCreature : pCreature;
+    int32_t iCounter = 0;
+    WaterCreature_c* apCreatures[32];
+    auto* pCur = m_createdList.GetHead();
+    while (pCur)
+    {
+        if (pCur == pExitCreature || pCur->m_pFollowedCreature == pExitCreature)
+        {
+            apCreatures[iCounter] = pCur;
+            ++iCounter;
+        }
+
+        pCur = m_createdList.GetNext(pCur);
+    }
+
+    const auto& vecCamPos = TheCamera.GetPosition();
+    for(int32_t i = 0; i < iCounter; ++i)
+    {
+        auto& pCreature = apCreatures[i];
+        if (DistanceBetweenPoints(vecCamPos, pCreature->GetObject()->GetPosition()) >= 60.0F)
+            pCreature->m_bShouldBeDeleted = true;
+    }
 }
 
 void WaterCreatureManager_c::Update(float fTimestep)
 {
+    if (FindPlayerPed(0)->m_pPlayerData->m_nWaterCoverPerc > 50)
+    {
+        const auto nCurTime = CTimer::m_snTimeInMilliseconds;
+        if (nCurTime - m_nLastCreationCheckTime > 1000 && m_freeList.GetNumItems() > 0)
+        {
+            m_nLastCreationCheckTime = nCurTime;
+            CVector vecDirection;
+            vecDirection.x = CGeneral::GetRandomNumberInRange(-1.0F, 1.0F);
+            vecDirection.y = CGeneral::GetRandomNumberInRange(-1.0F, 1.0F);
+            vecDirection.z = 0.0F;
+            vecDirection.Normalise();
+
+            const auto fDist = CGeneral::GetRandomNumberInRange(25.0F, 40.0F);
+            auto vecCreationPos = TheCamera.GetPosition() + vecDirection * fDist;
+
+            float fWaterDepth, fWaterLevel;
+            if (!TheCamera.IsSphereVisible(&vecCreationPos, 3.0F)
+                && CWaterLevel::GetWaterDepth(vecCreationPos, &fWaterDepth, &fWaterLevel, nullptr)
+                && fWaterLevel > 4.5F)
+            {
+                const auto nType = WaterCreatureManager_c::GetRandomWaterCreatureId();
+                if (WaterCreatureManager_c::CanAddWaterCreatureAtPos(nType, vecCreationPos))
+                {
+                    const auto& pInfo = WaterCreatureManager_c::GetCreatureInfo(nType);
+                    auto iNumCreated = CGeneral::GetRandomNumberInRange(pInfo.m_nMinCreated, pInfo.m_nMaxCreated);
+                    iNumCreated = std::min(iNumCreated, m_freeList.GetNumItems());
+
+                    WaterCreature_c* pGroupLeader = nullptr;
+                    for (int32_t i = 0; i < iNumCreated; ++i)
+                    {
+                        auto* pNewCreature = m_freeList.RemoveHead();
+                        if (pNewCreature->Init(nType, &vecCreationPos, pGroupLeader, fWaterLevel, fWaterDepth))
+                            m_createdList.AddItem(pNewCreature);
+                        else
+                            m_freeList.AddItem(pNewCreature);
+
+                        if (!pGroupLeader)
+                            pGroupLeader = pNewCreature;
+                    }
+                }
+            }
+        }
+    }
+
+    // Trigger updates
+    auto* pCur = m_createdList.GetHead();
+    while (pCur)
+    {
+        pCur->Update(fTimestep);
+        pCur = m_createdList.GetNext(pCur);
+    }
+
+    // Remove creatures queued for removal
+    pCur = m_createdList.GetHead();
+    while (pCur)
+    {
+        if (pCur->m_bShouldBeDeleted)
+            pCur->Exit();
+
+        pCur = m_createdList.GetNext(pCur);
+    }
 }
