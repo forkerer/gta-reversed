@@ -28,6 +28,7 @@ void CObject::InjectHooks()
 
 // STATIC
     ReversibleHooks::Install("CObject", "Create", 0x5A1F60, static_cast<CObject*(*)(int, bool)>(&CObject::Create));
+    ReversibleHooks::Install("CObject", "Create", 0x5A2070, static_cast<CObject*(*)(CDummyObject*)>(&CObject::Create));
 }
 
 CObject::CObject() : CPhysical()
@@ -647,7 +648,14 @@ bool CObject::Save()
 
 // Converted from thiscall void CObject::ProcessGarageDoorBehaviour(void) 0x44A4D0
 void CObject::ProcessGarageDoorBehaviour() {
-    ((void(__thiscall*)(CObject*))0x44A4D0)(this);
+    //((void(__thiscall*)(CObject*))0x44A4D0)(this);
+    if (m_nGarageDoorGarageIndex < 0)
+        m_nGarageDoorGarageIndex = CGarages::FindGarageForObject(this);
+
+    if (m_nGarageDoorGarageIndex < 0)
+        return;
+
+    //TODO: Implement
 }
 
 // Converted from thiscall bool CObject::CanBeDeleted(void) 0x59F120
@@ -918,7 +926,17 @@ CObject* CObject::Create(int modelIndex, bool bUnused) {
 }
 
 CObject* CObject::Create(CDummyObject* dummyObject) {
-    return ((CObject * (__cdecl*)(CDummyObject*))0x5A2070)(dummyObject);
+    CPools::ms_pObjectPool->m_bIsLocked = true;
+    auto* pObj = new CObject(dummyObject);
+    CPools::ms_pObjectPool->m_bIsLocked = false;
+
+    if (pObj)
+        return pObj;
+
+    CObject::TryToFreeUpTempObjects(5);
+    g_waterCreatureMan.TryToFreeUpWaterCreatures(5);
+
+    return new CObject(dummyObject);
 }
 
 // Converted from thiscall void CObject::ProcessControlLogic(void) 0x5A29A0

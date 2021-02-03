@@ -2,12 +2,12 @@
 
 void CGarages::Init()
 {
-    ((void(__cdecl*)())0x447120)();
+    plugin::Call<0x447120>();
 }
 
 void CGarages::PrintMessages()
 {
-    ((void(__cdecl*)())0x447790)();
+    plugin::Call<0x447790>();
 }
 
 void CGarages::TriggerMessage(char* cTagMsg, short wMsgMin, unsigned short ucTime, short wMsgMax)
@@ -18,4 +18,9 @@ void CGarages::TriggerMessage(char* cTagMsg, short wMsgMin, unsigned short ucTim
 bool CGarages::IsModelIndexADoor(int nModelIndex)
 {
     return plugin::CallAndReturn<bool, 0x448AF0, int>(nModelIndex);
+}
+
+int CGarages::FindGarageForObject(CObject* pObject)
+{
+    return plugin::CallAndReturn<int, 0x44A240, CObject*>(pObject);
 }
