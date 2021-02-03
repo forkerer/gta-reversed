@@ -110,7 +110,7 @@ void WaterCreatureManager_c::TryToExitGroup(WaterCreature_c* pCreature)
 
     const auto& vecCamPos = TheCamera.GetPosition();
     for(int32_t i = 0; i < iCounter; ++i)
-        if (DistanceBetweenPoints(vecCamPos, apCreatures[i]->GetObject()->GetPosition()) < 60.0F)
+        if (DistanceBetweenPointsSquared(vecCamPos, apCreatures[i]->GetObject()->GetPosition()) < WaterCreatureManager_c::ms_fMaxWaterCreaturesDrawDistanceSquared)
             return; // Jump out of function if any of the creatures in group aren't out of camera reach.
                     // All fishes in group have to be destroyed at once as no to leave any of them with dangling pointers
 

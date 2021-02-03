@@ -251,6 +251,6 @@ void WaterCreature_c::Update(float fTimeStep)
     CWorld::Add(m_pObject);
 
     const auto& vecCamPos = TheCamera.GetPosition();
-    if (DistanceBetweenPoints(vecCamPos, m_pObject->GetPosition()) >= 60.0F)
+    if (DistanceBetweenPointsSquared(vecCamPos, m_pObject->GetPosition()) >= WaterCreatureManager_c::ms_fMaxWaterCreaturesDrawDistanceSquared)
         g_waterCreatureMan.TryToExitGroup(this);
 }

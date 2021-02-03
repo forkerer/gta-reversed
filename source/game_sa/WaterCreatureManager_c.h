@@ -48,6 +48,8 @@ public:
 public:
     static constexpr int NUM_WATER_CREATURE_INFOS = 7;
     static WaterCreatureInfo(&ms_waterCreatureInfos)[NUM_WATER_CREATURE_INFOS]; // Access using GetCreatureInfo()
+    static constexpr float ms_fMaxWaterCreaturesDrawDistance = 60.0F;
+    static constexpr float ms_fMaxWaterCreaturesDrawDistanceSquared = ms_fMaxWaterCreaturesDrawDistance * ms_fMaxWaterCreaturesDrawDistance;
 };
 
 extern WaterCreatureManager_c& g_waterCreatureMan;
