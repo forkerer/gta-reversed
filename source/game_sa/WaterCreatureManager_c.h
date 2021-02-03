@@ -7,7 +7,7 @@ struct WaterCreatureInfo
     uint8_t m_nMinCreated;
     uint8_t m_nMaxCreated;
     uint16_t m_wUnkn;
-    float m_fSpawnDepth;
+    float m_fMinSpawnDepth;
     float m_fMinDistFromSameCreature;
     float m_fMinDistFromFollowed;
     float m_fMaxDistFromFollowed;

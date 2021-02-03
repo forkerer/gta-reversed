@@ -15,7 +15,7 @@ bool WaterCreature_c::Init(int nType, CVector* pVecPos, WaterCreature_c* pParent
     const auto& pInfo = WaterCreatureManager_c::GetCreatureInfo(nType);
     if (!pParent)
     {
-        auto fMaxZ = fWaterLevel - pInfo.m_fSpawnDepth;
+        auto fMaxZ = fWaterLevel - pInfo.m_fMinSpawnDepth;
         auto fMinZ = fWaterLevel - fWaterDepth + 2.0F;
         fMinZ = std::max(fMinZ, fWaterLevel - 50.0F);
 
@@ -82,8 +82,10 @@ void WaterCreature_c::Exit()
     g_waterCreatureMan.m_createdList.RemoveItem(this);
     g_waterCreatureMan.m_freeList.AddItem(this);
     CWorld::Remove(m_pObject);
+
     if (m_pObject)
         delete m_pObject;
+
     m_pObject = nullptr;
     --CObject::nNoTempObjects;
 }
@@ -97,8 +99,8 @@ void WaterCreature_c::Update(float fTimeStep)
         const auto vecPosInGroup = vecParentPos + m_vecOffsetFromFollowed;
 
         auto vecDir = vecPosInGroup - m_pObject->GetPosition();
-        const auto fDist = vecDir.NormaliseAndMag();
-        if (fDist > 0.0F)
+        const auto fDistFromGroup = vecDir.NormaliseAndMag();
+        if (fDistFromGroup > 0.0F)
         {
             auto fNewHeading = CGeneral::GetRadianAngleBetweenPoints(vecDir.x, vecDir.y, 0.0F, 0.0F);
             fNewHeading = CGeneral::LimitRadianAngle(fNewHeading);
@@ -113,17 +115,17 @@ void WaterCreature_c::Update(float fTimeStep)
         if (m_pFollowedCreature->m_ucTargetSwimSpeed > 0)
             fSpeed = m_pFollowedCreature->m_fCurSpeed;
 
-        if (fDist > 2.0F)
-            fSpeed *= (fDist - 2.0F) * 1.1F; // Catch up with group
+        if (fDistFromGroup > 2.0F)
+            fSpeed *= (fDistFromGroup - 2.0F) * 1.1F; // Catch up with group
 
-        fSpeed *= CTimer::ms_fTimeStep;
-        fSpeed = std::min(fSpeed, std::max(0.0F, fDist - 0.01F));
+        fSpeed *= fTimeStep;
+        fSpeed = std::min(fSpeed, std::max(0.0F, fDistFromGroup - 0.01F));
 
         const auto& vecPos = m_pObject->GetPosition();
         const auto vecForward = m_pObject->GetForwardVector();
         m_pObject->SetPosn(vecPos + vecForward * fSpeed);
 
-        if (fDist >= pInfo.m_fMaxDistFromFollowed * 5.0F)
+        if (fDistFromGroup >= pInfo.m_fMaxDistFromFollowed * 5.0F)
             m_pFollowedCreature = nullptr; // Break out from group
     }
     else
@@ -138,17 +140,17 @@ void WaterCreature_c::Update(float fTimeStep)
             }
         }
 
-        const auto vecPos = m_pObject->GetPosition();
+        const auto& vecPos = m_pObject->GetPosition();
         if (pInfo.m_fSpeed > 0.0F)
         {
             const auto fRand = CGeneral::GetRandomNumberInRange(0.0F, 100.0F);
             if (fRand < 10.0F || bMove || m_bChangedDir)
             {
-                const auto vecTargedPos = vecPos + m_pObject->GetForwardVector() * pInfo.m_fSpeed;
+                const auto vecTargetPos = vecPos + m_pObject->GetForwardVector() * pInfo.m_fSpeed;
                 CColPoint colPoint;
                 CEntity* pEntity;
                 if (CWorld::ProcessLineOfSight(vecPos,
-                                               vecTargedPos,
+                                               vecTargetPos,
                                                colPoint,
                                                pEntity,
                                                true,
@@ -174,13 +176,11 @@ void WaterCreature_c::Update(float fTimeStep)
         auto fHeading = m_pObject->GetHeading();
         if (m_fHeading + PI < fHeading)
         {
-            fHeading -= TWO_PI;
-            m_fHeading = fHeading;
+            m_fHeading += TWO_PI;
         }
         else if (m_fHeading - PI > fHeading)
         {
-            fHeading += TWO_PI;
-            m_fHeading = fHeading;
+            m_fHeading -= TWO_PI;
         }
 
         const auto fHeadingDiff = m_fHeading - fHeading;
@@ -204,16 +204,16 @@ void WaterCreature_c::Update(float fTimeStep)
         }
         else
         {
-            auto pPlayer = FindPlayerPed(0);
+            auto* pPlayer = FindPlayerPed(0);
             auto& vecPlayerPos = pPlayer->GetPosition();
-            auto vecPlayerDir = vecPos - vecPlayerPos;
-            if (vecPlayerDir.NormaliseAndMag() < 5.0F) // Swim away from player
+            auto vecSwimDir = vecPos - vecPlayerPos;
+            if (vecSwimDir.NormaliseAndMag() < 5.0F) // Swim away from player
             {
                 m_ucTargetSwimSpeed = CGeneral::GetRandomNumberInRange(35, 50);
                 m_wSpeedChangeCurTime = 0;
                 m_wSpeedChangeTotalTime = CGeneral::GetRandomNumberInRange(2000, 4500);
 
-                const auto fNewHeading = CGeneral::GetRadianAngleBetweenPoints(vecPlayerDir.x, vecPlayerDir.y, 0.0F, 0.0F);
+                const auto fNewHeading = CGeneral::GetRadianAngleBetweenPoints(vecSwimDir.x, vecSwimDir.y, 0.0F, 0.0F);
                 m_fHeading = CGeneral::LimitRadianAngle(fNewHeading);
                 if (WaterCreature_c::IsSmallFish())
                     m_pObject->SetHeading(m_fHeading);
@@ -233,7 +233,8 @@ void WaterCreature_c::Update(float fTimeStep)
         }
 
         const auto vecForward = m_pObject->GetForwardVector();
-        m_pObject->SetPosn(m_pObject->GetPosition() + vecForward * fTimeStep * fCurSpeed);
+        const auto vecNewPos = m_pObject->GetPosition() + vecForward * fTimeStep * fCurSpeed;
+        m_pObject->SetPosn(vecNewPos);
     }
 
     if (WaterCreature_c::IsJellyfish())
