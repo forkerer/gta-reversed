@@ -66,12 +66,12 @@ ListItem_c * List_c::RemoveHead(void) {
     if (!m_pHead)
         return nullptr;
 
+    --m_nCount;
     auto* pOldHead = m_pHead;
     if (m_pHead == m_pTail)
     {
         m_pTail = nullptr;
         m_pHead = nullptr;
-        --m_nCount;
         return pOldHead;
     }
 
@@ -87,10 +87,10 @@ ListItem_c* List_c::RemoveTail()
     if (!m_pTail)
         return nullptr;
 
+    --m_nCount;
     auto* pOldTail = m_pTail;
     m_pTail->m_pPrev->m_pNext = nullptr;
     m_pTail = m_pTail->m_pPrev;
-    --m_nCount;
     return pOldTail;
 }
 
