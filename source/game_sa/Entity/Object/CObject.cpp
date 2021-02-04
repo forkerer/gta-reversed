@@ -27,11 +27,27 @@ void CObject::InjectHooks()
     ReversibleHooks::Install("CObject", "Init", 0x59F840, &CObject::Init);
     ReversibleHooks::Install("CObject", "ProcessGarageDoorBehaviour", 0x44A4D0, &CObject::ProcessGarageDoorBehaviour);
     ReversibleHooks::Install("CObject", "CanBeDeleted", 0x59F120, &CObject::CanBeDeleted);
-    
+    ReversibleHooks::Install("CObject", "SetRelatedDummy", 0x59F160, &CObject::SetRelatedDummy);
+    ReversibleHooks::Install("CObject", "TryToExplode", 0x59F2D0, &CObject::TryToExplode);
+    ReversibleHooks::Install("CObject", "SetObjectTargettable", 0x59F300, &CObject::SetObjectTargettable);
+    ReversibleHooks::Install("CObject", "CanBeTargetted", 0x59F320, &CObject::CanBeTargetted);
+    ReversibleHooks::Install("CObject", "RefModelInfo", 0x59F330, &CObject::RefModelInfo);
+    ReversibleHooks::Install("CObject", "SetRemapTexture", 0x59F350, &CObject::SetRemapTexture);
+    ReversibleHooks::Install("CObject", "GetRopeHeight", 0x59F380, &CObject::GetRopeHeight);
+    ReversibleHooks::Install("CObject", "SetRopeHeight", 0x59F3A0, &CObject::SetRopeHeight);
+    ReversibleHooks::Install("CObject", "GetObjectCarriedWithRope", 0x59F3C0, &CObject::GetObjectCarriedWithRope);
+    ReversibleHooks::Install("CObject", "ReleaseObjectCarriedWithRope", 0x59F3E0, &CObject::ReleaseObjectCarriedWithRope);
+    ReversibleHooks::Install("CObject", "AddToControlCodeList", 0x59F400, &CObject::AddToControlCodeList);
+    ReversibleHooks::Install("CObject", "RemoveFromControlCodeList", 0x59F450, &CObject::RemoveFromControlCodeList);
+    ReversibleHooks::Install("CObject", "ResetDoorAngle", 0x59F4B0, &CObject::ResetDoorAngle);
+    ReversibleHooks::Install("CObject", "LockDoor", 0x59F5C0, &CObject::LockDoor);
+    ReversibleHooks::Install("CObject", "DoBurnEffect", 0x59FB50, &CObject::DoBurnEffect);
+    ReversibleHooks::Install("CObject", "GetLightingFromCollisionBelow", 0x59FD00, &CObject::GetLightingFromCollisionBelow);
 
 // STATIC
     ReversibleHooks::Install("CObject", "Create_intbool", 0x5A1F60, static_cast<CObject*(*)(int, bool)>(&CObject::Create));
     ReversibleHooks::Install("CObject", "Create_dummy", 0x5A2070, static_cast<CObject*(*)(CDummyObject*)>(&CObject::Create));
+    ReversibleHooks::Install("CObject", "SetMatrixForTrainCrossing", 0x59F200, &CObject::SetMatrixForTrainCrossing);
 }
 
 CObject::CObject() : CPhysical()
@@ -702,79 +718,106 @@ bool CObject::CanBeDeleted() {
 
 // Converted from thiscall void CObject::SetRelatedDummy(CDummyObject *relatedDummy) 0x59F160
 void CObject::SetRelatedDummy(CDummyObject* relatedDummy) {
-    ((void(__thiscall*)(CObject*, CDummyObject*))0x59F160)(this, relatedDummy);
-}
-
-
-
-// Converted from cdecl void CObject::SetMatrixForTrainCrossing(CMatrix *matrix,float) 0x59F200
-void CObject::SetMatrixForTrainCrossing(CMatrix* matrix, float arg1) {
-    ((void(__cdecl*)(CMatrix*, float))0x59F200)(matrix, arg1);
+    m_pDummyObject = relatedDummy;
+    relatedDummy->RegisterReference(reinterpret_cast<CEntity**>(&m_pDummyObject));
 }
 
 // Converted from thiscall bool CObject::TryToExplode(void) 0x59F2D0
 bool CObject::TryToExplode() {
-    return ((bool(__thiscall*)(CObject*))0x59F2D0)(this);
+    if (!m_pObjectInfo->m_bCausesExplosion)
+        return false;
+
+    if (objectFlags.bIsExploded)
+        return false;
+
+    objectFlags.bIsExploded = true;
+    CObject::Explode();
+    return true;
 }
 
 // Converted from thiscall void CObject::SetObjectTargettable(uchar targetable) 0x59F300
 void CObject::SetObjectTargettable(unsigned char targetable) {
-    ((void(__thiscall*)(CObject*, unsigned char))0x59F300)(this, targetable);
+    objectFlags.bIsTargatable = targetable;
 }
 
 // Converted from thiscall bool CObject::CanBeTargetted(void) 0x59F320
 bool CObject::CanBeTargetted() {
-    return ((bool(__thiscall*)(CObject*))0x59F320)(this);
+    return objectFlags.bIsTargatable;
 }
 
 // Converted from thiscall void CObject::RefModelInfo(int modelIndex) 0x59F330
 void CObject::RefModelInfo(int modelIndex) {
-    plugin::CallMethod<0x59F330, CObject*, int>(this, modelIndex);
+    m_nRefModelIndex = modelIndex;
+    CModelInfo::GetModelInfo(modelIndex)->AddRef();
 }
 
 // Converted from thiscall void CObject::SetRemapTexture(RwTexture *remapTexture, short txdIndex) 0x59F350
 void CObject::SetRemapTexture(RwTexture* remapTexture, short txdIndex) {
-    ((void(__thiscall*)(CObject*, RwTexture*, short))0x59F350)(this, remapTexture, txdIndex);
+    m_pRemapTexture = remapTexture;
+    m_wRemapTxd = txdIndex;
+    if (txdIndex != -1)
+        CTxdStore::AddRef(txdIndex);
 }
 
 // Converted from thiscall float CObject::GetRopeHeight(void) 0x59F380
 float CObject::GetRopeHeight() {
-    return ((float(__thiscall*)(CObject*))0x59F380)(this);
+    const auto ropeIndex = CRopes::FindRope(reinterpret_cast<uint32_t>(this));
+    return CRopes::GetRope(ropeIndex).m_fRopeSegmentLength;
 }
 
 // Converted from thiscall void CObject::SetRopeHeight(float height) 0x59F3A0
 void CObject::SetRopeHeight(float height) {
-    ((void(__thiscall*)(CObject*, float))0x59F3A0)(this, height);
+    const auto ropeIndex = CRopes::FindRope(reinterpret_cast<uint32_t>(this));
+    CRopes::GetRope(ropeIndex).m_fRopeSegmentLength = height;
 }
 
 // Converted from thiscall CEntity* CObject::GetObjectCarriedWithRope(void) 0x59F3C0
 CEntity* CObject::GetObjectCarriedWithRope() {
-    return ((CEntity * (__thiscall*)(CObject*))0x59F3C0)(this);
+    const auto ropeIndex = CRopes::FindRope(reinterpret_cast<uint32_t>(this));
+    return CRopes::GetRope(ropeIndex).m_pAttachedEntity;
 }
 
 // Converted from thiscall void CObject::ReleaseObjectCarriedWithRope(void) 0x59F3E0
 void CObject::ReleaseObjectCarriedWithRope() {
-    ((void(__thiscall*)(CObject*))0x59F3E0)(this);
+    const auto ropeIndex = CRopes::FindRope(reinterpret_cast<uint32_t>(this));
+    CRopes::GetRope(ropeIndex).ReleasePickedUpObject();
 }
 
 // Converted from thiscall void CObject::AddToControlCodeList(void) 0x59F400
 void CObject::AddToControlCodeList() {
-    ((void(__thiscall*)(CObject*))0x59F400)(this);
+   m_pControlCodeList = CWorld::ms_listObjectsWithControlCode.AddItem(this);
 }
 
 // Converted from thiscall void CObject::RemoveFromControlCodeList(void) 0x59F450
 void CObject::RemoveFromControlCodeList() {
-    ((void(__thiscall*)(CObject*))0x59F450)(this);
+    if (!m_pControlCodeList)
+        return;
+
+    CWorld::ms_listObjectsWithControlCode.DeleteNode(m_pControlCodeList);
+    m_pControlCodeList = nullptr;
 }
 
 // Converted from thiscall void CObject::ResetDoorAngle(void) 0x59F4B0
 void CObject::ResetDoorAngle() {
-    ((void(__thiscall*)(CObject*))0x59F4B0)(this);
+    if (!physicalFlags.bDisableMoveForce || m_fDoorStartAngle <= -1000.0F)
+        return;
+
+    CPlaceable::SetHeading(m_fDoorStartAngle);
+    SetIsStatic(true);
+    m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
+    m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
+    m_vecFrictionMoveSpeed.Set(0.0F, 0.0F, 0.0F);
+    m_vecFrictionTurnSpeed.Set(0.0F, 0.0F, 0.0F);
+    CEntity::UpdateRW();
+    CEntity::UpdateRwFrame();
 }
 
 // Converted from thiscall void CObject::LockDoor(void) 0x59F5C0
 void CObject::LockDoor() {
-    ((void(__thiscall*)(CObject*))0x59F5C0)(this);
+    objectFlags.bIsDoorOpen = false;
+    physicalFlags.bCollidable = true;
+    physicalFlags.bDisableCollisionForce = true;
+    CObject::ResetDoorAngle();
 }
 
 // Converted from thiscall void CObject::Init(void) 0x59F840
@@ -884,12 +927,42 @@ void CObject::Init() {
 
 // Converted from thiscall void CObject::DoBurnEffect(void) 0x59FB50
 void CObject::DoBurnEffect() {
-    ((void(__thiscall*)(CObject*))0x59FB50)(this);
+    const auto& pBox = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel()->GetBoundingBox();
+    const auto& vecSize = pBox.GetSize();
+    const auto nUsedSize = static_cast<int>(vecSize.x * vecSize.y * vecSize.z * m_fBurnDamage / 20.0F);
+    if (nUsedSize <= 0)
+        return;
+
+    for (auto i = 0; i < nUsedSize; ++i)
+    {
+        const auto fRandX = CGeneral::GetRandomNumberInRange(pBox.m_vecMin.x, pBox.m_vecMax.x);
+        const auto fRandY = CGeneral::GetRandomNumberInRange(pBox.m_vecMin.y, pBox.m_vecMax.y);
+        const auto fRandZ = CGeneral::GetRandomNumberInRange(pBox.m_vecMin.z, pBox.m_vecMax.z);
+        auto vecParticlePos = *m_matrix * CVector(fRandX, fRandY, fRandZ);
+
+        //auto smokePart = FxPrtMult_c() Originally overwriten right after
+        auto smokePart = FxPrtMult_c(0.0F, 0.0F, 0.0F, 1.0F, 1.0F, 1.0F, 0.4F);
+        auto vecVelocity = CVector(0.0F, 0.0F, 0.02F);
+        g_fx.m_pPrtSmokeII3expand->AddParticle(&vecParticlePos,
+                                               &vecVelocity,
+                                               0.0F,
+                                               &smokePart,
+                                               -1.0F,
+                                               1.2F,
+                                               0.6F,
+                                               false);
+    }
 }
 
 // Converted from thiscall uchar CObject::GetLightingFromCollisionBelow(void) 0x59FD00
-unsigned char CObject::GetLightingFromCollisionBelow() {
-    return ((unsigned char(__thiscall*)(CObject*))0x59FD00)(this);
+void CObject::GetLightingFromCollisionBelow() {
+    CColPoint colPoint;
+    CEntity* pEntity;
+    if (CWorld::ProcessVerticalLine(GetPosition(), -1000.0F, colPoint, pEntity, true, false, false, false, true, false, nullptr))
+    {
+        m_nDayBrightness = colPoint.m_nLightingB.day;
+        m_nNightBrightness = colPoint.m_nLightingB.night;
+    }
 }
 
 // Converted from thiscall void CObject::ProcessSamSiteBehaviour(void) 0x5A07D0
@@ -974,6 +1047,18 @@ CObject* CObject::Create(CDummyObject* dummyObject) {
     g_waterCreatureMan.TryToFreeUpWaterCreatures(5);
 
     return new CObject(dummyObject);
+}
+
+// Converted from cdecl void CObject::SetMatrixForTrainCrossing(CMatrix *matrix,float) 0x59F200
+void CObject::SetMatrixForTrainCrossing(CMatrix* matrix, float fAngle) {
+    auto vecForward = CrossProduct(CVector(0.0F, 0.0F, 1.0F), matrix->GetRight());
+    const auto fCos = cos(fAngle);
+    const auto fSin = sin(fAngle);
+    vecForward *= fCos;
+    vecForward.z += fSin;
+
+    matrix->GetUp() = CrossProduct(matrix->GetRight(), vecForward);
+    matrix->GetForward() = vecForward;
 }
 
 // Converted from thiscall void CObject::ProcessControlLogic(void) 0x5A29A0

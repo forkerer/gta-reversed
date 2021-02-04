@@ -7,8 +7,8 @@
     Do not delete this comment block. Respect others' work!
 */
 
-CRope* CRopes::ms_aRopes = (CRope*)0xB768B8;
-int& CRopes::ms_bPlayerControlsCrane = *(int*)0xB76898;
+CRope(&CRopes::aRopes)[MAX_NUM_ROPES] = *(CRope(*)[MAX_NUM_ROPES])0xB768B8;
+int& CRopes::PlayerControlsCrane = *(int*)0xB76898;
 
 
 void CRopes::CreateRopeForSwatPed(CVector const& startPos)

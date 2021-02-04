@@ -34,10 +34,10 @@ public:
     static void* operator new(unsigned int size, int iPoolRef);
     static void operator delete(void* pObj);
 public:
-    void           *m_pControlCodeList;
-    unsigned char   m_nObjectType; // see enum eObjectCreatedBy
-    unsigned char   m_nBonusValue;
-    unsigned short  m_wCostValue;
+    CPtrNodeDoubleLink *m_pControlCodeList;
+    unsigned char       m_nObjectType; // see enum eObjectCreatedBy
+    unsigned char       m_nBonusValue;
+    unsigned short      m_wCostValue;
     union {
         struct 
         {
@@ -155,7 +155,7 @@ public:
     void LockDoor();
     void Init();
     void DoBurnEffect();
-    unsigned char GetLightingFromCollisionBelow();
+    void GetLightingFromCollisionBelow();
     void ProcessSamSiteBehaviour();
     void ProcessTrainCrossingBehaviour();
     void ObjectDamage(float damage, CVector* fxOrigin, CVector* fxDirection, CEntity* damager, eWeaponType weaponType);
@@ -171,7 +171,7 @@ public:
     static class CObject* Create(int modelIndex, bool bUnused);
     static class CObject* Create(CDummyObject* dummyObject);
 
-    static void SetMatrixForTrainCrossing(CMatrix* matrix, float arg1);
+    static void SetMatrixForTrainCrossing(CMatrix* matrix, float fAngle);
     static void TryToFreeUpTempObjects(int numObjects);
     static void DeleteAllTempObjects();
     static void DeleteAllMissionObjects();
