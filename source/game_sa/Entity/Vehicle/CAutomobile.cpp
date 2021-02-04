@@ -1860,7 +1860,7 @@ void CAutomobile::PlaceOnRoadProperly()
     SetPosn(vecNewPos);
 
     if (IsPlane())
-        static_cast<CPlane*>(this)->field_9A4 = CGeneral::GetATanOfXY(GetForward().x, GetForward().y);
+        static_cast<CPlane*>(this)->m_fHeading = CGeneral::GetATanOfXY(GetForward().x, GetForward().y);
 }
 
 // Converted from thiscall void CAutomobile::PopBoot(void) 0x6AF910

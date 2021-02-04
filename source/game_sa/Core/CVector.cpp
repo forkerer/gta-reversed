@@ -7,6 +7,18 @@ Do not delete this comment block. Respect others' work!
 
 #include "StdInc.h"
 
+void CVector::InjectHooks()
+{
+    ReversibleHooks::Install("CVector", "Magnitude", 0x4082C0, &CVector::Magnitude);
+    ReversibleHooks::Install("CVector", "Magnitude2D", 0x406D50, &CVector::Magnitude2D);
+    ReversibleHooks::Install("CVector", "Normalise", 0x59C910, &CVector::Normalise);
+    ReversibleHooks::Install("CVector", "NormaliseAndMag", 0x59C970, &CVector::NormaliseAndMag);
+    ReversibleHooks::Install("CVector", "Cross", 0x70F890, &CVector::Cross);
+    ReversibleHooks::Install("CVector", "Sum", 0x40FDD0, &CVector::Sum);
+    ReversibleHooks::Install("CVector", "Difference", 0x40FE00, &CVector::Difference);
+}
+
+
 CVector::CVector()
 {
     x = 0.0f; y = 0.0f; z = 0.0f;
@@ -14,82 +26,115 @@ CVector::CVector()
 
 CVector::CVector(float X, float Y, float Z)
 {
-    ((void(__thiscall *)(CVector *, float, float, float))0x420B10)(this, X, Y, Z);
+    x = X;
+    y = Y;
+    z = Z;
 }
+
 
 // Returns length of vector
 float CVector::Magnitude()
 {
-    return ((float(__thiscall*)(CVector*)) 0x4082C0)(this);
+    return sqrt(x * x + y * y + z * z);
 }
 
 float CVector::Magnitude2D()
 {
-    return ((float(__thiscall *)(CVector *))0x406D50)(this);
+    return sqrt(x * x + y * y);
 }
 
 // Normalises a vector
 void CVector::Normalise()
 {
-    ((void(__thiscall*)(CVector*)) 0x59C910)(this);
+    NormaliseAndMag();
 }
 
 // Normalises a vector and returns length
 float CVector::NormaliseAndMag()
 {
-    return ((float(__thiscall*)(CVector*)) 0x59C970)(this);
+    const auto fDot = x * x + y * y + z * z;
+    if (fDot <= 0.0F)
+    {
+        x = 1.0F;
+        return 1.0F;
+    }
+
+    const auto fRecip = 1.0F / sqrt(fDot);
+    x *= fRecip;
+    y *= fRecip;
+    z *= fRecip;
+
+    return 1.0F / fRecip;
 }
 
 // Performs cross calculation
 void CVector::Cross(const CVector& left, const CVector &right)
 {
-    ((void(__thiscall*)(CVector*, const CVector& left, const CVector &right)) 0x70F890)(this, left, right);
+    x = left.y * right.z - left.z * right.y;
+    y = left.z * right.x - left.x * right.z;
+    z = left.x * right.y - left.y * right.x;
 }
 
 // Adds left + right and stores result
 void CVector::Sum(const CVector& left, const CVector &right)
 {
-    ((void(__thiscall*)(CVector*, const CVector& left, const CVector &right)) 0x40FDD0)(this, left, right);
+    x = left.x + right.x;
+    y = left.y + right.y;
+    z = left.z + right.z;
 }
 
 // Subtracts left - right and stores result
 void CVector::Difference(const CVector& left, const CVector &right)
 {
-    ((void(__thiscall*)(CVector*, const CVector& left, const CVector &right)) 0x40FE00)(this, left, right);
+    x = left.x - right.x;
+    y = left.y - right.y;
+    z = left.z - right.z;
 }
 
 // Assigns value from other vector
 void CVector::operator= (const CVector& right)
 {
-    ((void(__thiscall*)(CVector*, const CVector &right)) 0x411B50)(this, right);
+    x = right.x;
+    y = right.y;
+    z = right.z;
 }
 
 // Adds value from the second vector.
 void CVector::operator+=(const CVector& right)
 {
-    ((void(__thiscall*)(CVector*, const CVector &right)) 0x411A00)(this, right);
+    x += right.x;
+    y += right.y;
+    z += right.z;
 }
 
 void CVector::operator-=(const CVector& right)
 {
-    ((void(__thiscall *)(CVector *, const CVector& right))0x406D70)(this, right);
+    x -= right.x;
+    y -= right.y;
+    z -= right.z;
 }
 
 void CVector::operator*=(const CVector& right)
 {
-    x *= right.x;  y *= right.y;  z *= right.z;
+    x *= right.x;
+    y *= right.y;
+    z *= right.z;
 }
 
 // Multiplies vector by a floating point value
 void CVector::operator *= (float multiplier)
 {
-    ((void(__thiscall*)(CVector*, float multiplier)) 0x40FEF0)(this, multiplier);
+    x *= multiplier;
+    y *= multiplier;
+    z *= multiplier;
 }
 
 // Divides vector by a floating point value
 void CVector::operator /= (float divisor)
 {
-    ((void(__thiscall*)(CVector*, float divisor)) 0x0411A30)(this, divisor);
+    x /= divisor;
+    y /= divisor;
+    z /= divisor;
 }
 
 void CVector::FromMultiply(CMatrix  const& matrix, CVector const& vector)

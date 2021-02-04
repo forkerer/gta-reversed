@@ -7,7 +7,7 @@ void CGarage::InjectHooks()
 
 void CGarage::BuildRotatedDoorMatrix(CEntity* pEntity, float fDoorPosition)
 {
-    const auto fAngle = fDoorPosition * (-PI / 2.0F);
+    const auto fAngle = fDoorPosition * -HALF_PI;
     const auto fSin = sin(fAngle);
     const auto fCos = cos(fAngle);
     auto* pMat = pEntity->GetMatrix();

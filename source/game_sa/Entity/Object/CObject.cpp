@@ -8,6 +8,8 @@
 
 unsigned short& CObject::nNoTempObjects = *(unsigned short*)(0xBB4A70);
 float& CObject::fDistToNearestTree = *(float*)0x8D0A20;
+bool& CObject::bAircraftCarrierSamSiteDisabled = *(bool*)0x8D0A24;
+bool& CObject::bArea51SamSiteDisabled = *(bool*)0xBB4A72;
 
 void CObject::InjectHooks()
 {
@@ -43,6 +45,7 @@ void CObject::InjectHooks()
     ReversibleHooks::Install("CObject", "LockDoor", 0x59F5C0, &CObject::LockDoor);
     ReversibleHooks::Install("CObject", "DoBurnEffect", 0x59FB50, &CObject::DoBurnEffect);
     ReversibleHooks::Install("CObject", "GetLightingFromCollisionBelow", 0x59FD00, &CObject::GetLightingFromCollisionBelow);
+    ReversibleHooks::Install("CObject", "ProcessSamSiteBehaviour", 0x5A07D0, &CObject::ProcessSamSiteBehaviour);
 
 // STATIC
     ReversibleHooks::Install("CObject", "Create_intbool", 0x5A1F60, static_cast<CObject*(*)(int, bool)>(&CObject::Create));
@@ -967,7 +970,74 @@ void CObject::GetLightingFromCollisionBelow() {
 
 // Converted from thiscall void CObject::ProcessSamSiteBehaviour(void) 0x5A07D0
 void CObject::ProcessSamSiteBehaviour() {
-    ((void(__thiscall*)(CObject*))0x5A07D0)(this);
+    if (objectFlags.bIsBroken)
+        return;
+
+    auto& vecPos = GetPosition();
+    bool bDisabled = CObject::bAircraftCarrierSamSiteDisabled;
+    if (vecPos.x >= -1000)
+        bDisabled = CObject::bArea51SamSiteDisabled;
+
+    if (bDisabled)
+        return;
+
+    CEntity* pTargetEntity = nullptr;
+    auto fHeading = CGeneral::GetATanOfXY(m_matrix->GetForward().x, m_matrix->GetForward().y);
+    auto* pPlayerVeh = FindPlayerVehicle(-1, false);
+    if (!pPlayerVeh
+        || pPlayerVeh->GetVehicleAppearance() == eVehicleApperance::VEHICLE_APPEARANCE_BIKE
+        || pPlayerVeh->GetVehicleAppearance() == eVehicleApperance::VEHICLE_APPEARANCE_AUTOMOBILE)
+    {
+        auto* pPlayer = FindPlayerPed(-1);
+        if (pPlayer->GetIntelligence()->GetTaskJetPack())
+            pTargetEntity = pPlayer;
+    }
+    else
+    {
+        pTargetEntity = pPlayerVeh;
+    }
+
+    if (pTargetEntity)
+    {
+        auto& vecTargetPos = pTargetEntity->GetPosition();
+        if (vecPos.z <= vecTargetPos.z + 2.0F
+            && vecTargetPos.y <= 2100.0F)
+        {
+            const auto vecDir = vecTargetPos - vecPos;
+            const auto fAngle = CGeneral::GetATanOfXY(vecDir.x, vecDir.y);
+            const auto fAngleDiff = CGeneral::LimitRadianAngle(fAngle - fHeading);
+
+            float fNewAngle;
+            const auto fTimeStep = CTimer::ms_fTimeStep / 200.0F;
+            if (abs(fAngleDiff) <= fTimeStep)
+                fNewAngle = fAngle;
+            else if (fAngleDiff < 0.0F)
+                fNewAngle = fHeading - fTimeStep;
+            else
+                fNewAngle = fHeading + fTimeStep;
+
+            CPlaceable::SetHeading(fNewAngle - HALF_PI);
+            CEntity::UpdateRW();
+            CEntity::UpdateRwFrame();
+
+            auto vecShootDir = vecPos - vecTargetPos;
+            if (vecShootDir.Magnitude2D() >= 120.0F)
+                return;
+
+            if (fabs(fAngleDiff) >= 0.1F || CTimer::m_snTimeInMilliseconds / 4000 == CTimer::m_snPreviousTimeInMilliseconds / 4000)
+                return;
+
+            auto vecRocketDir = m_matrix->GetForward() + m_matrix->GetUp();
+            const auto vecSrcPos = *m_matrix * CVector(0.0F, 2.0F, 4.0F);
+            CProjectileInfo::AddProjectile(this, eWeaponType::WEAPON_ROCKET_HS, vecSrcPos, 0.0F, &vecRocketDir, pTargetEntity);
+            return;
+        }
+    }
+
+    fHeading += CTimer::ms_fTimeStep / 200.0F;
+    CPlaceable::SetHeading(fHeading - HALF_PI);
+    CEntity::UpdateRW();
+    CEntity::UpdateRwFrame();
 }
 
 // Converted from thiscall void CObject::ProcessTrainCrossingBehaviour(void) 0x5A0B50

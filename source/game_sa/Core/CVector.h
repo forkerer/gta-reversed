@@ -14,6 +14,9 @@ public:
     CVector(float X, float Y, float Z);
     inline CVector(RwV3d rwVec) { x = rwVec.x, y = rwVec.y, z = rwVec.z; }
 
+public:
+    static void InjectHooks();
+
     // Returns length of vector
     float Magnitude();
 

@@ -104,6 +104,8 @@ public:
 
     static unsigned short& nNoTempObjects;
     static float& fDistToNearestTree;
+    static bool& bAircraftCarrierSamSiteDisabled;
+    static bool& bArea51SamSiteDisabled;
 
 public:
     static void InjectHooks();
