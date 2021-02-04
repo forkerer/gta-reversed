@@ -294,6 +294,8 @@
 #include "game_sa\CTagManager.h"
 #include "game_sa\CEscalator.h"
 #include "game_sa\CEscalators.h"
+#include "game_sa\BreakObject_c.h";
+#include "game_sa\BreakManager_c.h";
 #include "game_sa\Animation\AnimAssociationData.h"
 #include "game_sa\Animation\AnimationId.h"
 #include "game_sa\Animation\AnimBlendFrameData.h"

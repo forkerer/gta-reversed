@@ -46,6 +46,8 @@ void CObject::InjectHooks()
     ReversibleHooks::Install("CObject", "DoBurnEffect", 0x59FB50, &CObject::DoBurnEffect);
     ReversibleHooks::Install("CObject", "GetLightingFromCollisionBelow", 0x59FD00, &CObject::GetLightingFromCollisionBelow);
     ReversibleHooks::Install("CObject", "ProcessSamSiteBehaviour", 0x5A07D0, &CObject::ProcessSamSiteBehaviour);
+    ReversibleHooks::Install("CObject", "ProcessTrainCrossingBehaviour", 0x5A0B50, &CObject::ProcessTrainCrossingBehaviour);
+    ReversibleHooks::Install("CObject", "ObjectDamage", 0x5A0D90, &CObject::ObjectDamage);
 
 // STATIC
     ReversibleHooks::Install("CObject", "Create_intbool", 0x5A1F60, static_cast<CObject*(*)(int, bool)>(&CObject::Create));
@@ -57,7 +59,7 @@ CObject::CObject() : CPhysical()
 {
     m_pDummyObject = nullptr;
     CObject::Init();
-    m_nObjectType = eObjectCreatedBy::OBJECT_UNKNOWN;
+    m_nObjectType = eObjectType::OBJECT_UNKNOWN;
 }
 
 CObject::CObject(int modelId, bool bCreate) : CPhysical()
@@ -397,7 +399,7 @@ void CObject::SpecialEntityPreCollisionStuff_Reversed(CEntity* colEntity, bool b
             {
                 if (IsModelTempCollision())
                     *bCollisionDisabled = true;
-                else if (m_nObjectType == eObjectCreatedBy::OBJECT_TEMPORARY || (objectFlags.bIsExploded || !CEntity::IsStatic()))
+                else if (m_nObjectType == eObjectType::OBJECT_TEMPORARY || (objectFlags.bIsExploded || !CEntity::IsStatic()))
                 {
                     if (colEntity->m_nModelIndex == eModelID::MODEL_DUMPER
                         || colEntity->m_nModelIndex == eModelID::MODEL_DOZER
@@ -708,10 +710,10 @@ void CObject::ProcessGarageDoorBehaviour() {
 bool CObject::CanBeDeleted() {
     switch (m_nObjectType)
     {
-    case eObjectCreatedBy::OBJECT_MISSION:
-    case eObjectCreatedBy::OBJECT_TYPE_CUTSCENE:
-    case eObjectCreatedBy::OBJECT_TYPE_DECORATION:
-    case eObjectCreatedBy::OBJECT_MISSION2:
+    case eObjectType::OBJECT_MISSION:
+    case eObjectType::OBJECT_TYPE_CUTSCENE:
+    case eObjectType::OBJECT_TYPE_DECORATION:
+    case eObjectType::OBJECT_MISSION2:
         return false;
 
     default:
@@ -829,7 +831,7 @@ void CObject::Init() {
     m_pObjectInfo = &CObjectData::GetDefault();
     m_nColDamageEffect = eObjectColDamageEffect::COL_DAMAGE_EFFECT_NONE;
     m_nSpecialColResponseCase = eObjectSpecialColResponseCases::COL_SPECIAL_RESPONSE_NONE;
-    m_nObjectType = eObjectCreatedBy::OBJECT_GAME;
+    m_nObjectType = eObjectType::OBJECT_GAME;
     SetIsStatic(true);
 
     m_nObjectFlags &= 0x0FC040000;
@@ -1042,12 +1044,205 @@ void CObject::ProcessSamSiteBehaviour() {
 
 // Converted from thiscall void CObject::ProcessTrainCrossingBehaviour(void) 0x5A0B50
 void CObject::ProcessTrainCrossingBehaviour() {
-    ((void(__thiscall*)(CObject*))0x5A0B50)(this);
+    if (!((CTimer::m_FrameCounter + m_nRandomSeed) & 0x10))
+    {
+        const auto& vecPos = GetPosition();
+        auto bWasEnabled = objectFlags.bTrainCrossEnabled;
+        objectFlags.bTrainCrossEnabled = false;
+        auto* pTrain = CTrain::FindNearestTrain(vecPos, true);
+        if (pTrain)
+        {
+            auto vecDist = pTrain->GetPosition() - vecPos;
+            if (vecDist.Magnitude2D() < 120.0F)
+                objectFlags.bTrainCrossEnabled = true;
+        }
+
+        if (m_nModelIndex == ModelIndices::MI_TRAINCROSSING1 && objectFlags.bTrainCrossEnabled)
+        {
+            const auto& pDummyPos = m_pDummyObject->GetPosition();
+            ThePaths.SetLinksBridgeLights(pDummyPos.x - 12.0F, pDummyPos.x + 12.0F, pDummyPos.y - 12.0F, pDummyPos.y + 12.0F, !bWasEnabled);
+        }
+    }
+
+    if (m_nModelIndex == ModelIndices::MI_TRAINCROSSING1)
+        return;
+
+    const auto fAngle = acos(m_matrix->GetUp().z);
+    const auto fTimeStep = CTimer::ms_fTimeStep / 200.0F;
+    if (objectFlags.bTrainCrossEnabled)
+        CObject::SetMatrixForTrainCrossing(m_matrix, std::max(0.0F, fAngle - fTimeStep));
+    else
+        CObject::SetMatrixForTrainCrossing(m_matrix, std::min(PI * 0.43F, fAngle - fTimeStep));
+
+    CEntity::UpdateRW();
+    CEntity::UpdateRwFrame();
 }
 
 // Converted from thiscall void CObject::ObjectDamage(float damage,CVector *fxOrigin,CVector *fxDirection,CEntity *damager,eWeaponType weaponType) 0x5A0D90
 void CObject::ObjectDamage(float damage, CVector* fxOrigin, CVector* fxDirection, CEntity* damager, eWeaponType weaponType) {
-    ((void(__thiscall*)(CObject*, float, CVector*, CVector*, CEntity*, eWeaponType))0x5A0D90)(this, damage, fxOrigin, fxDirection, damager, weaponType);
+    if (!m_bUsesCollision)
+        return;
+
+    if (weaponType == eWeaponType::WEAPON_UNIDENTIFIED && damager && damager->IsVehicle())
+        weaponType = eWeaponType::WEAPON_RUNOVERBYCAR;
+
+    if (!CPhysical::CanPhysicalBeDamaged(weaponType, nullptr))
+        return;
+
+    m_fHealth -= damage * m_pObjectInfo->m_fColDamageMultiplier;
+    m_fHealth = std::max(0.0F, m_fHealth);
+
+    if (!m_nColDamageEffect || physicalFlags.bInvulnerable && damager != FindPlayerPed(-1) && damager != FindPlayerVehicle(-1, false))
+        return;
+
+    // Big Smoke crack palace wall break checks
+    if (m_nModelIndex == ModelIndices::MI_IMY_SHASH_WALL)
+    {
+        if (!damager)
+            return;
+
+        if (damager->IsPed())
+        {
+            auto* pPed = static_cast<CPed*>(damager);
+            if (!pPed->bInVehicle || !pPed->m_pVehicle || pPed->m_pVehicle->m_nModelIndex != eModelID::MODEL_SWATVAN)
+                return;
+        }
+        else if (damager->IsVehicle())
+        {
+            if (damager->m_nModelIndex != eModelID::MODEL_SWATVAN)
+                return;
+        }
+        else
+            return;
+    }
+
+    if (damager && damager->m_nModelIndex == eModelID::MODEL_FORKLIFT)
+        return;
+
+    m_nLastWeaponDamage = weaponType;
+    bool bWasDestroyed = false;
+
+    if (damage * m_pObjectInfo->m_fColDamageMultiplier > 150.0F || m_fHealth == 0.0F)
+    {
+        switch (m_nColDamageEffect)
+        {
+        case COL_DAMAGE_EFFECT_CHANGE_MODEL:
+            if (!m_bRenderDamaged)
+            {
+                bWasDestroyed = true;
+                DeleteRwObject();
+            }
+            m_bRenderDamaged = true;
+            break;
+
+        case COL_DAMAGE_EFFECT_SMASH_COMPLETELY:
+            m_bUsesCollision = false;
+            m_bIsVisible = false;
+            if (!CEntity::IsStatic())
+                CPhysical::RemoveFromMovingList();
+
+            m_bIsStatic = true;
+            physicalFlags.bExplosionProof = true;
+            m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
+            m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
+            DeleteRwObject();
+            bWasDestroyed = true;
+            break;
+
+        case COL_DAMAGE_EFFECT_CHANGE_THEN_SMASH:
+            if (m_bRenderDamaged)
+            {
+                m_bUsesCollision = false;
+                m_bIsVisible = false;
+                if (!CEntity::IsStatic())
+                    CPhysical::RemoveFromMovingList();
+
+                m_bIsStatic = true;
+                physicalFlags.bExplosionProof = true;
+                m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
+                m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
+                DeleteRwObject();
+                bWasDestroyed = true;
+            }
+            else
+            {
+                DeleteRwObject();
+                m_bRenderDamaged = true;
+            }
+            break;
+
+        case COL_DAMAGE_EFFECT_BREAKABLE:
+        case COL_DAMAGE_EFFECT_BREAKABLE_REMOVED:
+            {
+                const auto bJustFaces = damage * m_pObjectInfo->m_fColDamageMultiplier > m_pObjectInfo->m_fSmashMultiplier * 150.0F;
+                g_breakMan.Add(this, &m_pObjectInfo->m_vecBreakVelocity, m_pObjectInfo->m_fBreakVelocityRand, bJustFaces);
+
+                m_bUsesCollision = false;
+                m_bIsVisible = false;
+                if (!CEntity::IsStatic())
+                    CPhysical::RemoveFromMovingList();
+
+                m_bIsStatic = true;
+                physicalFlags.bExplosionProof = true;
+                m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
+                m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
+                DeleteRwObject();
+                bWasDestroyed = true;
+                break;
+            }
+        }
+
+        if (!m_bUsesCollision && !m_bIsVisible)
+            m_fHealth = 0.0F;
+    }
+
+    bool bExploded = false;
+    if (!bWasDestroyed)
+    {
+        if (CObject::TryToExplode())
+            bExploded = true;
+
+        AudioEngine.ReportObjectDestruction(this);
+    }
+
+    // Particle creation
+    if (bWasDestroyed || !bExploded)
+    {
+        if (m_pObjectInfo->m_nFxType == eObjectFxType::NO_FX)
+            return;
+
+        bool bCreateParticle = false;
+        if (m_pObjectInfo->m_nFxType == eObjectFxType::PLAY_ON_HIT_DESTROYED)
+            bCreateParticle = true;
+        else if (m_pObjectInfo->m_nFxType == eObjectFxType::PLAY_ON_DESTROYED)
+            bCreateParticle = bWasDestroyed;
+        else if (m_pObjectInfo->m_nFxType == eObjectFxType::PLAY_ON_HIT)
+            bCreateParticle = damage > 30.0F;
+
+        if (!bCreateParticle)
+            return;
+
+        if (m_pObjectInfo->m_vFxOffset.x < -500.0F)
+        {
+            if (!fxOrigin)
+                return;
+
+            RwMatrix particleMat;
+            g_fx.CreateMatFromVec(&particleMat, fxOrigin, fxDirection);
+            auto* pFxSystem = g_fxMan.CreateFxSystem(m_pObjectInfo->m_pFxSystemBP, &particleMat, nullptr, false);
+            if (pFxSystem)
+                pFxSystem->PlayAndKill();
+
+            return;
+        }
+
+        auto particleMat = CMatrix(*m_matrix);
+        auto vecPoint = Multiply3x3(&particleMat, &m_pObjectInfo->m_vFxOffset);
+        vecPoint += GetPosition();
+        auto* pFxSystem = g_fxMan.CreateFxSystem(m_pObjectInfo->m_pFxSystemBP, &vecPoint, nullptr, false);
+        if (pFxSystem)
+            pFxSystem->PlayAndKill();
+    }
 }
 
 // Converted from thiscall void CObject::Explode(void) 0x5A1340

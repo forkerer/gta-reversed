@@ -16,6 +16,10 @@ void CVector::InjectHooks()
     ReversibleHooks::Install("CVector", "Cross", 0x70F890, &CVector::Cross);
     ReversibleHooks::Install("CVector", "Sum", 0x40FDD0, &CVector::Sum);
     ReversibleHooks::Install("CVector", "Difference", 0x40FE00, &CVector::Difference);
+    ReversibleHooks::Install("CVector", "FromMultiply", 0x59C670, &CVector::FromMultiply);
+    ReversibleHooks::Install("CVector", "FromMultiply3x3", 0x59C6D0, &CVector::FromMultiply3x3);
+    ReversibleHooks::Install("CVector", "global_CrossProduct_out", 0x59C730, static_cast<CVector*(*)(CVector*, CVector*, CVector*)>(&CrossProduct));
+    ReversibleHooks::Install("CVector", "global_DotProduct_vec*vec*", 0x59C6D0, static_cast<float(*)(CVector*, CVector*)>(&DotProduct));
 }
 
 
@@ -137,32 +141,36 @@ void CVector::operator /= (float divisor)
     z /= divisor;
 }
 
-void CVector::FromMultiply(CMatrix  const& matrix, CVector const& vector)
+void CVector::FromMultiply(CMatrix const& matrix, CVector const& vector)
 {
-    ((void(__thiscall *)(CVector *, CMatrix  const&, CVector const&))0x59C670)(this, matrix, vector);
+    x = matrix.GetPosition().x + matrix.GetRight().x * vector.x + matrix.GetForward().x * vector.y + matrix.GetUp().x * vector.z;
+    y = matrix.GetPosition().y + matrix.GetRight().y * vector.x + matrix.GetForward().y * vector.y + matrix.GetUp().y * vector.z;
+    z = matrix.GetPosition().z + matrix.GetRight().z * vector.x + matrix.GetForward().z * vector.y + matrix.GetUp().z * vector.z;
 }
 
-void CVector::FromMultiply3x3(CMatrix  const& matrix, CVector const& vector)
+void CVector::FromMultiply3x3(CMatrix const& matrix, CVector const& vector)
 {
-    ((void(__thiscall *)(CVector *, CMatrix  const&, CVector const&))0x59C6D0)(this, matrix, vector);
+    x = matrix.GetRight().x * vector.x + matrix.GetForward().x * vector.y + matrix.GetUp().x * vector.z;
+    y = matrix.GetRight().y * vector.x + matrix.GetForward().y * vector.y + matrix.GetUp().y * vector.z;
+    z = matrix.GetRight().z * vector.x + matrix.GetForward().z * vector.y + matrix.GetUp().z * vector.z;
 }
 
 CVector* CrossProduct(CVector* out, CVector* a, CVector* b)
 {
-    return plugin::CallAndReturn <CVector*, 0x59C730, CVector*, CVector*, CVector*> (out, a, b);
+    out->Cross(*a, *b);
+    return out;
 }
 
 CVector CrossProduct(const CVector& a, const CVector& b)
 {
     CVector result;
-    plugin::Call<0x59C730, CVector*, const CVector&, const CVector&>(&result, a, b);
+    result.Cross(a, b);
     return result;
 }
 
 float DotProduct(CVector* v1, CVector* v2)
 {
-    return plugin::CallAndReturn <float, 0x40FDB0, CVector*, CVector*>(v1, v2);
-    //return v1->z * v2->z + v1->y * v2->y + v1->x * v2->x;
+    return v1->z * v2->z + v1->y * v2->y + v1->x * v2->x;
 }
 
 float DotProduct(const CVector& v1, const CVector& v2)

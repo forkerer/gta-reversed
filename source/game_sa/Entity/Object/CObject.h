@@ -10,7 +10,7 @@
 #include "CPhysical.h"
 #include "CObjectData.h"
 
-enum eObjectCreatedBy {
+enum eObjectType {
     OBJECT_UNKNOWN = 0,
     OBJECT_GAME = 1,
     OBJECT_MISSION = 2,
@@ -35,7 +35,7 @@ public:
     static void operator delete(void* pObj);
 public:
     CPtrNodeDoubleLink *m_pControlCodeList;
-    unsigned char       m_nObjectType; // see enum eObjectCreatedBy
+    unsigned char       m_nObjectType; // see enum eObjectType
     unsigned char       m_nBonusValue;
     unsigned short      m_wCostValue;
     union {
@@ -180,7 +180,7 @@ public:
     static void DeleteAllTempObjectsInArea(CVector point, float radius);
 
     //Helpers
-    inline bool IsTemporary() const { return m_nObjectType == eObjectCreatedBy::OBJECT_TEMPORARY; }
+    inline bool IsTemporary() const { return m_nObjectType == eObjectType::OBJECT_TEMPORARY; }
     inline bool IsCraneMovingPart() const
     {
         return m_nModelIndex == ModelIndices::MI_CRANE_MAGNET

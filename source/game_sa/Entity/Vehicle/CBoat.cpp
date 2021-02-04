@@ -992,7 +992,7 @@ void CBoat::BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion)
     pObject->m_fAirResistance = 0.99F;
     pObject->m_fElasticity = 0.1F;
     pObject->m_fBuoyancyConstant = 8.0F / 75.0F;
-    pObject->m_nObjectType = eObjectCreatedBy::OBJECT_TEMPORARY;
+    pObject->m_nObjectType = eObjectType::OBJECT_TEMPORARY;
     pObject->SetIsStatic(false);
     pObject->objectFlags.bIsPickup = false;
     pObject->m_dwRemovalTime = CTimer::m_snTimeInMilliseconds + 20000;

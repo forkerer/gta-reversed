@@ -26,3 +26,8 @@ void CAudioEngine::ReportDoorMovement(CPhysical* pPhysical)
 {
     plugin::CallMethod<0x506F50, CAudioEngine*, CPhysical*>(this, pPhysical);
 }
+
+void CAudioEngine::ReportObjectDestruction(CEntity* pEntity)
+{
+    plugin::CallMethod<0x506ED0, CAudioEngine*, CEntity*>(this, pEntity);
+}

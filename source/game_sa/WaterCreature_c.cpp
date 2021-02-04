@@ -37,7 +37,7 @@ bool WaterCreature_c::Init(int nType, CVector* pVecPos, WaterCreature_c* pParent
     m_pObject->m_bUnderwater = true;
     m_pObject->physicalFlags.bApplyGravity = false;
     m_pObject->m_bUsesCollision = false;
-    m_pObject->m_nObjectType = eObjectCreatedBy::OBJECT_TYPE_DECORATION;
+    m_pObject->m_nObjectType = eObjectType::OBJECT_TYPE_DECORATION;
     
     m_nCreatureType = nType;
     m_pFollowedCreature = pParent;

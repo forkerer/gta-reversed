@@ -1699,7 +1699,7 @@ void CEntity::UpdateAnim()
 
     bool bOnScreen;
     float fStep;
-    if (IsObject() && static_cast<CObject*>(this)->m_nObjectType == eObjectCreatedBy::OBJECT_TYPE_CUTSCENE) {
+    if (IsObject() && static_cast<CObject*>(this)->m_nObjectType == eObjectType::OBJECT_TYPE_CUTSCENE) {
         bOnScreen = true;
         fStep = CTimer::ms_fTimeStepNonClipped / 50.0F;
     }

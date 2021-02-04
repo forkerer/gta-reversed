@@ -11,6 +11,7 @@ public:
     void ReportMissionAudioEvent(int eventId, CObject* pObject);
     void ReportWaterSplash(CPhysical* pPhysical, float volume, bool forcePlaySplashSound);
     void ReportDoorMovement(CPhysical* pPhysical);
+    void ReportObjectDestruction(CEntity* pEntity);
     static void DisplayRadioStationName();
 };
 
