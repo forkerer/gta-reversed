@@ -190,6 +190,8 @@ void InjectHooksMain(void)
     WaterCreatureManager_c::InjectHooks();
     C2dEffect::InjectHooks();
     COcclusion::InjectHooks();
+    CGarage::InjectHooks();
+    CGarages::InjectHooks();
 
     CAEAudioUtility::InjectHooks();
     CAEDataStream::InjectHooks();

@@ -25,10 +25,13 @@ void CObject::InjectHooks()
 
 // CLASS
     ReversibleHooks::Install("CObject", "Init", 0x59F840, &CObject::Init);
+    ReversibleHooks::Install("CObject", "ProcessGarageDoorBehaviour", 0x44A4D0, &CObject::ProcessGarageDoorBehaviour);
+    ReversibleHooks::Install("CObject", "CanBeDeleted", 0x59F120, &CObject::CanBeDeleted);
+    
 
 // STATIC
-    ReversibleHooks::Install("CObject", "Create", 0x5A1F60, static_cast<CObject*(*)(int, bool)>(&CObject::Create));
-    ReversibleHooks::Install("CObject", "Create", 0x5A2070, static_cast<CObject*(*)(CDummyObject*)>(&CObject::Create));
+    ReversibleHooks::Install("CObject", "Create_intbool", 0x5A1F60, static_cast<CObject*(*)(int, bool)>(&CObject::Create));
+    ReversibleHooks::Install("CObject", "Create_dummy", 0x5A2070, static_cast<CObject*(*)(CDummyObject*)>(&CObject::Create));
 }
 
 CObject::CObject() : CPhysical()
@@ -648,19 +651,53 @@ bool CObject::Save()
 
 // Converted from thiscall void CObject::ProcessGarageDoorBehaviour(void) 0x44A4D0
 void CObject::ProcessGarageDoorBehaviour() {
-    //((void(__thiscall*)(CObject*))0x44A4D0)(this);
     if (m_nGarageDoorGarageIndex < 0)
         m_nGarageDoorGarageIndex = CGarages::FindGarageForObject(this);
 
     if (m_nGarageDoorGarageIndex < 0)
         return;
 
-    //TODO: Implement
+    auto& vecDummyPos = m_pDummyObject->GetPosition();
+    auto* pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    const auto fHeight = pModelInfo->GetColModel()->GetBoundingBox().GetHeight();
+    auto& pGarage = CGarages::GetGarage(m_nGarageDoorGarageIndex);
+    if (pGarage.m_bDoorOpensUp)
+    {
+        m_matrix->GetPosition().z = vecDummyPos.z + fHeight * pGarage.m_fDoorPosition * 0.48F;
+        float fDoorPos = pGarage.m_fDoorPosition;
+        if (pGarage.m_bDoorGoesIn)
+            fDoorPos = -fDoorPos;
+
+        CGarage::BuildRotatedDoorMatrix(this, fDoorPos);
+    }
+    else
+    {
+        if (pGarage.m_nType == eGarageType::HANGAR_AT400)
+            m_matrix->GetPosition().z = vecDummyPos.z - fHeight * pGarage.m_fDoorPosition;
+        else if (pGarage.m_nType == eGarageType::HANGAR_ABANDONED_AIRPORT)
+            m_matrix->GetPosition().x = vecDummyPos.x - pGarage.m_fDoorPosition * m_matrix->GetRight().x * 14.0F;
+        else
+            m_matrix->GetPosition().z = vecDummyPos.z + fHeight * pGarage.m_fDoorPosition / 1.1F;
+    }
+
+    m_bUsesCollision = pGarage.m_bDoorClosed;
+    CEntity::UpdateRW();
+    CEntity::UpdateRwFrame();
 }
 
 // Converted from thiscall bool CObject::CanBeDeleted(void) 0x59F120
 bool CObject::CanBeDeleted() {
-    return ((bool(__thiscall*)(CObject*))0x59F120)(this);
+    switch (m_nObjectType)
+    {
+    case eObjectCreatedBy::OBJECT_MISSION:
+    case eObjectCreatedBy::OBJECT_TYPE_CUTSCENE:
+    case eObjectCreatedBy::OBJECT_TYPE_DECORATION:
+    case eObjectCreatedBy::OBJECT_MISSION2:
+        return false;
+
+    default:
+        return true;
+    }
 }
 
 // Converted from thiscall void CObject::SetRelatedDummy(CDummyObject *relatedDummy) 0x59F160

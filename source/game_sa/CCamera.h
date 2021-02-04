@@ -17,8 +17,7 @@ Do not delete this comment block. Respect others' work!
 #include "CVehicle.h"
 #include "CRect.h"
 #include "CPed.h"
-
-class CGarage;
+#include "CGarage.h"
 
 enum eSwitchType : unsigned short
 {
