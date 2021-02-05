@@ -181,6 +181,7 @@ public:
 
     //Helpers
     inline bool IsTemporary() const { return m_nObjectType == eObjectType::OBJECT_TEMPORARY; }
+    inline bool IsMissionObject() const { return m_nObjectType == eObjectType::OBJECT_MISSION || m_nObjectType == eObjectType::OBJECT_MISSION2; }
     inline bool IsCraneMovingPart() const
     {
         return m_nModelIndex == ModelIndices::MI_CRANE_MAGNET

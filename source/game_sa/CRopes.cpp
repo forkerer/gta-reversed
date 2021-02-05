@@ -15,9 +15,9 @@ void CRopes::CreateRopeForSwatPed(CVector const& startPos)
 {
     ((void(__cdecl*)(CVector const&))0x558D10)(startPos);
 }
-void CRopes::FindPickupHeight(CEntity* entity)
+float CRopes::FindPickupHeight(CEntity* entity)
 {
-    ((void(__cdecl*)(CEntity*))0x556760)(entity);
+    return plugin::CallAndReturn<float, 0x556760, CEntity*>(entity);
 }
 int CRopes::FindRope(unsigned int id)
 {

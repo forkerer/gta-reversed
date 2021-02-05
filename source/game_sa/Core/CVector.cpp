@@ -143,16 +143,16 @@ void CVector::operator /= (float divisor)
 
 void CVector::FromMultiply(CMatrix const& matrix, CVector const& vector)
 {
-    x = matrix.GetPosition().x + matrix.GetRight().x * vector.x + matrix.GetForward().x * vector.y + matrix.GetUp().x * vector.z;
-    y = matrix.GetPosition().y + matrix.GetRight().y * vector.x + matrix.GetForward().y * vector.y + matrix.GetUp().y * vector.z;
-    z = matrix.GetPosition().z + matrix.GetRight().z * vector.x + matrix.GetForward().z * vector.y + matrix.GetUp().z * vector.z;
+    x = matrix.m_pos.x + matrix.m_right.x * vector.x + matrix.m_forward.x * vector.y + matrix.m_up.x * vector.z;
+    y = matrix.m_pos.y + matrix.m_right.y * vector.x + matrix.m_forward.y * vector.y + matrix.m_up.y * vector.z;
+    z = matrix.m_pos.z + matrix.m_right.z * vector.x + matrix.m_forward.z * vector.y + matrix.m_up.z * vector.z;
 }
 
 void CVector::FromMultiply3x3(CMatrix const& matrix, CVector const& vector)
 {
-    x = matrix.GetRight().x * vector.x + matrix.GetForward().x * vector.y + matrix.GetUp().x * vector.z;
-    y = matrix.GetRight().y * vector.x + matrix.GetForward().y * vector.y + matrix.GetUp().y * vector.z;
-    z = matrix.GetRight().z * vector.x + matrix.GetForward().z * vector.y + matrix.GetUp().z * vector.z;
+    x = matrix.m_right.x * vector.x + matrix.m_forward.x * vector.y + matrix.m_up.x * vector.z;
+    y = matrix.m_right.y * vector.x + matrix.m_forward.y * vector.y + matrix.m_up.y * vector.z;
+    z = matrix.m_right.z * vector.x + matrix.m_forward.z * vector.y + matrix.m_up.z * vector.z;
 }
 
 CVector* CrossProduct(CVector* out, CVector* a, CVector* b)

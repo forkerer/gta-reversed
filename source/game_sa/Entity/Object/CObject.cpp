@@ -48,11 +48,22 @@ void CObject::InjectHooks()
     ReversibleHooks::Install("CObject", "ProcessSamSiteBehaviour", 0x5A07D0, &CObject::ProcessSamSiteBehaviour);
     ReversibleHooks::Install("CObject", "ProcessTrainCrossingBehaviour", 0x5A0B50, &CObject::ProcessTrainCrossingBehaviour);
     ReversibleHooks::Install("CObject", "ObjectDamage", 0x5A0D90, &CObject::ObjectDamage);
+    ReversibleHooks::Install("CObject", "Explode", 0x5A1340, &CObject::Explode);
+    ReversibleHooks::Install("CObject", "ObjectFireDamage", 0x5A1580, &CObject::ObjectFireDamage);
+    ReversibleHooks::Install("CObject", "GrabObjectToCarryWithRope", 0x5A1AB0, &CObject::GrabObjectToCarryWithRope);
+    ReversibleHooks::Install("CObject", "CanBeUsedToTakeCoverBehind", 0x5A1B60, &CObject::CanBeUsedToTakeCoverBehind);
+    ReversibleHooks::Install("CObject", "ProcessControlLogic", 0x5A29A0, &CObject::ProcessControlLogic);
 
 // STATIC
     ReversibleHooks::Install("CObject", "Create_intbool", 0x5A1F60, static_cast<CObject*(*)(int, bool)>(&CObject::Create));
     ReversibleHooks::Install("CObject", "Create_dummy", 0x5A2070, static_cast<CObject*(*)(CDummyObject*)>(&CObject::Create));
     ReversibleHooks::Install("CObject", "SetMatrixForTrainCrossing", 0x59F200, &CObject::SetMatrixForTrainCrossing);
+    ReversibleHooks::Install("CObject", "TryToFreeUpTempObjects", 0x5A1840, &CObject::TryToFreeUpTempObjects);
+    ReversibleHooks::Install("CObject", "DeleteAllTempObjects", 0x5A18B0, &CObject::DeleteAllTempObjects);
+    ReversibleHooks::Install("CObject", "DeleteAllMissionObjects", 0x5A1910, &CObject::DeleteAllMissionObjects);
+    ReversibleHooks::Install("CObject", "DeleteAllTempObjectsInArea", 0x5A1980, &CObject::DeleteAllTempObjectsInArea);
+    ReversibleHooks::Install("CObject", "IsObjectPointerValid_NotInWorld", 0x5A2B90, &IsObjectPointerValid_NotInWorld);
+    ReversibleHooks::Install("CObject", "IsObjectPointerValid", 0x5A2C20, &IsObjectPointerValid);
 }
 
 CObject::CObject() : CPhysical()
@@ -238,7 +249,7 @@ void CObject::ProcessControl_Reversed()
                 {
                     m_bFakePhysics = 10;
                     if (!bIsAnimated)
-                        SetIsStatic(true);
+                        this->SetIsStatic(true);
 
                     m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
                     m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
@@ -254,14 +265,14 @@ void CObject::ProcessControl_Reversed()
         CPhysical::ProcessControl();
 
     if (bIsAnimated)
-        SetIsStatic(false);
+        this->SetIsStatic(false);
 
     CVector vecBuoyancyTurnPoint, vecBuoyancyForce;
     if (mod_Buoyancy.ProcessBuoyancy(this, m_fBuoyancyConstant, &vecBuoyancyTurnPoint, &vecBuoyancyForce))
     {
         physicalFlags.bTouchingWater = true;
         physicalFlags.bSubmergedInWater = true;
-        SetIsStatic(false);
+        this->SetIsStatic(false);
 
         CPhysical::ApplyMoveForce(vecBuoyancyForce);
         CPhysical::ApplyTurnForce(vecBuoyancyForce, vecBuoyancyTurnPoint);
@@ -282,7 +293,7 @@ void CObject::ProcessControl_Reversed()
         physicalFlags.bExplosionProof = true;
         physicalFlags.bApplyGravity = false;
         m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
-        DeleteRwObject();
+        this->DeleteRwObject();
     }
 
     if (m_nModelIndex == ModelIndices::MI_RCBOMB)
@@ -325,7 +336,7 @@ void CObject::ProcessControl_Reversed()
             && fabs(fDiff) < 0.01F
             && (objectFlags.bIsDoorMoving || fabs(m_vecTurnSpeed.z) < 0.01F))
         {
-            SetIsStatic(true);
+            this->SetIsStatic(true);
             m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
             m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
             m_vecFrictionMoveSpeed.Set(0.0F, 0.0F, 0.0F);
@@ -808,7 +819,7 @@ void CObject::ResetDoorAngle() {
         return;
 
     CPlaceable::SetHeading(m_fDoorStartAngle);
-    SetIsStatic(true);
+    this->SetIsStatic(true);
     m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
     m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
     m_vecFrictionMoveSpeed.Set(0.0F, 0.0F, 0.0F);
@@ -832,7 +843,7 @@ void CObject::Init() {
     m_nColDamageEffect = eObjectColDamageEffect::COL_DAMAGE_EFFECT_NONE;
     m_nSpecialColResponseCase = eObjectSpecialColResponseCases::COL_SPECIAL_RESPONSE_NONE;
     m_nObjectType = eObjectType::OBJECT_GAME;
-    SetIsStatic(true);
+    this->SetIsStatic(true);
 
     m_nObjectFlags &= 0x0FC040000;
     objectFlags.bCanBeAttachedToMagnet = true;
@@ -1130,7 +1141,7 @@ void CObject::ObjectDamage(float damage, CVector* fxOrigin, CVector* fxDirection
             if (!m_bRenderDamaged)
             {
                 bWasDestroyed = true;
-                DeleteRwObject();
+                this->DeleteRwObject();
             }
             m_bRenderDamaged = true;
             break;
@@ -1145,7 +1156,7 @@ void CObject::ObjectDamage(float damage, CVector* fxOrigin, CVector* fxDirection
             physicalFlags.bExplosionProof = true;
             m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
             m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
-            DeleteRwObject();
+            this->DeleteRwObject();
             bWasDestroyed = true;
             break;
 
@@ -1161,12 +1172,12 @@ void CObject::ObjectDamage(float damage, CVector* fxOrigin, CVector* fxDirection
                 physicalFlags.bExplosionProof = true;
                 m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
                 m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
-                DeleteRwObject();
+                this->DeleteRwObject();
                 bWasDestroyed = true;
             }
             else
             {
-                DeleteRwObject();
+                this->DeleteRwObject();
                 m_bRenderDamaged = true;
             }
             break;
@@ -1186,7 +1197,7 @@ void CObject::ObjectDamage(float damage, CVector* fxOrigin, CVector* fxDirection
                 physicalFlags.bExplosionProof = true;
                 m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
                 m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
-                DeleteRwObject();
+                this->DeleteRwObject();
                 bWasDestroyed = true;
                 break;
             }
@@ -1247,42 +1258,212 @@ void CObject::ObjectDamage(float damage, CVector* fxOrigin, CVector* fxDirection
 
 // Converted from thiscall void CObject::Explode(void) 0x5A1340
 void CObject::Explode() {
-    ((void(__thiscall*)(CObject*))0x5A1340)(this);
+    auto& vecPos = GetPosition();
+    auto* pPlayer = FindPlayerPed(-1);
+    CExplosion::AddExplosion(this, pPlayer, eExplosionType::EXPLOSION_OBJECT, vecPos, 100, true, -1.0F, false);
+    if (m_nColDamageEffect == eObjectColDamageEffect::COL_DAMAGE_EFFECT_BREAKABLE
+        || m_nColDamageEffect == eObjectColDamageEffect::COL_DAMAGE_EFFECT_BREAKABLE_REMOVED)
+    {
+        auto vecDir = CVector(0.0F, 0.0F, 1.0F);
+        CObject::ObjectDamage(10000.0F, &vecPos, &vecDir, this, eWeaponType::WEAPON_EXPLOSION);
+    }
+    else if(!physicalFlags.bDisableCollisionForce)
+    {
+        m_vecMoveSpeed.x += CGeneral::GetRandomNumberInRange(-0.0256F, 0.0256F);
+        m_vecMoveSpeed.y += CGeneral::GetRandomNumberInRange(-0.0256F, 0.0256F);
+        m_vecMoveSpeed.z += 0.5F;
+
+        if (m_bIsStatic || m_bIsStaticWaitingForCollision)
+        {
+            this->SetIsStatic(false);
+            CPhysical::AddToMovingList();
+        }
+    }
+
+    if (m_pObjectInfo->m_nFxType == eObjectFxType::PLAY_ON_DESTROYED)
+    {
+        auto particleMat = CMatrix(*m_matrix);
+        auto vecPoint = Multiply3x3(&particleMat, &m_pObjectInfo->m_vFxOffset);
+        vecPoint += GetPosition();
+        auto* pFxSystem = g_fxMan.CreateFxSystem(m_pObjectInfo->m_pFxSystemBP, &vecPoint, nullptr, false);
+        if (pFxSystem)
+            pFxSystem->PlayAndKill();
+    }
 }
 
 // Converted from thiscall void CObject::ObjectFireDamage(float damage,CEntity *damager) 0x5A1580
 void CObject::ObjectFireDamage(float damage, CEntity* damager) {
-    ((void(__thiscall*)(CObject*, float, CEntity*))0x5A1580)(this, damage, damager);
+    if (m_nModelIndex != ModelIndices::MI_GRASSPLANT && m_nModelIndex != ModelIndices::MI_GRASSHOUSE)
+        return;
+
+    m_fHealth -= damage;
+    m_fHealth = std::max(0.0F, m_fHealth);
+
+    if (!m_nColDamageEffect || physicalFlags.bInvulnerable && damager != FindPlayerPed(-1) && damager != FindPlayerVehicle(-1, false))
+        return;
+
+    if (m_nModelIndex == ModelIndices::MI_GRASSPLANT)
+    {
+        m_fBurnDamage = 1.0F - (m_fHealth / 2000.0F);
+        m_dwBurnTime = CTimer::m_snTimeInMilliseconds + 3000;
+    }
+
+    if (m_fHealth != 0.0F)
+        return;
+
+    if (m_nColDamageEffect == eObjectColDamageEffect::COL_DAMAGE_EFFECT_SMASH_COMPLETELY
+        || m_nColDamageEffect == eObjectColDamageEffect::COL_DAMAGE_EFFECT_CHANGE_THEN_SMASH)
+    {
+        if (!m_bRenderDamaged)
+        {
+            m_bRenderDamaged = true;
+            this->DeleteRwObject();
+            CShadows::AddPermanentShadow(eShadowType::SHADOW_DEFAULT,
+                                         gpShadowHeliTex,
+                                         &GetPosition(),
+                                         3.0F,
+                                         0.0F,
+                                         0.0F,
+                                         -3.0F,
+                                         200,
+                                         0,
+                                         0,
+                                         0,
+                                         10.0F,
+                                         30000,
+                                         1.0F);
+        }
+    }
+    else if (m_nColDamageEffect == eObjectColDamageEffect::COL_DAMAGE_EFFECT_BREAKABLE
+        || m_nColDamageEffect == eObjectColDamageEffect::COL_DAMAGE_EFFECT_BREAKABLE_REMOVED)
+    {
+        if (!objectFlags.bIsBroken)
+            AudioEngine.ReportObjectDestruction(this);
+
+        g_breakMan.Add(this, &m_pObjectInfo->m_vecBreakVelocity, m_pObjectInfo->m_fBreakVelocityRand, true);
+
+        m_bUsesCollision = false;
+        m_bIsVisible = false;
+        if (!CEntity::IsStatic())
+            CPhysical::RemoveFromMovingList();
+
+        m_bIsStatic = true;
+        physicalFlags.bExplosionProof = true;
+        m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
+        m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
+        objectFlags.bIsBroken = true;
+        this->DeleteRwObject();
+    }
 }
 
 // Converted from cdecl void CObject::TryToFreeUpTempObjects(int numObjects) 0x5A1840
 void CObject::TryToFreeUpTempObjects(int numObjects) {
-    ((void(__cdecl*)(int))0x5A1840)(numObjects);
+    const auto iPoolSize = CPools::ms_pObjectPool->GetSize();
+    if (!iPoolSize)
+        return;
+
+    for (auto i = iPoolSize - 1; i >= 0; --i)
+    {
+        if (numObjects <= 0)
+            return;
+
+        auto* pObj = CPools::ms_pObjectPool->GetAt(i);
+        if (!pObj || !pObj->IsTemporary() || pObj->IsVisible())
+            continue;
+
+        CWorld::Remove(pObj);
+        delete pObj;
+        --numObjects;
+    }
 }
 
 // Converted from cdecl void CObject::DeleteAllTempObjects(void) 0x5A18B0
 void CObject::DeleteAllTempObjects() {
-    ((void(__cdecl*)())0x5A18B0)();
+    const auto iPoolSize = CPools::ms_pObjectPool->GetSize();
+    if (!iPoolSize)
+        return;
+
+    for (auto i = 0; i < iPoolSize; ++i)
+    {
+        auto* pObj = CPools::ms_pObjectPool->GetAt(i);
+        if (!pObj || !pObj->IsTemporary())
+            continue;
+
+        CWorld::Remove(pObj);
+        delete pObj;
+    }
 }
 
 // Converted from cdecl void CObject::DeleteAllMissionObjects(void) 0x5A1910
 void CObject::DeleteAllMissionObjects() {
-    ((void(__cdecl*)())0x5A1910)();
+    const auto iPoolSize = CPools::ms_pObjectPool->GetSize();
+    if (!iPoolSize)
+        return;
+
+    for (auto i = 0; i < iPoolSize; ++i)
+    {
+        auto* pObj = CPools::ms_pObjectPool->GetAt(i);
+        if (!pObj || !pObj->IsMissionObject())
+            continue;
+
+        CWorld::Remove(pObj);
+        delete pObj;
+    }
 }
 
 // Converted from cdecl void CObject::DeleteAllTempObjectsInArea(CVector point,float radius) 0x5A1980
 void CObject::DeleteAllTempObjectsInArea(CVector point, float radius) {
-    ((void(__cdecl*)(CVector, float))0x5A1980)(point, radius);
+    const auto iPoolSize = CPools::ms_pObjectPool->GetSize();
+    if (!iPoolSize)
+        return;
+
+    for (auto i = 0; i < iPoolSize; ++i)
+    {
+        auto* pObj = CPools::ms_pObjectPool->GetAt(i);
+        if (!pObj || !pObj->IsTemporary())
+            continue;
+
+        if (DistanceBetweenPointsSquared(pObj->GetPosition(), point) >= pow(radius, 2.0F))
+            continue;
+
+        CWorld::Remove(pObj);
+        delete pObj;
+    }
 }
 
 // Converted from thiscall void CObject::GrabObjectToCarryWithRope(CPhysical *attachTo) 0x5A1AB0
 void CObject::GrabObjectToCarryWithRope(CPhysical* attachTo) {
-    ((void(__thiscall*)(CObject*, CPhysical*))0x5A1AB0)(this, attachTo);
+    const auto iRopeInd = CRopes::FindRope(reinterpret_cast<uint32_t>(this));
+    auto& pRope = CRopes::GetRope(iRopeInd);
+    pRope.ReleasePickedUpObject();
+    pRope.m_pAttachedEntity = attachTo;
+    attachTo->RegisterReference(&pRope.m_pAttachedEntity);
+
+    auto vecRopePoint = CVector();
+    vecRopePoint.z = CRopes::FindPickupHeight(attachTo);
+    vecRopePoint *= *attachTo->m_matrix * vecRopePoint;
+
+    pRope.m_pRopeAttachObject->SetPosn(vecRopePoint);
+    pRope.m_pRopeAttachObject->m_bUsesCollision = false;
 }
 
 // Converted from thiscall bool CObject::CanBeUsedToTakeCoverBehind(void) 0x5A1B60
 bool CObject::CanBeUsedToTakeCoverBehind() {
-    return ((bool(__thiscall*)(CObject*))0x5A1B60)(this);
+    if (m_nObjectType == eObjectType::OBJECT_MISSION)
+        return false;
+
+    if (m_nModelIndex == ModelIndices::MI_FIRE_HYDRANT)
+        return true;
+
+    auto* pModelInfo = CModelInfo::GetModelInfo(m_nModelIndex);
+    if (pModelInfo->AsAtomicModelInfoPtr() && pModelInfo->AsAtomicModelInfoPtr()->IsBreakableStatuePart())
+        return false;
+
+    const auto fHeight = pModelInfo->GetColModel()->GetBoundingBox().GetHeight();
+    if (fHeight <= 0.75F || fHeight >= 1.25F || GetUp().z <= 0.9F)
+        return false;
+
+    return true;
 }
 
 CObject* CObject::Create(int modelIndex, bool bUnused) {
@@ -1328,15 +1509,63 @@ void CObject::SetMatrixForTrainCrossing(CMatrix* matrix, float fAngle) {
 
 // Converted from thiscall void CObject::ProcessControlLogic(void) 0x5A29A0
 void CObject::ProcessControlLogic() {
-    ((void(__thiscall*)(CObject*))0x5A29A0)(this);
+    if (m_nModelIndex == ModelIndices::MI_SAMSITE || m_nModelIndex == ModelIndices::MI_SAMSITE2)
+        CObject::ProcessSamSiteBehaviour();
+
+    if (m_nModelIndex == ModelIndices::MI_TRAINCROSSING || m_nModelIndex == ModelIndices::MI_TRAINCROSSING1)
+        CObject::ProcessTrainCrossingBehaviour();
+
+    if (m_nModelIndex == ModelIndices::MI_MAGNOCRANE
+        || m_nModelIndex == ModelIndices::MI_CRANETROLLEY
+        || m_nModelIndex == ModelIndices::MI_QUARRYCRANE_ARM)
+    {
+        const auto iRopeInd = CRopes::FindRope(reinterpret_cast<uint32_t>(this));
+        uint8_t nSegments = 0;
+        auto fRopeLengthChange = 0.0F;
+        if (iRopeInd >= 0)
+        {
+            auto& pRope = CRopes::GetRope(iRopeInd);
+            nSegments = static_cast<uint8_t>(pRope.m_fRopeSegmentLength * 32.0F);
+            fRopeLengthChange = pRope.m_fMass * pRope.m_fRopeSegmentLength - static_cast<float>(nSegments) * pRope.m_fRopeTotalLength;
+        }
+
+        if (m_nModelIndex == ModelIndices::MI_MAGNOCRANE)
+        {
+            auto vecRopePoint = *m_matrix * CVector(0.0F, 36.64F, -1.69F);
+            vecRopePoint.z += fRopeLengthChange;
+            CRopes::RegisterRope(this, 4, vecRopePoint, false, nSegments, 1u, this, 20000u);
+        }
+        else if (m_nModelIndex == ModelIndices::MI_CRANETROLLEY)
+        {
+            const auto nRopeType = GetPosition().x >= 0 ? 7 : 5;
+            auto vecRopePoint = *m_matrix * CVector(0.0F, 0.0F, 0.0F);
+            vecRopePoint.z += fRopeLengthChange;
+            CRopes::RegisterRope(this, nRopeType, vecRopePoint, false, nSegments, 1u, this, 20000u);
+        }
+        else
+        {
+            auto vecRopePoint = *m_matrix * CVector(0.0F, 0.0F, 59.0F);
+            vecRopePoint.z += fRopeLengthChange;
+            CRopes::RegisterRope(this, 6, vecRopePoint, false, nSegments, 1u, this, 20000u);
+        }
+    }
+
+    if (CGarages::IsModelIndexADoor(m_nModelIndex))
+        CObject::ProcessGarageDoorBehaviour();
 }
 
 // Converted from cdecl bool IsObjectPointerValid_NotInWorld(CObject *object) 0x5A2B90
 bool IsObjectPointerValid_NotInWorld(CObject* object) {
-    return ((bool(__cdecl*)(CObject*))0x5A2B90)(object);
+    return CPools::ms_pObjectPool->IsObjectValid(object);
 }
 
 // Converted from cdecl bool IsObjectPointerValid(CObject *object) 0x5A2C20
 bool IsObjectPointerValid(CObject* object) {
-    return ((bool(__cdecl*)(CObject*))0x5A2C20)(object);
+    if (!CPools::ms_pObjectPool->IsObjectValid(object))
+        return false;
+
+    if (object->m_bIsBIGBuilding)
+        return true;
+
+    return object->m_pCollisionList.m_pNode != nullptr;
 }

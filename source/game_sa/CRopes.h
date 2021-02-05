@@ -17,7 +17,7 @@ public:
 	static int& PlayerControlsCrane;
 
 	static void CreateRopeForSwatPed(CVector const& startPos);
-	static void FindPickupHeight(CEntity* entity);
+	static float FindPickupHeight(CEntity* entity);
 
 	// Returns id to array
 	static int FindRope(unsigned int id);
