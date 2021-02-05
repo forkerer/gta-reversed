@@ -192,7 +192,5 @@ public:
 };
 VALIDATE_SIZE(CObject, 0x17C);
 
-bool isCraneMagned(int modelId);
-
 bool IsObjectPointerValid_NotInWorld(CObject* object);
 bool IsObjectPointerValid(CObject* object);
