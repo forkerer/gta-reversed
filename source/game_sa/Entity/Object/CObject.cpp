@@ -1055,10 +1055,10 @@ void CObject::ProcessSamSiteBehaviour() {
 
 // Converted from thiscall void CObject::ProcessTrainCrossingBehaviour(void) 0x5A0B50
 void CObject::ProcessTrainCrossingBehaviour() {
-    if (!((CTimer::m_FrameCounter + m_nRandomSeed) & 0x10))
+    if (!(static_cast<uint8_t>(CTimer::m_FrameCounter + m_nRandomSeedUpperByte) & 0x10))
     {
         const auto& vecPos = GetPosition();
-        auto bWasEnabled = objectFlags.bTrainCrossEnabled;
+        const auto bWasEnabled = objectFlags.bTrainCrossEnabled;
         objectFlags.bTrainCrossEnabled = false;
         auto* pTrain = CTrain::FindNearestTrain(vecPos, true);
         if (pTrain)
@@ -1068,7 +1068,7 @@ void CObject::ProcessTrainCrossingBehaviour() {
                 objectFlags.bTrainCrossEnabled = true;
         }
 
-        if (m_nModelIndex == ModelIndices::MI_TRAINCROSSING1 && objectFlags.bTrainCrossEnabled)
+        if (m_nModelIndex == ModelIndices::MI_TRAINCROSSING1 && objectFlags.bTrainCrossEnabled != bWasEnabled)
         {
             const auto& pDummyPos = m_pDummyObject->GetPosition();
             ThePaths.SetLinksBridgeLights(pDummyPos.x - 12.0F, pDummyPos.x + 12.0F, pDummyPos.y - 12.0F, pDummyPos.y + 12.0F, !bWasEnabled);
@@ -1208,7 +1208,7 @@ void CObject::ObjectDamage(float damage, CVector* fxOrigin, CVector* fxDirection
     }
 
     bool bExploded = false;
-    if (!bWasDestroyed)
+    if (bWasDestroyed)
     {
         if (CObject::TryToExplode())
             bExploded = true;
@@ -1217,7 +1217,7 @@ void CObject::ObjectDamage(float damage, CVector* fxOrigin, CVector* fxDirection
     }
 
     // Particle creation
-    if (bWasDestroyed || !bExploded)
+    if (!bWasDestroyed || !bExploded)
     {
         if (m_pObjectInfo->m_nFxType == eObjectFxType::NO_FX)
             return;
