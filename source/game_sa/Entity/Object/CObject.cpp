@@ -227,7 +227,7 @@ void CObject::ProcessControl_Reversed()
     }
 
     objectFlags.bDamaged = false;
-    if (!m_bIsStuck && !m_bCollisionProcessed && !m_bIsStaticWaitingForCollision)
+    if (!m_bIsStuck && !IsStatic())
     {
         if (!physicalFlags.bDisableZ && !physicalFlags.bInfiniteMass && !physicalFlags.bDisableMoveForce)
         {
@@ -261,7 +261,7 @@ void CObject::ProcessControl_Reversed()
         }
     }
 
-    if (!m_bIsStatic && !m_bIsStaticWaitingForCollision)
+    if (!IsStatic())
         CPhysical::ProcessControl();
 
     if (bIsAnimated)
@@ -331,8 +331,7 @@ void CObject::ProcessControl_Reversed()
             AudioEngine.ReportDoorMovement(this);
 
         if (!m_bIsBIGBuilding
-            && !m_bIsStatic
-            && !m_bIsStaticWaitingForCollision
+            && !IsStatic()
             && fabs(fDiff) < 0.01F
             && (objectFlags.bIsDoorMoving || fabs(m_vecTurnSpeed.z) < 0.01F))
         {
@@ -1083,7 +1082,7 @@ void CObject::ProcessTrainCrossingBehaviour() {
     if (objectFlags.bTrainCrossEnabled)
         CObject::SetMatrixForTrainCrossing(m_matrix, std::max(0.0F, fAngle - fTimeStep));
     else
-        CObject::SetMatrixForTrainCrossing(m_matrix, std::min(PI * 0.43F, fAngle - fTimeStep));
+        CObject::SetMatrixForTrainCrossing(m_matrix, std::min(PI * 0.43F, fAngle + fTimeStep));
 
     CEntity::UpdateRW();
     CEntity::UpdateRwFrame();
@@ -1258,12 +1257,14 @@ void CObject::ObjectDamage(float damage, CVector* fxOrigin, CVector* fxDirection
 
 // Converted from thiscall void CObject::Explode(void) 0x5A1340
 void CObject::Explode() {
-    auto& vecPos = GetPosition();
+    CVector vecPos = GetPosition();
+    vecPos.z += 0.5F;
     auto* pPlayer = FindPlayerPed(-1);
     CExplosion::AddExplosion(this, pPlayer, eExplosionType::EXPLOSION_OBJECT, vecPos, 100, true, -1.0F, false);
     if (m_nColDamageEffect == eObjectColDamageEffect::COL_DAMAGE_EFFECT_BREAKABLE
         || m_nColDamageEffect == eObjectColDamageEffect::COL_DAMAGE_EFFECT_BREAKABLE_REMOVED)
     {
+        vecPos.z -= 1.0F;
         auto vecDir = CVector(0.0F, 0.0F, 1.0F);
         CObject::ObjectDamage(10000.0F, &vecPos, &vecDir, this, eWeaponType::WEAPON_EXPLOSION);
     }
@@ -1273,7 +1274,7 @@ void CObject::Explode() {
         m_vecMoveSpeed.y += CGeneral::GetRandomNumberInRange(-0.0256F, 0.0256F);
         m_vecMoveSpeed.z += 0.5F;
 
-        if (m_bIsStatic || m_bIsStaticWaitingForCollision)
+        if (IsStatic())
         {
             this->SetIsStatic(false);
             CPhysical::AddToMovingList();
