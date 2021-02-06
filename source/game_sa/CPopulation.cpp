@@ -43,6 +43,7 @@ unsigned int& CPopulation::CurrentWorldZone = *(unsigned int*)0xC0FCBC;
 
 void CPopulation::InjectHooks()
 {
+    ReversibleHooks::Install("CPopulation", "ConvertToRealObject", 0x614580, &CPopulation::ConvertToRealObject);
     ReversibleHooks::Install("CPopulation", "ConvertToDummyObject", 0x614670, &CPopulation::ConvertToDummyObject);
 }
 
@@ -308,7 +309,34 @@ int CPopulation::PickRiotRoadBlockCar() {
 
 // Converted from cdecl void CPopulation::ConvertToRealObject(CDummyObject *dummyObject) 0x614580
 void CPopulation::ConvertToRealObject(CDummyObject* dummyObject) {
-    ((void(__cdecl*)(CDummyObject*))0x614580)(dummyObject);
+    if (!CPopulation::TestSafeForRealObject(dummyObject))
+        return;
+
+    auto* pObj = dummyObject->CreateObject();
+    if (!pObj)
+        return;
+
+    CWorld::Remove(dummyObject);
+    dummyObject->m_bIsVisible = false;
+    dummyObject->ResolveReferences();
+
+    pObj->SetRelatedDummy(dummyObject);
+    CWorld::Add(pObj);
+
+    if (!IsGlassModel(pObj) || CModelInfo::GetModelInfo(pObj->m_nModelIndex)->IsGlassType2())
+    {
+        if (pObj->m_nModelIndex == ModelIndices::MI_BUOY || pObj->physicalFlags.bAttachedToEntity)
+        {
+            pObj->SetIsStatic(false);
+            pObj->m_vecMoveSpeed.Set(0.0F, 0.0F, -0.001F);
+            pObj->physicalFlags.bTouchingWater = true;
+            pObj->AddToMovingList();
+        }
+    }
+    else
+    {
+        pObj->m_bIsVisible = false;
+    }
 }
 
 // Converted from cdecl void CPopulation::ConvertToDummyObject(CObject *object) 0x614670

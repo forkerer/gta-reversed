@@ -50,6 +50,8 @@ void InjectHooksMain(void)
     CEntity::InjectHooks();;
     CPhysical::InjectHooks();
     CRenderer::InjectHooks();
+    CDummy::InjectHooks();
+    CDummyObject::InjectHooks();
     CObject::InjectHooks();
     CObjectData::InjectHooks();
     CObjectSaveStructure::InjectHooks();

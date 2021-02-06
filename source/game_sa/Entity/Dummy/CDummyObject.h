@@ -11,6 +11,13 @@
 
 class  CDummyObject : public CDummy {
 public:
+    CDummyObject() : CDummy() {}
+    explicit CDummyObject(CObject* pObj);
+
+public:
+    static void InjectHooks();
+
+    CObject* CreateObject();
     void UpdateFromObject(CObject* pObject);
 };
 
