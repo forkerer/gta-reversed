@@ -12,7 +12,7 @@ class CVector : public RwV3d {
 public:
     CVector();
     CVector(float X, float Y, float Z);
-    inline CVector(RwV3d rwVec) { x = rwVec.x, y = rwVec.y, z = rwVec.z; }
+    CVector(RwV3d rwVec) { x = rwVec.x; y = rwVec.y; z = rwVec.z; }
 
 public:
     static void InjectHooks();

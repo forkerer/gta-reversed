@@ -907,20 +907,20 @@ void CTrain::ProcessControl_Reversed()
                 && (m_pDamageEntity->m_nType == ENTITY_TYPE_PED)
                 )
             {
-                m_bFakePhysics = 0;
+                m_nFakePhysics = 0;
             }
             else
             {
 
-                m_bFakePhysics += 1;
-                if (m_bFakePhysics > 10)
+                m_nFakePhysics += 1;
+                if (m_nFakePhysics > 10)
                 {
 
                     //if (!dummy_424100()) dummy_424100 returns 0, nothing else
                     {
-                        if (m_bFakePhysics > 10)
+                        if (m_nFakePhysics > 10)
                         {
-                            m_bFakePhysics = 10;
+                            m_nFakePhysics = 10;
                         }
 
                         m_vecMoveSpeed = CVector();

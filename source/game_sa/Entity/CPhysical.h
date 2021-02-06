@@ -127,7 +127,7 @@ public:
     CVector          m_vecCentreOfMass;
     CEntryInfoList   m_pCollisionList;
     CPtrNodeDoubleLink* m_pMovingList;
-    unsigned char    m_bFakePhysics;
+    unsigned char    m_nFakePhysics;
     unsigned char    m_nNumEntitiesCollided;
     unsigned char    m_nContactSurface;
     char field_BB;

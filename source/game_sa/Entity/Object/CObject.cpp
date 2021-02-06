@@ -206,14 +206,16 @@ void CObject::ProcessControl_Reversed()
         && !physicalFlags.bDisableMoveForce
         && m_pDamageEntity)
     {
-        if ((m_nModelIndex == eModelID::MODEL_DUMPER || m_nModelIndex == eModelID::MODEL_FORKLIFT) && !CRopes::IsCarriedByRope(this))
+        const auto bCanCarryItems = m_pDamageEntity->m_nModelIndex == eModelID::MODEL_DUMPER || m_pDamageEntity->m_nModelIndex == eModelID::MODEL_FORKLIFT;
+        if (bCanCarryItems && static_cast<CAutomobile*>(m_pDamageEntity)->m_wMiscComponentAngle
+            && !CRopes::IsCarriedByRope(this))
         {
             if (m_nColDamageEffect != eObjectColDamageEffect::COL_DAMAGE_EFFECT_NONE && m_fDamageIntensity > 5.0F)
                 CObject::ObjectDamage(m_fDamageIntensity, &m_vecLastCollisionPosn, &m_vecLastCollisionImpactVelocity, m_pDamageEntity, eWeaponType::WEAPON_RAMMEDBYCAR);
 
             if (m_vecLastCollisionImpactVelocity.z > 0.3F)
             {
-                m_bFakePhysics = 0;
+                m_nFakePhysics = 0;
                 const auto vecColDir = GetPosition() - m_pDamageEntity->GetPosition();
                 const auto vecEntSpeed = static_cast<CPhysical*>(m_pDamageEntity)->GetSpeed(vecColDir);
                 auto vecSpeedDiff = vecEntSpeed - m_vecMoveSpeed;
@@ -240,14 +242,14 @@ void CObject::ProcessControl_Reversed()
             if (pow(fTimeStep, 2.0F) <= m_vecForce.SquaredMagnitude()
                 || pow(fTimeStep, 2.0F) <= m_vecTorque.SquaredMagnitude())
             {
-                m_bFakePhysics = 0;
+                m_nFakePhysics = 0;
             }
             else
             {
-                m_bFakePhysics++;
-                if (m_bFakePhysics > 10 && !physicalFlags.bAttachedToEntity)
+                m_nFakePhysics++;
+                if (m_nFakePhysics > 10 && !physicalFlags.bAttachedToEntity)
                 {
-                    m_bFakePhysics = 10;
+                    m_nFakePhysics = 10;
                     if (!bIsAnimated)
                         this->SetIsStatic(true);
 
