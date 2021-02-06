@@ -284,7 +284,7 @@ void CObject::ProcessControl_Reversed()
         physicalFlags.bTouchingWater = false; // Not clearing bSubmergedInWater, BUG?
 
     if (m_pObjectInfo->m_bCausesExplosion
-        && !objectFlags.bIsExploded
+        && objectFlags.bIsExploded
         && m_bIsVisible
         && (rand() & 0x1F) == 10)
     {

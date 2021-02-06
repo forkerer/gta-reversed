@@ -82,7 +82,7 @@ public:
     CReference *m_pReferences;
     CLink<CEntity*> *m_pStreamingLink;
     unsigned short m_nScanCode;
-    char m_nIplIndex;
+    unsigned char m_nIplIndex;
     unsigned char m_nAreaCode; // see eAreaCodes
     union {
         int m_nLodIndex; // -1 - without LOD model
