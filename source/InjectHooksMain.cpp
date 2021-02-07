@@ -27,6 +27,7 @@ void InjectHooksMain(void)
     CPtrListDoubleLink::InjectHooks();
     List_c::InjectHooks();
     CRunningScript::InjectHooks();
+    CTheScripts::InjectHooks();
     CStreamingInfo::InjectHooks();
     CStreaming::InjectHooks();
     InjectCdStreamHooks();
