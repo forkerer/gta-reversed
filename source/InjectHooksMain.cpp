@@ -57,6 +57,8 @@ void InjectHooksMain(void)
     CObjectSaveStructure::InjectHooks();
     CCutsceneObject::InjectHooks();
     CHandObject::InjectHooks();
+    CBuilding::InjectHooks();
+    CAnimatedBuilding::InjectHooks();
     CCompressedMatrixNotAligned::InjectHooks();
     CVisibilityPlugins::InjectHooks();
     CPed::InjectHooks();

@@ -12,8 +12,9 @@ unsigned int& gAtomicModelId = *reinterpret_cast<unsigned int*>(0xB71840);
 
 void CFileLoader::InjectHooks()
 {
-    HookInstall(0x5371F0, (bool(*)(RwStream*, unsigned int))&CFileLoader::LoadAtomicFile);
-    HookInstall(0x537150, &CFileLoader::SetRelatedModelInfoCB);
+    ReversibleHooks::Install("CFileLoader", "LoadAtomicFile",0x5371F0, static_cast<bool(*)(RwStream*, unsigned)>(&CFileLoader::LoadAtomicFile));
+    ReversibleHooks::Install("CFileLoader", "SetRelatedModelInfoCB", 0x537150, &CFileLoader::SetRelatedModelInfoCB);
+    ReversibleHooks::Install("CFileLoader", "LoadObjectInstance", 0x538090, static_cast<CEntity*(*)(CFileObjectInstance*, char const*)>(&CFileLoader::LoadObjectInstance));
 }
 
 bool CFileLoader::LoadAtomicFile(RwStream *stream, unsigned int modelId) {
@@ -125,4 +126,95 @@ RpAtomic* CFileLoader::SetRelatedModelInfoCB(RpAtomic* atomic, RpClump* clump)
 
 char* CFileLoader::LoadLine(FILESTREAM file) {
     return plugin::CallAndReturnDynGlobal<char*, FILESTREAM>(0x536F80, file);
+}
+
+CEntity* CFileLoader::LoadObjectInstance(CFileObjectInstance* objInstance, char const* modelname)
+{
+    auto* pInfo = CModelInfo::GetModelInfo(objInstance->m_nModelId);
+    if (!pInfo)
+        return nullptr;
+
+    CEntity* pNewEntity = nullptr;
+    if (pInfo->m_nObjectInfoIndex == -1)
+    {
+        if (pInfo->GetModelType() == ModelInfoType::MODEL_INFO_CLUMP && pInfo->bHasAnimBlend)
+            pNewEntity = new CAnimatedBuilding();
+        else
+            pNewEntity = new CBuilding();
+
+        pNewEntity->SetModelIndexNoCreate(objInstance->m_nModelId);
+        if (pInfo->bDontCastShadowsOn)
+            pNewEntity->m_bDontCastShadowsOn = true;
+
+        if (pInfo->m_fDrawDistance < 2.0F)
+            pNewEntity->m_bIsVisible = false;
+    }
+    else
+    {
+        pNewEntity = new CDummyObject();
+        pNewEntity->SetModelIndexNoCreate(objInstance->m_nModelId);
+        if (IsGlassModel(pNewEntity) && !CModelInfo::GetModelInfo(pNewEntity->m_nModelIndex)->IsGlassType2())
+            pNewEntity->m_bIsVisible = false;
+    }
+
+    if (fabs(objInstance->m_qRotation.imag.x) > 0.05F
+        || fabs(objInstance->m_qRotation.imag.y) > 0.05F
+        || (objInstance->m_bDontStream && objInstance->m_qRotation.imag.x != 0.0F && objInstance->m_qRotation.imag.y != 0.0F))
+    {
+        objInstance->m_qRotation.imag = -objInstance->m_qRotation.imag;
+        pNewEntity->AllocateStaticMatrix();
+
+        auto tempQuat = objInstance->m_qRotation;
+        pNewEntity->GetMatrix()->SetRotate(tempQuat);
+    }
+    else
+    {
+        const auto fMult = objInstance->m_qRotation.imag.z < 0.0F ? 2.0F : -2.0F;
+        const auto fHeading = acos(objInstance->m_qRotation.real) * fMult;
+        pNewEntity->SetHeading(fHeading);
+    }
+
+    pNewEntity->SetPosn(objInstance->m_vecPosition);
+
+    if (objInstance->m_bUnderwater)
+        pNewEntity->m_bUnderwater = true;
+
+    if (objInstance->m_bTunnel)
+        pNewEntity->m_bTunnel = true;
+
+    if (objInstance->m_bTunnelTransition)
+        pNewEntity->m_bTunnelTransition = true;
+
+    pNewEntity->m_nAreaCode = objInstance->m_nAreaCode;
+    pNewEntity->m_nLodIndex = objInstance->m_nLodInstanceIndex;
+
+    if (objInstance->m_nModelId == ModelIndices::MI_TRAINCROSSING)
+    {
+        pNewEntity->AllocateStaticMatrix();
+        CObject::SetMatrixForTrainCrossing(pNewEntity->GetMatrix(), PI * 0.43F);
+    }
+
+    auto* pColModel = pInfo->GetColModel();
+    if (pColModel)
+    {
+        if (pColModel->m_boundSphere.m_bFlag0x01)
+        {
+            if (pColModel->m_boundSphere.m_nMaterial)
+            {
+                CRect rect;
+                pNewEntity->GetBoundRect(&rect);
+                auto* pColDef = CColStore::ms_pColPool->GetAt(pColModel->m_boundSphere.m_nMaterial);
+                pColDef->area.Restrict(rect);
+            }
+        }
+        else
+        {
+            pNewEntity->m_bUsesCollision = false;
+        }
+
+        if (pColModel->GetBoundingBox().m_vecMin.z + pNewEntity->GetPosition().z < 0.0F)
+            pNewEntity->m_bUnderwater = true;
+    }
+
+    return pNewEntity;
 }
