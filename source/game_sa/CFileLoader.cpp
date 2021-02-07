@@ -14,13 +14,12 @@ void CFileLoader::InjectHooks()
 {
     ReversibleHooks::Install("CFileLoader", "LoadAtomicFile",0x5371F0, static_cast<bool(*)(RwStream*, unsigned)>(&CFileLoader::LoadAtomicFile));
     ReversibleHooks::Install("CFileLoader", "SetRelatedModelInfoCB", 0x537150, &CFileLoader::SetRelatedModelInfoCB);
-    ReversibleHooks::Install("CFileLoader", "LoadObjectInstance", 0x538090, static_cast<CEntity*(*)(CFileObjectInstance*, char const*)>(&CFileLoader::LoadObjectInstance));
+    ReversibleHooks::Install("CFileLoader", "LoadObjectInstance_inst", 0x538090, static_cast<CEntity*(*)(CFileObjectInstance*, char const*)>(&CFileLoader::LoadObjectInstance));
+    ReversibleHooks::Install("CFileLoader", "LoadObjectInstance_file", 0x538690, static_cast<CEntity * (*)(char const*)>(&CFileLoader::LoadObjectInstance));
+    ReversibleHooks::Install("CFileLoader", "LoadObject", 0x5B3C60, &CFileLoader::LoadObject);
 }
 
 bool CFileLoader::LoadAtomicFile(RwStream *stream, unsigned int modelId) {
-#ifdef USE_DEFAULT_FUNCTIONS
-    return plugin::CallAndReturnDynGlobal<bool, RwStream *, unsigned int>(0x5371F0, stream, modelId);
-#else
     auto pAtomicModelInfo = CModelInfo::ms_modelInfoPtrs[modelId]->AsAtomicModelInfoPtr();
     bool bUseCommonVehicleTexDictionary = false; 
     if (pAtomicModelInfo && pAtomicModelInfo->bUseCommonVehicleDictionary)
@@ -46,16 +45,12 @@ bool CFileLoader::LoadAtomicFile(RwStream *stream, unsigned int modelId) {
     }
 
     if (!pAtomicModelInfo->m_pRwObject)
-    {
         return false;
-    }
 
     if (bUseCommonVehicleTexDictionary)
-    {
         CVehicleModelInfo::StopUsingCommonVehicleTexDicationary();
-    }
+
     return true;
-#endif
 }
 
 void CFileLoader::LoadAtomicFile(char const *filename) {
@@ -97,15 +92,12 @@ void GetNameAndDamage(char const* nodeName, char* outName, bool& outDamage) {
 
 RpAtomic* CFileLoader::SetRelatedModelInfoCB(RpAtomic* atomic, RpClump* clump)
 {
-#ifdef USE_DEFAULT_FUNCTIONS
-    return plugin::CallAndReturn<RpAtomic*, 0x537150, RpAtomic*, RpClump*>(atomic, clump);
-#else
     char name[24];
     auto pAtomicModelInfo = CModelInfo::GetModelInfo(gAtomicModelId)->AsAtomicModelInfoPtr();
     char* frameNodeName = GetFrameNodeName(RpAtomicGetFrame(atomic));
 
     bool bDamage = false;
-    GetNameAndDamage(frameNodeName, (char*)&name, bDamage);
+    GetNameAndDamage(frameNodeName, name, bDamage);
     CVisibilityPlugins::SetAtomicRenderCallback(atomic, nullptr);
     if (bDamage)
     {
@@ -121,11 +113,73 @@ RpAtomic* CFileLoader::SetRelatedModelInfoCB(RpAtomic* atomic, RpClump* clump)
     RpAtomicSetFrame(atomic, newFrame);
     CVisibilityPlugins::SetAtomicId(atomic, gAtomicModelId);
     return atomic;
-#endif
 }
 
 char* CFileLoader::LoadLine(FILESTREAM file) {
     return plugin::CallAndReturnDynGlobal<char*, FILESTREAM>(0x536F80, file);
+}
+
+int CFileLoader::LoadObject(char const* line)
+{
+    int modelId;
+    char modelName[24], texName[24];
+    float fDrawDist;
+    uint32_t dwFlags;
+
+    auto iNumRead = sscanf(line, "%d %s %s %f %d", &modelId, modelName, texName, &fDrawDist, &dwFlags);
+    if (iNumRead != 5 || fDrawDist < 4.0F)
+    {
+        int objType;
+        float fDrawDist2_unused, fDrawDist3_unused;
+        iNumRead = sscanf((char*)line, "%d %s %s %d", &modelId, modelName, texName, &objType);
+        if (iNumRead != 4)
+            return -1;
+
+        switch (objType)
+        {
+        case 1:
+            sscanf(line, "%d %s %s %d %f %d", &modelId, modelName, texName, &objType, &fDrawDist, &dwFlags);
+            break;
+
+        case 2:
+            sscanf(line,
+                   "%d %s %s %d %f %f %d",
+                   &modelId,
+                   modelName,
+                   texName,
+                   &objType,
+                   &fDrawDist,
+                   &fDrawDist2_unused,
+                   &dwFlags);
+            break;
+
+        case 3:
+            sscanf(line,
+                "%d %s %s %d %f %f %f %d",
+                &modelId,
+                modelName,
+                texName,
+                &objType,
+                &fDrawDist,
+                &fDrawDist2_unused,
+                &fDrawDist3_unused,
+                &dwFlags);
+            break;
+        }
+    }
+
+    sItemDefinitionFlags flags(dwFlags);
+    CAtomicModelInfo* pModelInfo;
+    if (flags.bIsDamageable)
+        pModelInfo = CModelInfo::AddDamageAtomicModel(modelId);
+    else
+        pModelInfo = CModelInfo::AddAtomicModel(modelId);
+
+    pModelInfo->m_fDrawDistance = fDrawDist;
+    pModelInfo->m_nKey = CKeyGen::GetUppercaseKey(modelName);
+    pModelInfo->SetTexDictionary(texName);
+    SetAtomicModelInfoFlags(pModelInfo, dwFlags);
+    return modelId;
 }
 
 CEntity* CFileLoader::LoadObjectInstance(CFileObjectInstance* objInstance, char const* modelname)
@@ -217,4 +271,26 @@ CEntity* CFileLoader::LoadObjectInstance(CFileObjectInstance* objInstance, char 
     }
 
     return pNewEntity;
+}
+
+CEntity* CFileLoader::LoadObjectInstance(char const* line)
+{
+    char modelName[24];
+    CFileObjectInstance objInstance;
+
+    sscanf(
+        line,
+        "%d %s %d %f %f %f %f %f %f %f %d",
+        &objInstance.m_nModelId,
+        modelName,
+        &objInstance.m_nInstanceType,
+        &objInstance.m_vecPosition.x,
+        &objInstance.m_vecPosition.y,
+        &objInstance.m_vecPosition.z,
+        &objInstance.m_qRotation.imag.x,
+        &objInstance.m_qRotation.imag.y,
+        &objInstance.m_qRotation.imag.z,
+        &objInstance.m_qRotation.real,
+        &objInstance.m_nLodInstanceIndex);
+    return CFileLoader::LoadObjectInstance(&objInstance, modelName);
 }
