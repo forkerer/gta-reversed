@@ -87,7 +87,7 @@ bool CTaskSimplePlayHandSignalAnim::ProcessPed_Reversed(CPed* ped)
 
 void CTaskSimplePlayHandSignalAnim::StartAnim(CPed* pPed)
 {
-    const auto nAnimId = CGeneral::GetRandomNumberInRange(320, 325); // ANIM_ID_GSIGN1 - ANIM_ID_GSIGN5
+    const auto nAnimId = CGeneral::GetRandomNumberInRange(ANIM_ID_GSIGN1, ANIM_ID_GSIGN5 + 1);
 
     // Pointing / weapon logic
     if (pPed->GetEntityThatThisPedIsHolding()

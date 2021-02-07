@@ -1371,12 +1371,11 @@ void CObject::TryToFreeUpTempObjects(int numObjects) {
             return;
 
         auto* pObj = CPools::ms_pObjectPool->GetAt(i);
-        if (!pObj || !pObj->IsTemporary() || pObj->IsVisible())
-            continue;
-
-        CWorld::Remove(pObj);
-        delete pObj;
-        --numObjects;
+        if (pObj && pObj->IsTemporary() && !pObj->IsVisible()) {
+            CWorld::Remove(pObj);
+            delete pObj;
+            --numObjects;
+        }
     }
 }
 
@@ -1389,11 +1388,10 @@ void CObject::DeleteAllTempObjects() {
     for (auto i = 0; i < iPoolSize; ++i)
     {
         auto* pObj = CPools::ms_pObjectPool->GetAt(i);
-        if (!pObj || !pObj->IsTemporary())
-            continue;
-
-        CWorld::Remove(pObj);
-        delete pObj;
+        if (pObj && pObj->IsTemporary()) {
+            CWorld::Remove(pObj);
+            delete pObj;
+        }
     }
 }
 
@@ -1406,11 +1404,10 @@ void CObject::DeleteAllMissionObjects() {
     for (auto i = 0; i < iPoolSize; ++i)
     {
         auto* pObj = CPools::ms_pObjectPool->GetAt(i);
-        if (!pObj || !pObj->IsMissionObject())
-            continue;
-
-        CWorld::Remove(pObj);
-        delete pObj;
+        if (pObj && pObj->IsMissionObject()) {
+            CWorld::Remove(pObj);
+            delete pObj;
+        }
     }
 }
 
@@ -1423,14 +1420,12 @@ void CObject::DeleteAllTempObjectsInArea(CVector point, float radius) {
     for (auto i = 0; i < iPoolSize; ++i)
     {
         auto* pObj = CPools::ms_pObjectPool->GetAt(i);
-        if (!pObj || !pObj->IsTemporary())
-            continue;
-
-        if (DistanceBetweenPointsSquared(pObj->GetPosition(), point) >= pow(radius, 2.0F))
-            continue;
-
-        CWorld::Remove(pObj);
-        delete pObj;
+        if (pObj && pObj->IsTemporary()) {
+            if (DistanceBetweenPointsSquared(pObj->GetPosition(), point) < pow(radius, 2.0F)) {
+                CWorld::Remove(pObj);
+                delete pObj;
+            }
+        }
     }
 }
 
