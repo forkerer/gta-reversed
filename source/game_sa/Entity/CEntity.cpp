@@ -903,12 +903,12 @@ void CEntity::UpdateRwFrame()
 // Converted from thiscall void CEntity::UpdateRpHAnim(void) 0x532B20
 void CEntity::UpdateRpHAnim()
 {
-    auto pFirstAtomic = GetFirstAtomic(m_pRwClump);
+    auto* pFirstAtomic = GetFirstAtomic(m_pRwClump);
     if (!pFirstAtomic)
         return;
 
     if (RpSkinGeometryGetSkin(RpAtomicGetGeometry(pFirstAtomic)) && !m_bDontUpdateHierarchy) {
-        auto pAnimHierarchy = GetAnimHierarchyFromClump(m_pRwClump);
+        auto* pAnimHierarchy = GetAnimHierarchyFromSkinClump(m_pRwClump);
         RpHAnimHierarchyUpdateMatrices(pAnimHierarchy);
     }
 }

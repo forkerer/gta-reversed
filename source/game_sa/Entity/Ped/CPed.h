@@ -421,7 +421,7 @@ public:
     void SetGunFlashAlpha(bool rightHand);
     void ResetGunFlashAlpha();
     float GetBikeRidingSkill();
-    void ShoulderBoneRotation(RpClump* clump);
+    static void ShoulderBoneRotation(RpClump* clump);
     void SetLookTimer(unsigned int time);
     bool IsPlayer();
     void SetPedPositionInCar();

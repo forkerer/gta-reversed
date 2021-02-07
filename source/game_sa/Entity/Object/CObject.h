@@ -16,7 +16,7 @@ enum eObjectType {
     OBJECT_MISSION = 2,
     OBJECT_TEMPORARY = 3,
     OBJECT_TYPE_CUTSCENE = 4,
-    OBJECT_TYPE_DECORATION = 5, // Hand object, escalator step, water creatures, no clue what this enum value should be called
+    OBJECT_TYPE_DECORATION = 5, // Hand object, projectiles, escalator step, water creatures, no clue what this enum value should be called
     OBJECT_MISSION2 = 6
 };
 
