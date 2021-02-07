@@ -20,8 +20,6 @@ enum eObjectType {
     OBJECT_MISSION2 = 6
 };
 
-
-
 class CDummyObject;
 
 class CObject : public CPhysical {
