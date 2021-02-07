@@ -12,6 +12,7 @@
 class  CHandObject : public CObject {
 public:
     CHandObject(int handModelIndex, CPed* pPed, bool bLeftHand);
+    ~CHandObject() = default;
 public:
     class CPed  *m_pPed;
     unsigned int m_nBoneIndex;

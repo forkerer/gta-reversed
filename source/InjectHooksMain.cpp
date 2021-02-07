@@ -158,6 +158,8 @@ void InjectHooksMain(void)
     CTaskSimpleGoToPoint::InjectHooks();
     CTaskSimpleGoToPointFine::InjectHooks();
     CTaskSimpleStandStill::InjectHooks();
+    CTaskSimpleAnim::InjectHooks();
+    CTaskSimplePlayHandSignalAnim::InjectHooks();
     CTaskComplexGoToPointAndStandStill::InjectHooks();
     CTaskComplexGoToPointAndStandStillTimed::InjectHooks();
     CTaskComplexAvoidOtherPedWhileWandering::InjectHooks();

@@ -10,7 +10,7 @@ void CHandObject::InjectHooks()
 
 CHandObject::CHandObject(int handModelIndex, CPed* pPed, bool bLeftHand) : CObject()
 {
-    auto* pAnimHierarchy = GetAnimHierarchyFromSkinClump(m_pRwClump);
+    auto* pAnimHierarchy = GetAnimHierarchyFromSkinClump(pPed->m_pRwClump);
     m_pPed = pPed;
     pPed->UpdateRpHAnim();
 
@@ -61,7 +61,7 @@ void CHandObject::PreRender()
 }
 void CHandObject::PreRender_Reversed()
 {
-    auto* pAnimHierarchy = GetAnimHierarchyFromSkinClump(m_pRwClump);
+    auto* pAnimHierarchy = GetAnimHierarchyFromSkinClump(m_pPed->m_pRwClump);
     m_pPed->UpdateRpHAnim();
     m_pPed->m_bDontUpdateHierarchy = true;
 
@@ -82,9 +82,10 @@ void CHandObject::PreRender_Reversed()
             *RwMatrixGetUp(pBoneMat) = { 0.0F, 0.0F, 0.0F };
             *RwMatrixGetRight(pBoneMat) = { 0.0F, 0.0F, 0.0F };
 
-            if (pAnimHierarchy->pNodeInfo[nBoneInd].flags & rpHANIMPUSHPARENTMATRIX)
+            const auto unFlags = static_cast<uint32_t>(pAnimHierarchy->pNodeInfo[nBoneInd].flags);
+            if ((unFlags & rpHANIMPUSHPARENTMATRIX) != 0)
                 ++iStackCounter;
-            else if (pAnimHierarchy->pNodeInfo[nBoneInd].flags & rpHANIMPOPPARENTMATRIX)
+            else if ((unFlags & rpHANIMPOPPARENTMATRIX) != 0)
                 --iStackCounter;
 
             ++nBoneInd;

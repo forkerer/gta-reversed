@@ -554,6 +554,7 @@
 #include "game_sa\Tasks\TaskTypes\CTaskSimplePlayerOnFoot.h"
 #include "game_sa\Tasks\TaskTypes\CTaskSimpleRunAnim.h"
 #include "game_sa\Tasks\TaskTypes\CTaskSimpleRunNamedAnim.h"
+#include "game_sa\Tasks\TaskTypes\CTaskSimpleSlideToCoord.h"
 #include "game_sa\Tasks\TaskTypes\CTaskSimpleStandStill.h"
 #include "game_sa\Tasks\TaskTypes\CTaskSimpleStealthKill.h"
 #include "game_sa\Tasks\TaskTypes\CTaskSimpleSwim.h"
@@ -567,3 +568,4 @@
 #include "game_sa\Tasks\TaskTypes\CTaskSimpleGoTo.h"
 #include "game_sa\Tasks\TaskTypes\CTaskSimplePause.h"
 #include "game_sa\Tasks\TaskTypes\CTaskSimpleScratchHead.h"
+#include "game_sa\Tasks\TaskTypes\CTaskSimplePlayHandSignalAnim.h"
