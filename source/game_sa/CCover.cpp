@@ -41,7 +41,7 @@ bool CCover::ShouldThisBuildingHaveItsCoverPointsCreated(CBuilding* building)
     const auto vecPos = FindPlayerCoors(-1);
     CVector vecCenter;
     building->GetBoundCentre(vecCenter);
-    auto vecDiff = vecCenter - vecPos;
+    auto distance = vecCenter - vecPos;
     auto* pInfo = CModelInfo::GetModelInfo(building->m_nModelIndex);
-    return vecDiff.Magnitude() <= pInfo->GetColModel()->GetBoundRadius() + 30.0F;
+    return distance.Magnitude() <= pInfo->GetColModel()->GetBoundRadius() + 30.0F;
 }
