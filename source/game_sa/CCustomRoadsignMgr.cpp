@@ -9,7 +9,11 @@ void CCustomRoadsignMgr::InjectHooks()
     ReversibleHooks::Install("CCustomRoadsignMgr", "Initialise", 0x6FE120, &CCustomRoadsignMgr::Initialise);
     ReversibleHooks::Install("CCustomRoadsignMgr", "Shutdown", 0x6FE180, &CCustomRoadsignMgr::Shutdown);
     ReversibleHooks::Install("CCustomRoadsignMgr", "CreateRoadsignTexture", 0x6FECA0, &CCustomRoadsignMgr::CreateRoadsignTexture);
+    ReversibleHooks::Install("CCustomRoadsignMgr", "CreateRoadsignAtomicA", 0x6FEDA0, &CCustomRoadsignMgr::CreateRoadsignAtomicA);
     ReversibleHooks::Install("CCustomRoadsignMgr", "CreateRoadsignAtomic", 0x6FF2D0, &CCustomRoadsignMgr::CreateRoadsignAtomic);
+    ReversibleHooks::Install("CCustomRoadsignMgr", "RenderRoadsignAtomic", 0x6FF350, &CCustomRoadsignMgr::RenderRoadsignAtomic);
+    ReversibleHooks::Install("CCustomRoadsignMgr", "SetupRoadsignAtomic", 0x6FED60, &CCustomRoadsignMgr::SetupRoadsignAtomic);
+    ReversibleHooks::Install("CCustomRoadsignMgr", "SetAtomicAlpha", 0x6FE240, &CCustomRoadsignMgr::SetAtomicAlpha);
 }
 
 bool CCustomRoadsignMgr::Initialise()
@@ -49,16 +53,6 @@ void CCustomRoadsignMgr::Shutdown()
 
     RwTextureDestroy(CCustomRoadsignMgr::pCharsetTex);
     CCustomRoadsignMgr::pCharsetTex = nullptr;
-}
-
-void CCustomRoadsignMgr::RenderTest(CVector const& vecUnused)
-{
-    plugin::Call<0x6FE1E0, CVector const&>(vecUnused);
-}
-
-void CCustomRoadsignMgr::DebugDrawInternalTexture()
-{
-    plugin::Call<0x6FE1F0>();
 }
 
 RwTexture* CCustomRoadsignMgr::CreateRoadsignTexture(char* pName, int numOfChars)
@@ -101,18 +95,193 @@ RwTexture* CCustomRoadsignMgr::CreateRoadsignTexture(char* pName, int numOfChars
 
 RwTexture* CCustomRoadsignMgr::SetupRoadsignAtomic(RpAtomic* pAtomic, char* pName, int numOfChars)
 {
-    return plugin::CallAndReturn<RwTexture*, 0x6FED60, RpAtomic*, char*, int>(pAtomic, pName, numOfChars);
+    auto* pTexture = CCustomRoadsignMgr::CreateRoadsignTexture(pName, numOfChars);
+    if (!pTexture)
+        return nullptr;
+
+    RpGeometryForAllMaterials(RpAtomicGetGeometry(pAtomic), RoadsignSetMaterialTextureCB, pTexture);
+    return reinterpret_cast<RwTexture*>(pAtomic); //BUG? This method isn't used anywhere anyways
 }
 
 RpAtomic* CCustomRoadsignMgr::SetAtomicAlpha(RpAtomic* pAtomic, unsigned char alpha)
 {
-    return plugin::CallAndReturn<RpAtomic*, 0x6FE240, RpAtomic*, unsigned char>(pAtomic, alpha);
+    RpGeometryForAllMaterials(RpAtomicGetGeometry(pAtomic), RoadsignSetMaterialAlphaCB, reinterpret_cast<void*>(alpha));
+    return pAtomic;
 }
 
 RpAtomic* CCustomRoadsignMgr::CreateRoadsignAtomicA(float xScale, float yScale, signed int numLines, char* pLine1, char* pLine2, char* pLine3, char* pLine4, int lettersPerLine, unsigned char ucPallete)
 {
-    return plugin::CallAndReturn<RpAtomic*, 0x6FEDA0, float, float, int, char*, char*, char*, char*, int, unsigned char>
-        (xScale, yScale, numLines, pLine1, pLine2, pLine3, pLine4, lettersPerLine, ucPallete);
+    char* apLines[]{ pLine1, pLine2, pLine3, pLine4 };
+    RpMaterial* apMaterials[4]{};
+
+    bool bFailed = false;
+    for (auto ind = 0; ind < numLines; ++ind)
+    {
+        auto* pMaterial = RpMaterialCreate();
+        assert(pMaterial); //TODO: Remove if crash cause is found
+        if (!pMaterial)
+        {
+            bFailed = true;
+            break;
+        }
+
+        auto color = CRGBA();
+        color.a = 255u;
+        if (ucPallete == 1)
+            color.Set(0u, 0u, 0u);
+        else if (ucPallete == 2)
+            color.Set(128u, 128u, 128u);
+        else if (ucPallete == 3)
+            color.Set(255u, 0u, 0u);
+        else
+            color.Set(255u, 255u, 255u);
+
+        auto rwColor = color.ToRwRGBA();
+        RpMaterialSetColor(pMaterial, &rwColor);
+
+        auto* pTexture = CCustomRoadsignMgr::CreateRoadsignTexture(apLines[ind], lettersPerLine);
+        assert(pTexture); //TODO: Remove if crash cause is found
+        if (!pTexture)
+        {
+            bFailed = true;
+            break;
+        }
+
+        RpMaterialSetTexture(pMaterial, pTexture);
+        RwTextureDestroy(pTexture); // decrement refcounter so the material is sole owner of the texture
+        apMaterials[ind] = pMaterial;
+
+        auto surfProps = RwSurfaceProperties{ 0.3F, 0.3F, 0.7F };
+        RpMaterialSetSurfaceProperties(pMaterial, &surfProps);
+    }
+
+    if (!bFailed)
+    {
+        do
+        {
+            auto* pGeometry = RpGeometryCreate(4 * numLines, 2 * numLines, rpGEOMETRYMODULATEMATERIALCOLOR | rpGEOMETRYPRELIT | rpGEOMETRYTEXTURED | rpGEOMETRYPOSITIONS);
+            if (!pGeometry)
+                break; // Go to cleanup
+
+            auto* pMorphTarget = RpGeometryGetMorphTarget(pGeometry, 0);
+            const auto fLineY = yScale / static_cast<float>(numLines);
+            const auto fNegHalfX = xScale * -0.5F;
+            for (auto iLine = 0 ; iLine < numLines; ++iLine)
+            {
+                auto* pVerts = &RpMorphTargetGetVertices(pMorphTarget)[iLine * 4];
+                //TODO/BUG? This seems like base init of values, that is overriden completely just a bit later
+                /*pVerts[0] = { 0.0F, 0.0F, 0.0F };
+                pVerts[1] = { xScale, 0.0F, 0.0F };
+                pVerts[2] = { xScale, fLineY * 0.95F, 0.0F };
+                pVerts[3] = { 0.0F, fLineY * 0.95F , 0.0F };*/ 
+
+                auto fNewY = 0.0F;
+                switch(numLines)
+                {
+                case 1:
+                    fNewY = fLineY * -0.5F;
+                    break;
+
+                case 2:
+                    if (iLine == 0)
+                        fNewY = 0.0F;
+                    else if (iLine == 1)
+                        fNewY = fLineY * -1.0F;
+                    break;
+
+                case 3:
+                    if (iLine == 0)
+                        fNewY = fLineY * 0.5F;
+                    else if (iLine == 1)
+                        fNewY = fLineY * -0.5F;
+                    else if (iLine == 2)
+                        fNewY = fLineY * -1.5F;
+                    break;
+
+                case 4:
+                    if (iLine == 0)
+                        fNewY = fLineY;
+                    else if (iLine == 1)
+                        fNewY = 0.0F;
+                    else if (iLine == 2)
+                        fNewY = fLineY * -1.0F;
+                    else if (iLine == 3)
+                        fNewY = fLineY * -2.0F;
+                    break;
+                }
+
+                // Adjust the verts based on the above calculations
+                pVerts[0] = { fNegHalfX, fNewY, 0.0F };
+                pVerts[1] = { fNegHalfX + xScale, fNewY, 0.0F };
+                pVerts[2] = { fNegHalfX + xScale, fNewY + fLineY * 0.95F, 0.0F };
+                pVerts[3] = { fNegHalfX, fNewY + fLineY * 0.95F, 0.0F };
+            }
+
+            for (auto iLine = 0; iLine < numLines; ++iLine)
+            {
+                auto* pTexCoords = &RpGeometryGetVertexTexCoords(pGeometry, 1)[iLine * 4];
+                pTexCoords[0] = { 0.0F, 1.0F };
+                pTexCoords[1] = { 1.0F, 1.0F };
+                pTexCoords[2] = { 1.0F, 0.0F };
+                pTexCoords[3] = { 0.0F, 0.0F };
+            }
+
+            for (auto iLine = 0; iLine < numLines; ++iLine)
+            {
+                auto* pColors = &RpGeometryGetPreLightColors(pGeometry)[iLine * 4];
+                pColors[0] = { 255u, 255u, 255u, 255u };
+                pColors[1] = { 255u, 255u, 255u, 255u };
+                pColors[2] = { 255u, 255u, 255u, 255u };
+                pColors[3] = { 255u, 255u, 255u, 255u };
+            }
+
+            for (auto iLine = 0; iLine < numLines; ++iLine)
+            {
+                const auto iVert = iLine * 4;
+                auto* pTriangles = &RpGeometryGetTriangles(pGeometry)[iLine * 2];
+                RpGeometryTriangleSetVertexIndices(pGeometry, &pTriangles[0], iVert, iVert + 1, iVert + 2);
+                RpGeometryTriangleSetMaterial(pGeometry, &pTriangles[0], apMaterials[iLine]);
+                RpGeometryTriangleSetVertexIndices(pGeometry, &pTriangles[1], iVert, iVert + 2, iVert + 3);
+                RpGeometryTriangleSetMaterial(pGeometry, &pTriangles[1], apMaterials[iLine]);
+
+                RpMaterialDestroy(apMaterials[iLine]);
+                apMaterials[iLine] = nullptr;
+            }
+
+            RwSphere bndSphere;
+            RpMorphTargetCalcBoundingSphere(pMorphTarget, &bndSphere);
+            RpMorphTargetSetBoundingSphere(pMorphTarget, &bndSphere);
+            RpGeometryUnlock(pGeometry);
+            auto* pAtomic = RpAtomicCreate();
+            if (!pAtomic)
+            {
+                RpGeometryDestroy(pGeometry);
+                break; // Go to cleanup
+            }
+
+            if (!RpAtomicSetGeometry(pAtomic, pGeometry, 0))
+            {
+                RpGeometryDestroy(pGeometry);
+                RpAtomicDestroy(pAtomic);
+                break; // Go to cleanup
+            }
+
+            RpGeometryDestroy(pGeometry);
+            RpAtomicSetFlags(pAtomic, rpATOMICRENDER);
+            auto* pFrame = RwFrameCreate();
+            RwFrameSetIdentity(pFrame);
+            RpAtomicSetFrame(pAtomic, pFrame);
+            return pAtomic;
+
+        } while (false); // So we can easily break out of the logic to destroy materials, would be nice to make it cleaner
+    }
+
+
+    for(auto& pMaterial : apMaterials)
+        if (pMaterial)
+            RpMaterialDestroy(pMaterial);
+
+    return nullptr;
 }
 
 RpAtomic* CCustomRoadsignMgr::CreateRoadsignAtomic(float xScale, float yScale, signed int numLines, char* pLine1, char* pLine2, char* pLine3, char* pLine4, int lettersPerLine, unsigned char ucPallete)
@@ -130,9 +299,39 @@ RpAtomic* CCustomRoadsignMgr::CreateRoadsignAtomic(float xScale, float yScale, s
 
 }
 
-RpAtomic* CCustomRoadsignMgr::RenderRoadsignAtomic(RpAtomic* pAtomic, CVector const& vecDir)
+RpAtomic* CCustomRoadsignMgr::RenderRoadsignAtomic(RpAtomic* pAtomic, CVector const& vecPos)
 {
-    return plugin::CallAndReturn<RpAtomic*, 0x6FF350, RpAtomic*, CVector const&>(pAtomic, vecDir);
+    auto* pFrame = RpAtomicGetFrame(pAtomic);
+    auto vecDist = vecPos - *RwMatrixGetPos(RwFrameGetMatrix(pFrame));
+    const auto fDistSquared = vecDist.SquaredMagnitude();
+    if (fDistSquared > 250000.0F) // 500 units away
+        return pAtomic;
+
+    if (fDistSquared >= 1600.0F) { // Fade out above 40 units away
+        const auto fFade =  1.0F - invLerp(1600, 250000, fDistSquared);
+        const auto ucAlpha = static_cast<RwUInt8>(lerp(0.0F, 254.0F, fFade));
+        CCustomRoadsignMgr::SetAtomicAlpha(pAtomic, ucAlpha);
+        RpAtomicRender(pAtomic);
+        return pAtomic;
+    }
+
+    RwRenderStateSet(rwRENDERSTATEALPHATESTFUNCTIONREF, (void*)100u);
+    CCustomRoadsignMgr::SetAtomicAlpha(pAtomic, 255u);
+    RpAtomicRender(pAtomic);
+    return pAtomic;
+
+}
+
+RpMaterial* RoadsignSetMaterialAlphaCB(RpMaterial* material, void* data)
+{
+    RpMaterialGetColor(material)->alpha = reinterpret_cast<RwUInt8>(data);
+    return material;
+}
+
+RpMaterial* RoadsignSetMaterialTextureCB(RpMaterial* material, void* data)
+{
+    RpMaterialSetTexture(material, static_cast<RwTexture*>(data));
+    return material;
 }
 
 bool RoadsignGenerateTextRaster(char* roadName, int numLetters, RwRaster* charsetRaster, int unused, RwRaster* signRaster)
