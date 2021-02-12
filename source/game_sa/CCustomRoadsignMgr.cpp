@@ -14,6 +14,7 @@ void CCustomRoadsignMgr::InjectHooks()
     ReversibleHooks::Install("CCustomRoadsignMgr", "RenderRoadsignAtomic", 0x6FF350, &CCustomRoadsignMgr::RenderRoadsignAtomic);
     ReversibleHooks::Install("CCustomRoadsignMgr", "SetupRoadsignAtomic", 0x6FED60, &CCustomRoadsignMgr::SetupRoadsignAtomic);
     ReversibleHooks::Install("CCustomRoadsignMgr", "SetAtomicAlpha", 0x6FE240, &CCustomRoadsignMgr::SetAtomicAlpha);
+    ReversibleHooks::Install("CCustomRoadsignMgr", "RoadsignGenerateTextRaster", 0x6FEB70, &RoadsignGenerateTextRaster);
 }
 
 bool CCustomRoadsignMgr::Initialise()
@@ -57,7 +58,7 @@ void CCustomRoadsignMgr::Shutdown()
 
 RwTexture* CCustomRoadsignMgr::CreateRoadsignTexture(char* pName, int numOfChars)
 {
-    auto* pRaster = RwRasterCreate(8 * numOfChars, 16, 32, rwRASTERFORMAT8888 | rwRASTERPIXELLOCKEDWRITE);
+    auto* pRaster = RwRasterCreate(SIGN_CHAR_WIDTH * numOfChars, SIGN_CHAR_HEIGHT, 32, rwRASTERFORMAT8888 | rwRASTERPIXELLOCKEDWRITE);
     assert(pRaster); //TODO: Remove if crash cause is found
     if (!pRaster)
         return nullptr;
@@ -109,7 +110,7 @@ RpAtomic* CCustomRoadsignMgr::SetAtomicAlpha(RpAtomic* pAtomic, unsigned char al
     return pAtomic;
 }
 
-RpAtomic* CCustomRoadsignMgr::CreateRoadsignAtomicA(float xScale, float yScale, signed int numLines, char* pLine1, char* pLine2, char* pLine3, char* pLine4, int lettersPerLine, unsigned char ucPallete)
+RpAtomic* CCustomRoadsignMgr::CreateRoadsignAtomicA(float fWidth, float fHeight, signed int numLines, char* pLine1, char* pLine2, char* pLine3, char* pLine4, int lettersPerLine, unsigned char ucPallete)
 {
     char* apLines[]{ pLine1, pLine2, pLine3, pLine4 };
     RpMaterial* apMaterials[4]{};
@@ -160,12 +161,14 @@ RpAtomic* CCustomRoadsignMgr::CreateRoadsignAtomicA(float xScale, float yScale, 
         do
         {
             auto* pGeometry = RpGeometryCreate(4 * numLines, 2 * numLines, rpGEOMETRYMODULATEMATERIALCOLOR | rpGEOMETRYPRELIT | rpGEOMETRYTEXTURED | rpGEOMETRYPOSITIONS);
+            assert(pGeometry); //TODO: Remove if crash cause is found
             if (!pGeometry)
                 break; // Go to cleanup
 
             auto* pMorphTarget = RpGeometryGetMorphTarget(pGeometry, 0);
-            const auto fLineY = yScale / static_cast<float>(numLines);
-            const auto fNegHalfX = xScale * -0.5F;
+            const auto fLineHeight = fHeight / static_cast<float>(numLines);
+            const auto fUsedLineHeight = fLineHeight * 0.95F;
+            const auto fNegHalfWidth = fWidth * -0.5F;
             for (auto iLine = 0 ; iLine < numLines; ++iLine)
             {
                 auto* pVerts = &RpMorphTargetGetVertices(pMorphTarget)[iLine * 4];
@@ -179,47 +182,47 @@ RpAtomic* CCustomRoadsignMgr::CreateRoadsignAtomicA(float xScale, float yScale, 
                 switch(numLines)
                 {
                 case 1:
-                    fNewY = fLineY * -0.5F;
+                    fNewY = fLineHeight * -0.5F;
                     break;
 
                 case 2:
                     if (iLine == 0)
                         fNewY = 0.0F;
                     else if (iLine == 1)
-                        fNewY = fLineY * -1.0F;
+                        fNewY = fLineHeight * -1.0F;
                     break;
 
                 case 3:
                     if (iLine == 0)
-                        fNewY = fLineY * 0.5F;
+                        fNewY = fLineHeight * 0.5F;
                     else if (iLine == 1)
-                        fNewY = fLineY * -0.5F;
+                        fNewY = fLineHeight * -0.5F;
                     else if (iLine == 2)
-                        fNewY = fLineY * -1.5F;
+                        fNewY = fLineHeight * -1.5F;
                     break;
 
                 case 4:
                     if (iLine == 0)
-                        fNewY = fLineY;
+                        fNewY = fLineHeight;
                     else if (iLine == 1)
                         fNewY = 0.0F;
                     else if (iLine == 2)
-                        fNewY = fLineY * -1.0F;
+                        fNewY = fLineHeight * -1.0F;
                     else if (iLine == 3)
-                        fNewY = fLineY * -2.0F;
+                        fNewY = fLineHeight * -2.0F;
                     break;
                 }
 
                 // Adjust the verts based on the above calculations
-                pVerts[0] = { fNegHalfX, fNewY, 0.0F };
-                pVerts[1] = { fNegHalfX + xScale, fNewY, 0.0F };
-                pVerts[2] = { fNegHalfX + xScale, fNewY + fLineY * 0.95F, 0.0F };
-                pVerts[3] = { fNegHalfX, fNewY + fLineY * 0.95F, 0.0F };
+                pVerts[0] = { fNegHalfWidth, fNewY, 0.0F };
+                pVerts[1] = { fNegHalfWidth + fWidth, fNewY, 0.0F };
+                pVerts[2] = { fNegHalfWidth + fWidth, fNewY + fUsedLineHeight, 0.0F };
+                pVerts[3] = { fNegHalfWidth, fNewY + fUsedLineHeight, 0.0F };
             }
 
             for (auto iLine = 0; iLine < numLines; ++iLine)
             {
-                auto* pTexCoords = &RpGeometryGetVertexTexCoords(pGeometry, 1)[iLine * 4];
+                auto* pTexCoords = &RpGeometryGetVertexTexCoords(pGeometry, rwTEXTURECOORDINATEINDEX0)[iLine * 4];
                 pTexCoords[0] = { 0.0F, 1.0F };
                 pTexCoords[1] = { 1.0F, 1.0F };
                 pTexCoords[2] = { 1.0F, 0.0F };
@@ -253,6 +256,7 @@ RpAtomic* CCustomRoadsignMgr::CreateRoadsignAtomicA(float xScale, float yScale, 
             RpMorphTargetSetBoundingSphere(pMorphTarget, &bndSphere);
             RpGeometryUnlock(pGeometry);
             auto* pAtomic = RpAtomicCreate();
+            assert(pAtomic); //TODO: Remove if crash cause is found
             if (!pAtomic)
             {
                 RpGeometryDestroy(pGeometry);
@@ -261,6 +265,7 @@ RpAtomic* CCustomRoadsignMgr::CreateRoadsignAtomicA(float xScale, float yScale, 
 
             if (!RpAtomicSetGeometry(pAtomic, pGeometry, 0))
             {
+                assert(false); //TODO: Remove if crash cause is found
                 RpGeometryDestroy(pGeometry);
                 RpAtomicDestroy(pAtomic);
                 break; // Go to cleanup
@@ -295,8 +300,6 @@ RpAtomic* CCustomRoadsignMgr::CreateRoadsignAtomic(float xScale, float yScale, s
     auto* pAtomic = CCustomRoadsignMgr::CreateRoadsignAtomicA(xScale, yScale, numLines, usedLine1, usedLine2, usedLine3, usedLine4, lettersPerLine, ucPallete);
     assert(pAtomic); //TODO: Remove if crash cause is found
     return pAtomic;
-
-
 }
 
 RpAtomic* CCustomRoadsignMgr::RenderRoadsignAtomic(RpAtomic* pAtomic, CVector const& vecPos)
@@ -336,6 +339,396 @@ RpMaterial* RoadsignSetMaterialTextureCB(RpMaterial* material, void* data)
 
 bool RoadsignGenerateTextRaster(char* roadName, int numLetters, RwRaster* charsetRaster, int unused, RwRaster* signRaster)
 {
-    return plugin::CallAndReturn<bool, 0x6FEB70, char*, int, RwRaster*, int, RwRaster*>
-        (roadName, numLetters, charsetRaster, unused, signRaster);
+    auto* signLock = reinterpret_cast<RwRGBA*>(RwRasterLock(signRaster, 0, rwRASTERLOCKWRITE | rwRASTERLOCKNOFETCH));
+    if (!signLock)
+        return false;
+
+    if (!CCustomRoadsignMgr::pCharsetLockedRaster)
+        return false;
+
+    const auto charStride = charsetRaster->stride; //TODO: Missing RwRasterGetStride macro;
+    if (!charStride)
+        return false;
+    
+    const auto signStride = signRaster->stride; //TODO: Same as above
+    if (!signStride)
+        return false;
+
+    const auto usedCharStride = charStride / SIGN_PIXEL_BYTES; // Those 3 are used to make pointer math easier
+    const auto usedSignStride = signStride / SIGN_PIXEL_BYTES;
+    auto* pCharsetLock = reinterpret_cast<RwRGBA*>(CCustomRoadsignMgr::pCharsetLockedRaster);
+
+    for (auto ind = 0; ind < numLetters; ++ind)
+    {
+        int col = 1, row = 1;
+        RoadsignGetLineAndRow(roadName[ind], &col, &row);
+        auto* pCharsetPixels = &pCharsetLock[usedCharStride * SIGN_CHAR_HEIGHT * row + SIGN_CHAR_WIDTH * col];
+        auto* pSignPixels = &signLock[ind * SIGN_CHAR_WIDTH];
+        for (auto iRow = 0; iRow < SIGN_CHAR_HEIGHT; ++iRow)
+        {
+            for (auto iCol = 0; iCol < SIGN_CHAR_WIDTH; ++iCol)
+                pSignPixels[iCol] = pCharsetPixels[iCol]; // Copy pixels one by one
+
+            pSignPixels += usedSignStride;
+            pCharsetPixels += usedCharStride;
+        }
+    }
+
+    RwRasterUnlock(signRaster);
+    return true;
+}
+
+void RoadsignGetLineAndRow(char cLetter, int* line, int* row)
+{
+    switch (cLetter)
+    {
+    case '!':
+        *line = 0;
+        *row = 0;
+        break;
+    case '#':
+        *line = 3;
+        *row = 21;
+        break;
+    case '$':
+        *line = 0;
+        *row = 22;
+        break;
+    case '%':
+        *line = 2;
+        *row = 21;
+        break;
+    case '&':
+        *line = 2;
+        *row = 0;
+        break;
+    case '(':
+        *line = 0;
+        *row = 1;
+        break;
+    case ')':
+        *line = 1;
+        *row = 1;
+        break;
+    case '*':
+        *line = 1;
+        *row = 22;
+        break;
+    case '+':
+        *line = 2;
+        *row = 1;
+        break;
+    case '-':
+        *line = 0;
+        *row = 2;
+        break;
+    case '.':
+        *line = 1;
+        *row = 2;
+        break;
+    case '0':
+        *line = 3;
+        *row = 2;
+        break;
+    case '1':
+        *line = 0;
+        *row = 3;
+        break;
+    case '2':
+        *line = 1;
+        *row = 3;
+        break;
+    case '3':
+        *line = 2;
+        *row = 3;
+        break;
+    case '4':
+        *line = 3;
+        *row = 3;
+        break;
+    case '5':
+        *line = 0;
+        *row = 4;
+        break;
+    case '6':
+        *line = 1;
+        *row = 4;
+        break;
+    case '7':
+        *line = 2;
+        *row = 4;
+        break;
+    case '8':
+        *line = 3;
+        *row = 4;
+        break;
+    case '9':
+        *line = 0;
+        *row = 5;
+        break;
+    case ':':
+        *line = 2;
+        *row = 5;
+        break;
+    case ';':
+        *line = 1;
+        *row = 5;
+        break;
+    case '<':
+        *line = 2;
+        *row = 20;
+        break;
+    case '>':
+        *line = 3;
+        *row = 20;
+        break;
+    case '?':
+        *line = 3;
+        *row = 5;
+        break;
+    case '@':
+        *line = 2;
+        *row = 22;
+        break;
+    case 'A':
+        *line = 0;
+        *row = 6;
+        break;
+    case 'B':
+        *line = 1;
+        *row = 6;
+        break;
+    case 'C':
+        *line = 2;
+        *row = 6;
+        break;
+    case 'D':
+        *line = 3;
+        *row = 6;
+        break;
+    case 'E':
+        *line = 0;
+        *row = 7;
+        break;
+    case 'F':
+        *line = 1;
+        *row = 7;
+        break;
+    case 'G':
+        *line = 2;
+        *row = 7;
+        break;
+    case 'H':
+        *line = 3;
+        *row = 7;
+        break;
+    case 'I':
+        *line = 0;
+        *row = 8;
+        break;
+    case 'J':
+        *line = 1;
+        *row = 8;
+        break;
+    case 'K':
+        *line = 2;
+        *row = 8;
+        break;
+    case 'L':
+        *line = 3;
+        *row = 8;
+        break;
+    case 'M':
+        *line = 0;
+        *row = 9;
+        break;
+    case 'N':
+        *line = 1;
+        *row = 9;
+        break;
+    case 'O':
+        *line = 2;
+        *row = 9;
+        break;
+    case 'P':
+        *line = 3;
+        *row = 9;
+        break;
+    case 'Q':
+        *line = 0;
+        *row = 10;
+        break;
+    case 'R':
+        *line = 1;
+        *row = 10;
+        break;
+    case 'S':
+        *line = 2;
+        *row = 10;
+        break;
+    case 'T':
+        *line = 3;
+        *row = 10;
+        break;
+    case 'U':
+        *line = 0;
+        *row = 11;
+        break;
+    case 'V':
+        *line = 1;
+        *row = 11;
+        break;
+    case 'W':
+        *line = 2;
+        *row = 11;
+        break;
+    case 'X':
+        *line = 3;
+        *row = 11;
+        break;
+    case 'Y':
+        *line = 0;
+        *row = 12;
+        break;
+    case 'Z':
+        *line = 1;
+        *row = 12;
+        break;
+    case '[':
+        *line = 2;
+        *row = 12;
+        break;
+    case ']':
+        *line = 0;
+        *row = 13;
+        break;
+    case '^':
+        *line = 0;
+        *row = 21;
+        break;
+    case 'a':
+        *line = 1;
+        *row = 13;
+        break;
+    case 'b':
+        *line = 2;
+        *row = 13;
+        break;
+    case 'c':
+        *line = 3;
+        *row = 13;
+        break;
+    case 'd':
+        *line = 0;
+        *row = 14;
+        break;
+    case 'e':
+        *line = 1;
+        *row = 14;
+        break;
+    case 'f':
+        *line = 2;
+        *row = 14;
+        break;
+    case 'g':
+        *line = 3;
+        *row = 14;
+        break;
+    case 'h':
+        *line = 0;
+        *row = 15;
+        break;
+    case 'i':
+        *line = 1;
+        *row = 15;
+        break;
+    case 'j':
+        *line = 2;
+        *row = 15;
+        break;
+    case 'k':
+        *line = 3;
+        *row = 15;
+        break;
+    case 'l':
+        *line = 0;
+        *row = 16;
+        break;
+    case 'm':
+        *line = 1;
+        *row = 16;
+        break;
+    case 'n':
+        *line = 2;
+        *row = 16;
+        break;
+    case 'o':
+        *line = 3;
+        *row = 16;
+        break;
+    case 'p':
+        *line = 0;
+        *row = 17;
+        break;
+    case 'q':
+        *line = 1;
+        *row = 17;
+        break;
+    case 'r':
+        *line = 2;
+        *row = 17;
+        break;
+    case 's':
+        *line = 3;
+        *row = 17;
+        break;
+    case 't':
+        *line = 0;
+        *row = 18;
+        break;
+    case 'u':
+        *line = 1;
+        *row = 18;
+        break;
+    case 'v':
+        *line = 2;
+        *row = 18;
+        break;
+    case 'w':
+        *line = 3;
+        *row = 18;
+        break;
+    case 'x':
+        *line = 0;
+        *row = 19;
+        break;
+    case 'y':
+        *line = 1;
+        *row = 19;
+        break;
+    case 'z':
+        *line = 2;
+        *row = 19;
+        break;
+    case '{':
+        *line = 0;
+        *row = 23;
+        break;
+    case '|':
+        *line = 3;
+        *row = 22;
+        break;
+    case '}':
+        *line = 2;
+        *row = 23;
+        break;
+    case '~':
+        *line = 1;
+        *row = 21;
+        break;
+    default:
+        *line = 0;
+        *row = 26;
+        break;
+    }
 }
