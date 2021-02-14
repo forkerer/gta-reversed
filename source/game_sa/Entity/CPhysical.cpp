@@ -18,6 +18,45 @@ float& CPhysical::TEST_ADD_AMBIENT_LIGHT_FRAC = *(float*)0x8CD7B8;
 float& CPhysical::HIGHSPEED_ELASTICITY_MULT_COPCAR = *(float*)0x8CD784;
 CVector& CPhysical::fxDirection = *(CVector*)0xB73720;
 
+CPhysical::CPhysical() : CEntity(plugin::dummy)
+{
+    m_pCollisionList = nullptr;
+    CPlaceable::AllocateStaticMatrix();
+    m_matrix->SetUnity();
+    m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
+    m_vecTurnSpeed.Set(0.0F, 0.0F, 0.0F);
+    m_vecFrictionMoveSpeed.Set(0.0F, 0.0F, 0.0F);
+    m_vecFrictionTurnSpeed.Set(0.0F, 0.0F, 0.0F);
+    m_vecForce.Set(0.0F, 0.0F, 0.0F);
+    m_vecTorque.Set(0.0F, 0.0F, 0.0F);
+
+    m_fMass = 1.0;
+    m_fTurnMass = 1.0;
+    m_fVelocityFrequency = 1.0;
+    m_fAirResistance = 0.1;
+    m_pMovingList = nullptr;
+    m_bFakePhysics = 0;
+    m_nNumEntitiesCollided = 0;
+    memset(m_apCollidedEntities, 0, sizeof(m_apCollidedEntities));
+    m_nPieceType = 0;
+    m_fDamageIntensity = 0.0;
+    m_pDamageEntity = nullptr;
+    m_vecLastCollisionImpactVelocity.Set(0.0F, 0.0F, 0.0F);
+    m_vecLastCollisionPosn.Set(0.0F, 0.0F, 0.0F);
+    m_vecCentreOfMass.Set(0.0F, 0.0F, 0.0F);
+    m_fMovingSpeed = 0.0;
+    m_pAttachedTo = nullptr;
+    m_pEntityIgnoredCollision = 0;
+    m_qAttachedEntityRotation.real = 0.0;
+    m_qAttachedEntityRotation.imag.Set(0.0F, 0.0F, 0.0F);
+    m_fDynamicLighting = 0.0;
+    m_fContactSurfaceBrightness = 1.0;
+    m_pShadowData = nullptr;
+    field_38 = 100.0;
+    m_bUsesCollision = true;
+    m_nPhysicalFlags = ePhysicalFlags::PHYSICAL_APPLY_GRAVITY;
+}
+
 void CPhysical::InjectHooks()
 {
     ReversibleHooks::Install("CPhysical", "RemoveAndAdd", 0x542560, &CPhysical::RemoveAndAdd);

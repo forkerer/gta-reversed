@@ -22,6 +22,9 @@ enum eCarDrivingStyle : char
 
 class  CAutoPilot {
 public:
+    CAutoPilot();
+
+public:
     CNodeAddress         m_currentAddress;
     CNodeAddress         m_startingRouteNode;
     CNodeAddress         m_endingRouteNode;
@@ -55,7 +58,19 @@ public:
     char field_48[1];
     char field_49;
     char field_4A;
-    unsigned char        m_nCarCtrlFlags;
+    union {
+        unsigned char  m_nCarCtrlFlags;
+        struct {
+            unsigned char bFlag1 : 1;
+            unsigned char bFlag2 : 1;
+            unsigned char bFlag3 : 1;
+            unsigned char bFlag4 : 1;
+            unsigned char bFlag5 : 1;
+            unsigned char bFlag6 : 1;
+            unsigned char bFlag7 : 1;
+            unsigned char bFlag8 : 1;
+        };
+    };
     char field_4C;
     char                 m_nStraightLineDistance;
     char field_4E;
