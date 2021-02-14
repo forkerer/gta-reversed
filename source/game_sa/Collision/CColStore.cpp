@@ -3,6 +3,9 @@
 CVector& CColStore::ms_vecCollisionNeeded = *(CVector*)0x965580;
 bool& CColStore::ms_bCollisionNeeded = *(bool*)0x965558;
 
+CPool<ColDef>* &CColStore::ms_pColPool = *(CPool<ColDef>**)0x965560;
+CQuadTreeNode* &CColStore::ms_pQuadTree = *(CQuadTreeNode**)0x96555C;
+
 std::int32_t CColStore::AddColSlot(const char* name)
 {
     return plugin::CallAndReturn<std::int32_t, 0x411140, const char*>(name);
@@ -16,6 +19,11 @@ void CColStore::AddCollisionNeededAtPosn(const CVector& pos)
     ms_vecCollisionNeeded = pos;
     ms_bCollisionNeeded = true;
 #endif
+}
+
+void CColStore::AddRef(int colNum)
+{
+    plugin::Call<0x4107A0, int>(colNum);
 }
 
 std::int32_t CColStore::FindColSlot()
@@ -41,4 +49,9 @@ void CColStore::LoadCollision(CVector point)
 void CColStore::RemoveCol(int colNum)
 {
     return plugin::Call<0x410730, int>(colNum);
+}
+
+void CColStore::RemoveRef(int colNum)
+{
+    plugin::Call<0x4107D0, int>(colNum);
 }

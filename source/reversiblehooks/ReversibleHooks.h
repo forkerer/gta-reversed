@@ -16,7 +16,7 @@ struct SHookContent {
     unsigned char possibleNops[52 - sizeof(jumpOpCode) - sizeof(jumpLocation)] = { 0 };
 };
 #pragma pack(pop)
-static_assert(sizeof(SHookContent) == 0x34, "Incorrect struct size: SHookContent");
+VALIDATE_SIZE(SHookContent, 0x34);
 
 struct SReversibleHook {
     bool m_bIsHooked = false;
@@ -60,9 +60,9 @@ public:
     }
 
     template <typename T>
-    static void Install(const std::string& sIdentifier, const std::string& sFuncName, DWORD installAddress, T addressToJumpTo, int iJmpCodeSize = 5) {
+    static void Install(const std::string& sIdentifier, const std::string& sFuncName, DWORD installAddress, T addressToJumpTo, bool bDisableByDefault = false, int iJmpCodeSize = 5) {
         auto ptr = FunctionPointerToVoidP(addressToJumpTo);
-        ReversibleHooks::GetInstance().HookInstall(sIdentifier, sFuncName, installAddress, ptr, iJmpCodeSize);
+        ReversibleHooks::GetInstance().HookInstall(sIdentifier, sFuncName, installAddress, ptr, iJmpCodeSize, bDisableByDefault);
     }
 
     template <typename T>
@@ -74,12 +74,12 @@ public:
     static void Switch(std::shared_ptr<SReversibleHook> pHook) {
         ReversibleHooks::GetInstance().HookSwitch(pHook);
     }
-    static std::unordered_map<std::string, std::vector<std::shared_ptr<SReversibleHook>>>& GetAllHooks() {
+    static std::map<std::string, std::vector<std::shared_ptr<SReversibleHook>>>& GetAllHooks() {
         return ReversibleHooks::GetInstance().m_HooksMap;
     }
 
 private:
-    void HookInstall(const std::string& sIdentifier, const std::string& sFuncName, unsigned int installAddress, void* addressToJumpTo, int iJmpCodeSize = 5);
+    void HookInstall(const std::string& sIdentifier, const std::string& sFuncName, unsigned int installAddress, void* addressToJumpTo, int iJmpCodeSize = 5, bool bDisableByDefault = false);
     void HookInstallVirtual(const std::string& sIdentifier, const std::string& sFuncName, void* libVTableAddress, const std::vector<uint32_t>& vecAddressesToHook);
     void HookSwitch(std::shared_ptr<SReversibleHook> pHook) const;
     bool IsFunctionHooked(const std::string& sIdentifier, const std::string& sFuncName);
@@ -91,7 +91,7 @@ public:
     static unsigned int GetFunctionLocationFromJMP(unsigned int dwJmpLoc, unsigned int dwJmpOffset);
 
 private:
-    std::unordered_map<std::string, std::vector<std::shared_ptr<SReversibleHook>>> m_HooksMap;
+    std::map<std::string, std::vector<std::shared_ptr<SReversibleHook>>> m_HooksMap;
     ReversibleHooks() = default;
     ReversibleHooks(ReversibleHooks const&) = delete;
     void operator=(ReversibleHooks const&) = delete;

@@ -13,10 +13,13 @@
 #include "CRect.h"
 #include "CColModel.h"
 #include "C2dEffect.h"
+#include "eModelID.h"
 
 class  CEntity : public CPlaceable {
 protected:
     CEntity(plugin::dummy_func_t) : CPlaceable(plugin::dummy) {}
+    CEntity();
+    ~CEntity() override;
 public:
     union {
         struct RwObject *m_pRwObject;
@@ -77,9 +80,9 @@ public:
     };
     unsigned short m_nModelIndex;
     CReference *m_pReferences;
-    void *m_pStreamingLink;
+    CLink<CEntity*> *m_pStreamingLink;
     unsigned short m_nScanCode;
-    char m_nIplIndex;
+    unsigned char m_nIplIndex;
     unsigned char m_nAreaCode; // see eAreaCodes
     union {
         int m_nLodIndex; // -1 - without LOD model
@@ -93,31 +96,50 @@ public:
     static void InjectHooks();
 
     // originally virtual functions
-    virtual void Add(CRect &rect);
-    virtual void Add(); // similar to previous, but with entity bound rect
-    virtual void Remove();
-    virtual void SetIsStatic(bool isStatic);
-    virtual void SetModelIndex(unsigned int index);
-    virtual void SetModelIndexNoCreate(unsigned int index);
-    virtual void CreateRwObject();
-    virtual void DeleteRwObject();
-    virtual CRect* GetBoundRect(CRect* pRect);
-    virtual void ProcessControl();
-    virtual void ProcessCollision();
-    virtual void ProcessShift();
-    virtual bool TestCollision(bool bApplySpeed);
-    virtual void Teleport(CVector destination, bool resetRotation);
-    virtual void SpecialEntityPreCollisionStuff(class CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck);
-    virtual unsigned char SpecialEntityCalcCollisionSteps(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2);
-    virtual void PreRender();
-    virtual void Render();
-    virtual bool SetupLighting();
-    virtual void RemoveLighting(bool bRemove);
-    virtual void FlagToDestroyWhenNextProcessed();
+    virtual void Add(); //VTab: 2, similar to previous, but with entity bound rect
+    virtual void Add(CRect const& rect); //VTab: 1
+    virtual void Remove(); //VTab: 3
+    virtual void SetIsStatic(bool isStatic); //VTab: 4
+    virtual void SetModelIndex(unsigned int index); //VTab: 5
+    virtual void SetModelIndexNoCreate(unsigned int index); //VTab: 6
+    virtual void CreateRwObject(); //VTab: 7
+    virtual void DeleteRwObject(); //VTab: 8
+    virtual CRect* GetBoundRect(CRect* pRect); //VTab: 9
+    virtual void ProcessControl(); //VTab: 10
+    virtual void ProcessCollision(); //VTab: 11
+    virtual void ProcessShift(); //VTab: 12
+    virtual bool TestCollision(bool bApplySpeed); //VTab: 13
+    virtual void Teleport(CVector destination, bool resetRotation); //VTab: 14
+    virtual void SpecialEntityPreCollisionStuff(class CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck); //VTab: 15
+    virtual unsigned char SpecialEntityCalcCollisionSteps(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2); //VTab: 16
+    virtual void PreRender(); //VTab: 17
+    virtual void Render(); //VTab: 18
+    virtual bool SetupLighting(); //VTab: 19
+    virtual void RemoveLighting(bool bRemove); //VTab: 20
+    virtual void FlagToDestroyWhenNextProcessed(); //VTab: 21
 
 private:
-    CRect* GetBoundRect_Reversed(CRect* pRect);
+    void Add_Reversed();
+    void Add_Reversed(CRect const& rect);
+    void Remove_Reversed();
+    void SetIsStatic_Reversed(bool isStatic);
+    void SetModelIndex_Reversed(unsigned int index);
     void SetModelIndexNoCreate_Reversed(unsigned int index);
+    void CreateRwObject_Reversed();
+    void DeleteRwObject_Reversed();
+    CRect* GetBoundRect_Reversed(CRect* pRect);
+    void ProcessControl_Reversed();
+    void ProcessCollision_Reversed();
+    void ProcessShift_Reversed();
+    bool TestCollision_Reversed(bool bApplySpeed);
+    void Teleport_Reversed(CVector destination, bool resetRotation);
+    void SpecialEntityPreCollisionStuff_Reversed(class CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck);
+    unsigned char SpecialEntityCalcCollisionSteps_Reversed(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2);
+    void PreRender_Reversed();
+    void Render_Reversed();
+    bool SetupLighting_Reversed();
+    void RemoveLighting_Reversed(bool bRemove);
+    void FlagToDestroyWhenNextProcessed_Reversed();
 
 public:
     // funcs
@@ -131,10 +153,10 @@ public:
     void ModifyMatrixForCrane();
     void PreRenderForGlassWindow();
     void SetRwObjectAlpha(int alpha);
-    CVector FindTriggerPointCoors(int triggerIndex);
-    C2dEffect* GetRandom2dEffect(int effectType, unsigned char arg1);
+    CVector* FindTriggerPointCoors(CVector* pOutVec, int triggerIndex);
+    C2dEffect* GetRandom2dEffect(int effectType, unsigned char bCheckForEmptySlot);
     CVector TransformFromObjectSpace(CVector const& offset);
-    void TransformFromObjectSpace(CVector& outPosn, CVector const& offset);
+    CVector* TransformFromObjectSpace(CVector& outPosn, CVector const& offset);
     void CreateEffects();
     void DestroyEffects();
     void AttachToRwObject(RwObject* object, bool updateEntityMatrix);
@@ -145,14 +167,14 @@ public:
     // is entity touching entity
     bool GetIsTouching(CEntity* entity);
     // is entity touching sphere
-    bool GetIsTouching(CVector* centre, float radius);
+    bool GetIsTouching(CVector const& centre, float radius);
     bool GetIsOnScreen();
     bool GetIsBoundingBoxOnScreen();
     void ModifyMatrixForTreeInWind();
     void ModifyMatrixForBannerInWind();
     RwMatrix* GetModellingMatrix();
     CColModel* GetColModel();
-    void CalculateBBProjection(CVector* arg0, CVector* arg1, CVector* arg2, CVector* arg3);
+    void CalculateBBProjection(CVector* pVecCorner1, CVector* pVecCorner2, CVector* pVecCorner3, CVector* pVecCorner4);
     void UpdateAnim();
     bool IsVisible();
     float GetDistanceFromCentreOfMassToBaseOfModel();
@@ -166,20 +188,30 @@ public:
     bool IsCurrentAreaOrBarberShopInterior();
     void UpdateRW();
 
-    inline bool IsPhysical()
+public:
+    //Rw callbacks
+    static RpAtomic* SetAtomicAlphaCB(RpAtomic* pAtomic, void* pData);
+    static RpMaterial* SetMaterialAlphaCB(RpMaterial* pMaterial, void* pData);
+
+
+    inline bool IsPhysical() const
     {
-        return m_nType == eEntityType::ENTITY_TYPE_VEHICLE ||
-               m_nType == eEntityType::ENTITY_TYPE_PED ||
-               m_nType == eEntityType::ENTITY_TYPE_OBJECT;
+        return m_nType > eEntityType::ENTITY_TYPE_BUILDING && m_nType < eEntityType::ENTITY_TYPE_DUMMY;
     }
-    bool IsVehicle() { return m_nType == ENTITY_TYPE_VEHICLE; }
-    bool IsPed() { return m_nType == ENTITY_TYPE_PED; }
-    bool IsObject() { return m_nType == ENTITY_TYPE_OBJECT; }
-    bool IsBuilding() { return m_nType == ENTITY_TYPE_BUILDING; }
-    bool IsDummy() { return m_nType == ENTITY_TYPE_DUMMY; }
+    inline bool IsNothing() const { return m_nType == ENTITY_TYPE_NOTHING; }
+    inline bool IsVehicle() const { return m_nType == ENTITY_TYPE_VEHICLE; }
+    inline bool IsPed() const { return m_nType == ENTITY_TYPE_PED; }
+    inline bool IsObject() const { return m_nType == ENTITY_TYPE_OBJECT; }
+    inline bool IsBuilding() const { return m_nType == ENTITY_TYPE_BUILDING; }
+    inline bool IsDummy() const { return m_nType == ENTITY_TYPE_DUMMY; }
+    inline bool IsModelTempCollision() const
+    {
+        return m_nModelIndex >= eModelID::MODEL_TEMPCOL_DOOR1 && m_nModelIndex <= eModelID::MODEL_TEMPCOL_BODYPART2;
+    }
+    inline bool IsStatic() const { return m_bIsStatic || m_bIsStaticWaitingForCollision; }
 };
 
 VALIDATE_SIZE(CEntity, 0x38);
 
- bool IsEntityPointerValid(CEntity* entity);
- struct RpMaterial* MaterialUpdateUVAnimCB(struct RpMaterial* material, void* data);
+bool IsEntityPointerValid(CEntity* entity);
+RpMaterial* MaterialUpdateUVAnimCB(RpMaterial* material, void* data);

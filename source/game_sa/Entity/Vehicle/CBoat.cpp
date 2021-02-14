@@ -1,12 +1,15 @@
 #include "StdInc.h"
 
-CBoat** CBoat::apFrameWakeGeneratingBoats = (CBoat**)0xC27994; // static CBoat *apFrameWakeGeneratingBoats[4]
+CBoat* (&CBoat::apFrameWakeGeneratingBoats)[NUM_WAKE_GEN_BOATS] = *(CBoat*(*)[NUM_WAKE_GEN_BOATS])0xC27994;
 float& CBoat::MAX_WAKE_LENGTH = *(float*)0x8D3938; // 50.0
 float& CBoat::MIN_WAKE_INTERVAL = *(float*)0x8D393C; // 2.0
 float& CBoat::WAKE_LIFETIME = *(float*)0x8D3940; // 150.0
 float& CBoat::fShapeLength = *(float*)0x8D3944; // 0.4
 float& CBoat::fShapeTime = *(float*)0x8D3948; // 0.05
 float& CBoat::fRangeMult = *(float*)0x8D394C; // 0.6
+
+short* CBoat::waUnknArr = (short*)0xC279A4;
+short* CBoat::waUnknArr2 = (short*)0xC279AC;
 
 RxObjSpace3DVertex* CBoat::aRenderVertices = (RxObjSpace3DVertex*)0xC278F8;
 RxVertexIndex* CBoat::auRenderIndices = (RxVertexIndex*)0xC27988;
@@ -34,6 +37,9 @@ void CBoat::InjectHooks()
 
     //Other
     ReversibleHooks::Install("CBoat", "FillBoatList", 0x6F2710, &CBoat::FillBoatList);
+    ReversibleHooks::Install("CBoat", "IsSectorAffectedByWake", 0x6F0E80, &CBoat::IsSectorAffectedByWake);
+    ReversibleHooks::Install("CBoat", "IsVertexAffectedByWake", 0x6F0F50, &CBoat::IsVertexAffectedByWake);
+    ReversibleHooks::Install("CBoat", "CheckForSkippingCalculations", 0x6F10C0, &CBoat::CheckForSkippingCalculations);
     ReversibleHooks::Install("CBoat", "GetBoatAtomicObjectCB", 0x6F00D0, &GetBoatAtomicObjectCB);
 }
 
@@ -42,8 +48,8 @@ CBoat::CBoat(int modelIndex, unsigned char createdBy) : CVehicle(createdBy)
     memset(&m_boatFlap, 0, sizeof(m_boatFlap));
     auto pModelInfo = reinterpret_cast<CVehicleModelInfo*>(CModelInfo::GetModelInfo(modelIndex));
     auto iHandlingId = pModelInfo->m_nHandlingId;
-    m_nVehicleSubClass = eVehicleType::VEHICLE_BOAT;
-    m_nVehicleClass = eVehicleType::VEHICLE_BOAT;
+    m_vehicleSubType = eVehicleType::VEHICLE_BOAT;
+    m_vehicleType = eVehicleType::VEHICLE_BOAT;
     m_vecBoatMoveForce.Set(0.0F, 0.0F, 0.0F);
     m_vecBoatTurnForce.Set(0.0F, 0.0F, 0.0F);
     m_nPadNumber = 0;
@@ -62,15 +68,15 @@ CBoat::CBoat(int modelIndex, unsigned char createdBy) : CVehicle(createdBy)
     pModelInfo->ChooseVehicleColour(m_nPrimaryColor, m_nSecondaryColor, m_nTertiaryColor, m_nQuaternaryColor, 1);
 
     m_fMass = m_pHandlingData->m_fMass;
-    m_fTurnMass = m_pHandlingData->m_fTurnMass * 0.5;
+    m_fTurnMass = m_pHandlingData->m_fTurnMass * 0.5F;
     m_vecCentreOfMass = m_pHandlingData->m_vecCentreOfMass;
-    m_fElasticity = 0.1;
+    m_fElasticity = 0.1F;
     m_fBuoyancyConstant = m_pHandlingData->m_fBuoyancyConstant;
 
     if (m_pHandlingData->m_fDragMult <= 0.01F)
         m_fAirResistance = m_pHandlingData->m_fDragMult;
     else
-        m_fAirResistance = m_pHandlingData->m_fDragMult / 1000.0 * 0.5;
+        m_fAirResistance = m_pHandlingData->m_fDragMult / 1000.0F * 0.5F;
 
     physicalFlags.bTouchingWater = true;
     physicalFlags.bSubmergedInWater = true;
@@ -83,7 +89,7 @@ CBoat::CBoat(int modelIndex, unsigned char createdBy) : CVehicle(createdBy)
     m_fBreakPedal = 0.0;
     m_fRawSteerAngle = 0.0;
     field_63C = 0;
-    m_fLastWaterImmersionDepth = 7.0;
+    m_fLastWaterImmersionDepth = 7.0F;
     field_604 = 0;
 
     m_fAnchoredAngle = -9999.99F;
@@ -110,6 +116,24 @@ CBoat::CBoat(int modelIndex, unsigned char createdBy) : CVehicle(createdBy)
     m_vehicleAudio.Initialise(this);
     for (size_t i = 0; i <= 1; ++i)
         m_apPropSplashFx[i] = nullptr;
+}
+
+CBoat::~CBoat()
+{
+    if (m_pFireParticle) {
+        m_pFireParticle->Kill();
+        m_pFireParticle = nullptr;
+    }
+
+    for (auto& pSplashPart : m_apPropSplashFx) {
+        if (!pSplashPart)
+            continue;
+
+        pSplashPart->Kill();
+        pSplashPart = nullptr;
+    }
+
+    m_vehicleAudio.Terminate();
 }
 
 void CBoat::SetModelIndex(unsigned int index)
@@ -189,9 +213,9 @@ void CBoat::PrintThrustAndRudderInfo()
 
 void CBoat::ModifyHandlingValue(bool const& bIncrement)
 {
-    auto fChange = -1.0;
+    auto fChange = -1.0F;
     if (bIncrement)
-        fChange = 1.0;
+        fChange = 1.0F;
 
     if (field_63C == 4)
         m_pHandlingData->m_fSteeringLock += fChange;
@@ -221,11 +245,11 @@ void CBoat::PruneWakeTrail()
 
 void CBoat::AddWakePoint(CVector posn)
 {
-    auto fIntensity = m_vecMoveSpeed.Magnitude() * 100.0F;
+    auto ucIntensity = static_cast<unsigned char>(m_vecMoveSpeed.Magnitude() * 100.0F);
 
     // No wake points exisiting, early out
     if (m_afWakePointLifeTime[0] < 0.0F) {
-        m_anWakePointIntensity[0] = fIntensity;
+        m_anWakePointIntensity[0] = ucIntensity;
         m_avecWakePoints[0].Set(posn.x, posn.y);
         m_afWakePointLifeTime[0] = CBoat::WAKE_LIFETIME;
 
@@ -254,16 +278,100 @@ void CBoat::AddWakePoint(CVector posn)
         }
     }
 
-    m_anWakePointIntensity[0] = fIntensity;
+    m_anWakePointIntensity[0] = ucIntensity;
     m_avecWakePoints[0].Set(posn.x, posn.y);
     m_afWakePointLifeTime[0] = CBoat::WAKE_LIFETIME;
     if (m_nNumWaterTrailPoints < 32)
         ++m_nNumWaterTrailPoints;
 }
 
+bool CBoat::IsSectorAffectedByWake(CVector2D vecPos, float fOffset, CBoat** ppBoats)
+{
+    if (!CBoat::apFrameWakeGeneratingBoats[0])
+        return false;
+
+    bool bWakeFound = false;
+    for (int32_t i = 0; i < NUM_WAKE_GEN_BOATS; ++i) {
+        auto pBoat = CBoat::apFrameWakeGeneratingBoats[i];
+        if (!pBoat)
+            continue;
+
+        if (!pBoat->m_nNumWaterTrailPoints)
+            continue;
+
+        for (int32_t iTrail = 0; iTrail < pBoat->m_nNumWaterTrailPoints; ++iTrail) {
+            auto fDist = (CBoat::WAKE_LIFETIME - pBoat->m_afWakePointLifeTime[iTrail]) * CBoat::fShapeTime + static_cast<float>(iTrail) * CBoat::fShapeLength + fOffset;
+            if (fabs(pBoat->m_avecWakePoints[iTrail].x - vecPos.x) >= fDist
+                || fabs(pBoat->m_avecWakePoints[iTrail].y - vecPos.y) >= fDist)
+                continue;
+
+            ppBoats[bWakeFound] = pBoat;
+            bWakeFound = true;
+            break;
+        }
+    }
+
+    return bWakeFound;
+}
+
+float CBoat::IsVertexAffectedByWake(CVector vecPos, CBoat* pBoat, short wIndex, bool bUnkn)
+{
+    if (bUnkn) {
+        CBoat::waUnknArr[wIndex] = 0;
+        CBoat::waUnknArr2[wIndex] = 8;
+    }
+    else if (CBoat::waUnknArr[wIndex] > 0)
+        return 0.0F;
+
+    if (!pBoat->m_nNumWaterTrailPoints)
+        return 0.0F;
+
+    for (int32_t iTrail = 0; iTrail < pBoat->m_nNumWaterTrailPoints; ++iTrail) {
+        auto fWakeDistSquared = powf((CBoat::WAKE_LIFETIME - pBoat->m_afWakePointLifeTime[iTrail]) * CBoat::fShapeTime + static_cast<float>(iTrail) * CBoat::fShapeLength, 2);
+        auto fTrailDistSquared = (pBoat->m_avecWakePoints[iTrail] - vecPos).SquaredMagnitude();
+        if (fTrailDistSquared < fWakeDistSquared)
+        {
+            CBoat::waUnknArr2[wIndex] = 0;
+            float fContrib = sqrtf(fTrailDistSquared / fWakeDistSquared) * CBoat::fRangeMult + (CBoat::WAKE_LIFETIME - pBoat->m_afWakePointLifeTime[iTrail]) * 1.2F / CBoat::WAKE_LIFETIME;
+            fContrib = std::min(1.0F, fContrib);
+            return 1.0F - fContrib;
+        }
+
+        auto fDistDiff = fTrailDistSquared - fWakeDistSquared;
+        if (fDistDiff > 20.0F) {
+            if (CBoat::waUnknArr2[wIndex] > 3)
+                CBoat::waUnknArr2[wIndex] = 3;
+        }
+        else if (fDistDiff > 10.0F) {
+            if (CBoat::waUnknArr2[wIndex] > 2)
+                CBoat::waUnknArr2[wIndex] = 2;
+        }
+    }
+
+    return 0.0F;
+}
+
+void CBoat::CheckForSkippingCalculations()
+{
+    for (size_t ind = 0; ind < 4; ++ind) {
+        auto iVal = CBoat::waUnknArr2[ind];
+        if (iVal <= 0 || iVal >= 8) {
+            if (CBoat::waUnknArr[ind] <= 0) {
+                CBoat::waUnknArr2[ind] = 8;
+                continue;
+            }
+            CBoat::waUnknArr[ind] = iVal - 1;
+        }
+        else if (iVal <= CBoat::waUnknArr[ind] - 1)
+            --CBoat::waUnknArr[ind];
+
+        CBoat::waUnknArr2[ind] = 8;
+    }
+}
+
 void CBoat::FillBoatList()
 {
-    for (int32_t i = 0; i <= 3; i++)
+    for (int32_t i = 0; i < NUM_WAKE_GEN_BOATS; i++)
         CBoat::apFrameWakeGeneratingBoats[i] = nullptr;
 
     auto vecCamPos = CVector2D(TheCamera.GetPosition());
@@ -303,10 +411,9 @@ void CBoat::FillBoatList()
         }
 
         // Insert the new boat into list, based on dist from camera
-        // It replaces the boat closes to the camera with new one, and common sense would suggest that it should replace furthest one, maybe bug?
         auto iNewInd = -1;
         auto fMinDist = 999999.99F;
-        for (int32_t iCheckedInd = 0; iCheckedInd <= 3; ++iCheckedInd) {
+        for (int32_t iCheckedInd = 0; iCheckedInd < NUM_WAKE_GEN_BOATS; ++iCheckedInd) {
             auto pCheckedBoat = CBoat::apFrameWakeGeneratingBoats[iCheckedInd];
             auto vecCheckedPos = CVector2D(pCheckedBoat->GetPosition());
             auto fCheckedDistFromCam = DistanceBetweenPoints(vecCheckedPos, vecCamPos); // Originally squared dist
@@ -600,9 +707,7 @@ void CBoat::PreRender_Reversed()
     constexpr eBoatNodes aCheckedNodes[2] = { eBoatNodes::BOAT_STATIC_PROP, eBoatNodes::BOAT_STATIC_PROP_2 };
     for (const auto eNode : aCheckedNodes) {
         auto pProp = m_aBoatNodes[eNode];
-        RwMatrix* pSplashMat = nullptr;
-        if (m_pRwClump) 
-            pSplashMat = RwFrameGetMatrix(RpClumpGetFrame(m_pRwClump));
+        RwMatrix* pSplashMat = CEntity::GetModellingMatrix();
 
         auto pSplashFx = m_apPropSplashFx[iCounter];
         if (!pSplashFx && pSplashMat && pProp) {
@@ -787,7 +892,7 @@ void CBoat::ProcessControlInputs_Reversed(unsigned char ucPadNum)
         m_nPadNumber = 3;
 
     auto pPad = CPad::GetPad(ucPadNum);
-    float fBrakePower = (static_cast<float>(pPad->GetBrake()) * (1.0F / 255.0F) - m_fBreakPedal) * 0.1 + m_fBreakPedal;
+    float fBrakePower = (static_cast<float>(pPad->GetBrake()) * (1.0F / 255.0F) - m_fBreakPedal) * 0.1F + m_fBreakPedal;
     fBrakePower = clamp(fBrakePower, 0.0F, 1.0F);
     m_fBreakPedal = fBrakePower;
 
@@ -865,11 +970,10 @@ void CBoat::BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion)
     if (!pMovingCompAtomic)
         return;
 
-    auto pObject = reinterpret_cast<CObject*>(CObject::operator new(sizeof(CObject)));
+    auto pObject = new CObject();
     if (!pObject)
         return;
 
-    pObject->Constructor();
     pObject->SetModelIndexNoCreate(379);
     pObject->RefModelInfo(m_nModelIndex);
 
@@ -879,7 +983,7 @@ void CBoat::BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion)
     memcpy(RwFrameGetMatrix(pNewRwFrame), pMovingCompMatrix, sizeof(RwMatrix));
     RpAtomicSetFrame(pMovingCompAtomicClone, pNewRwFrame);
     CVisibilityPlugins::SetAtomicRenderCallback(pMovingCompAtomicClone, nullptr);
-    pObject->AttachToRwObject(&pMovingCompAtomicClone->object.object, true);
+    pObject->AttachToRwObject((RwObject*)pMovingCompAtomicClone, true);
 
     ++CObject::nNoTempObjects;
     pObject->m_bDontStream = true;
@@ -888,7 +992,7 @@ void CBoat::BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion)
     pObject->m_fAirResistance = 0.99F;
     pObject->m_fElasticity = 0.1F;
     pObject->m_fBuoyancyConstant = 8.0F / 75.0F;
-    pObject->m_nObjectType = eObjectCreatedBy::OBJECT_TEMPORARY;
+    pObject->m_nObjectType = eObjectType::OBJECT_TEMPORARY;
     pObject->SetIsStatic(false);
     pObject->objectFlags.bIsPickup = false;
     pObject->m_dwRemovalTime = CTimer::m_snTimeInMilliseconds + 20000;
@@ -918,7 +1022,7 @@ void CBoat::BlowUpCar_Reversed(CEntity* damager, unsigned char bHideExplosion)
 RwObject* GetBoatAtomicObjectCB(RwObject* object, void* data)
 {
     if (RpAtomicGetFlags(object) & rpATOMICRENDER)
-        *reinterpret_cast<RpAtomic**>(data) = reinterpret_cast<RpAtomic*>(object);
+        *static_cast<RpAtomic**>(data) = reinterpret_cast<RpAtomic*>(object);
 
     return object;
 }

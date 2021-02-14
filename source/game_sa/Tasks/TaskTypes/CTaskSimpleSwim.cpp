@@ -282,8 +282,7 @@ void CTaskSimpleSwim::ApplyRollAndPitch(CPed* pPed)
     RwObject* pRwObject = pPed->m_pRwObject;
     if (pRwObject)
     {
-        RwFrame* frame = reinterpret_cast<RwFrame*>(rwObjectGetParent(pPed->m_pRwObject));
-        CMatrix pedMatrix(RwFrameGetMatrix(frame), 0);
+        CMatrix pedMatrix(pPed->GetModellingMatrix(), 0);
         CMatrix rotationMatrix;
         rotationMatrix.SetTranslate(CVector(0.0f, 0.0f, 0.0f));
         rotationMatrix.RotateY(m_fTurningRotationY);
@@ -757,18 +756,7 @@ void CTaskSimpleSwim::ProcessEffects(CPed* pPed)
 #ifdef USE_DEFAULT_FUNCTIONS
     plugin::CallMethod<0x68AA70, CTaskSimpleSwim*, CPed*>(this, pPed);
 #else
-    CVector vecParticlePosition;
-    if (pPed->m_matrix) {
-        vecParticlePosition = pPed->GetForward();
-    }
-    else
-    {
-        float fHeading = pPed->m_placement.m_fHeading;
-        vecParticlePosition.x = -sin(fHeading);
-        vecParticlePosition.y = cos(fHeading);
-        vecParticlePosition.z = 0.0f;
-    }
-
+    CVector vecParticlePosition = pPed->GetForwardVector();
     vecParticlePosition *= 0.4f;
     vecParticlePosition += pPed->GetPosition();
 
@@ -1366,7 +1354,7 @@ void CTaskSimpleSwim::ProcessControlInput(CPlayerPed* pPed)
                 }
                 else
                 {
-                    fUpperTorsoRotationX = 1.0;
+                    fUpperTorsoRotationX = 1.0f;
                 }
 
                 m_fUpperTorsoRotationX += CTimer::ms_fTimeStep * -0.079999998f * fUpperTorsoRotationX;
@@ -1374,23 +1362,10 @@ void CTaskSimpleSwim::ProcessControlInput(CPlayerPed* pPed)
         }
 
         m_fRotationX += CTimer::ms_fTimeStep * 0.001f;
-
-        if (m_fRotationX > DegreesToRadians(80.0f) || m_fRotationX >= -DegreesToRadians(80.0f))
-        {
-            if (m_fRotationX > DegreesToRadians(80.0f))
-            {
-                m_fRotationX = DegreesToRadians(80.0f);
-            }
-        }
-        else
-        {
-            m_fRotationX = -DegreesToRadians(80.0f);
-        }
-
+        m_fRotationX = clamp<float>(m_fRotationX, -DegreesToRadians(80.0f), DegreesToRadians(80.0f));
+        // BUG: it should be m_fTimeCanRun <= 0.1f
         if (pPed->m_pPlayerData->m_fTimeCanRun <= 0.0f)
-        {
             pPed->m_pPlayerData->m_fTimeCanRun = 0.1f;
-        }
         pPed->ControlButtonSprint(static_cast<eSprintType>(3));
         break;
     }
@@ -1472,7 +1447,7 @@ void CTaskSimpleSwim::DestroyFxSystem()
     if (m_pFxSystem)
     {
         m_pFxSystem->Kill();
-        m_pFxSystem = 0;
+        m_pFxSystem = nullptr;
     }
 #endif
 }

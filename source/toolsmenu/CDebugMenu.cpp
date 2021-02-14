@@ -82,6 +82,9 @@ void CDebugMenu::ImguiInputUpdate() {
     if (!m_showMenu)
         return;
 
+    // Update display size, in case of window resize after imgui was already initialized
+    io->DisplaySize = ImVec2((float)RsGlobal.maximumWidth, (float)RsGlobal.maximumHeight);
+
     // Partially taken from https://github.com/Juarez12/re3/blob/f1a7aeaa0f574813ed3cec8a085e2f310aa3a366/src/imgui/ImGuiIII.cpp
 
     static BYTE KeyStates[256];
@@ -648,18 +651,25 @@ void CDebugMenu::ProcessHooksTool()
             ImGui::AlignTextToFramePadding();
             bool treeOpen = ImGui::TreeNodeEx(classHooks.first.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap);
             ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 40);
+
+            std::string disabledStr = classHooks.first + "_disabled";
+            ImGui::PushID(disabledStr.c_str());
             if (ImGui::Button("-")) {
                 for (auto& hook : classHooks.second)
                     hook->m_bImguiHooked = false;
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Disable all");
+            ImGui::PopID();
 
             ImGui::SameLine();
+            std::string enableStr = classHooks.first + "_enabled";
+            ImGui::PushID(enableStr.c_str());
             if (ImGui::Button("+")) {
                 for (auto& hook : classHooks.second)
                     hook->m_bImguiHooked = true;
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable all");
+            ImGui::PopID();
 
             for (auto& hook : classHooks.second)
                 if (hook->m_bIsHooked != hook->m_bImguiHooked)

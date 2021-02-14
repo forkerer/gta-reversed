@@ -131,7 +131,7 @@ class CVehicle;
 
 class  CPed : public CPhysical {
 protected:
-    CPed(plugin::dummy_func_t) : CPhysical(plugin::dummy), m_aWeapons{ plugin::dummy, plugin::dummy, plugin::dummy,
+    CPed(plugin::dummy_func_t) : CPhysical(), m_aWeapons{ plugin::dummy, plugin::dummy, plugin::dummy,
         plugin::dummy, plugin::dummy, plugin::dummy, plugin::dummy, plugin::dummy, plugin::dummy, plugin::dummy,
         plugin::dummy, plugin::dummy, plugin::dummy } {}
 public:
@@ -421,7 +421,7 @@ public:
     void SetGunFlashAlpha(bool rightHand);
     void ResetGunFlashAlpha();
     float GetBikeRidingSkill();
-    void ShoulderBoneRotation(RpClump* clump);
+    static void ShoulderBoneRotation(RpClump* clump);
     void SetLookTimer(unsigned int time);
     bool IsPlayer();
     void SetPedPositionInCar();
@@ -531,7 +531,6 @@ public:
     inline CEventHandler& GetEventHandler() { return m_pIntelligence->m_eventHandler; }
     inline CEventHandlerHistory& GetEventHandlerHistory() { return m_pIntelligence->m_eventHandler.m_history; }
     inline CWeapon& GetActiveWeapon() { return m_aWeapons[m_nActiveWeaponSlot]; }
-    inline RwMatrixTag* GetRwMatrix() { return m_pRwClump ? RwFrameGetMatrix(RpClumpGetFrame(m_pRwClump)) : nullptr; }
 
     static void* operator new(unsigned int size);
     static void operator delete(void* data);

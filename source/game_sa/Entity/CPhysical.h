@@ -13,7 +13,7 @@
 #include "CRealTimeShadow.h"
 #include "CRepeatSector.h"
 #include "eWeaponType.h"
-#include "CEntryInfoNode.h"
+#include "CEntryInfoList.h"
 
 enum ePhysicalFlags
 {
@@ -64,11 +64,11 @@ enum eEntityAltCollision : unsigned short
 };
 
 class CPhysical : public CEntity {
-protected:
-    CPhysical(plugin::dummy_func_t) : CEntity(plugin::dummy) {}
-    CPhysical();
 public:
-    int field_38;
+    CPhysical();
+    ~CPhysical() override;
+public:
+    float field_38;
     unsigned int m_nLastCollisionTime;
     union
     {
@@ -87,7 +87,7 @@ public:
             unsigned int bOnSolidSurface : 1;
             unsigned int bBroken : 1;
             unsigned int bProcessCollisionEvenIfStationary : 1; // ref @ 0x6F5CF0
-            unsigned int b13 : 1;
+            unsigned int b13 : 1; // only used for peds
             unsigned int bDontApplySpeed : 1;
             unsigned int b15 : 1;
             unsigned int bProcessingShift : 1;
@@ -125,9 +125,9 @@ public:
     float            m_fElasticity;
     float            m_fBuoyancyConstant;
     CVector          m_vecCentreOfMass;
-    CEntryInfoNode*  m_pCollisionList;
+    CEntryInfoList   m_pCollisionList;
     CPtrNodeDoubleLink* m_pMovingList;
-    unsigned char    m_bFakePhysics;
+    unsigned char    m_nFakePhysics;
     unsigned char    m_nNumEntitiesCollided;
     unsigned char    m_nContactSurface;
     char field_BB;
@@ -189,7 +189,7 @@ public:
     void ApplyMoveForce(CVector force);
     void ApplyTurnForce(CVector force, CVector point);
     void ApplyForce(CVector vecMoveSpeed, CVector point, bool bUpdateTurnSpeed);
-    CVector* GetSpeed(CVector* outSpeed, CVector point);
+    CVector GetSpeed( CVector point);
     void ApplyMoveSpeed();
     void ApplyTurnSpeed();
     void ApplyGravity();
@@ -233,6 +233,14 @@ public:
     bool CheckCollision_SimpleCar();
 
     void ResetMoveSpeed() { m_vecMoveSpeed = CVector(); }
+    void ResetTurnSpeed() { m_vecTurnSpeed = CVector(); }
+    void ResetFrictionMoveSpeed() { m_vecFrictionMoveSpeed = CVector(); }
+    void ResetFrictionTurnSpeed() { m_vecFrictionTurnSpeed = CVector(); }
+
+    float GetMass(const CVector& pos, const CVector& dir) {
+        return 1.0f / (CrossProduct(pos, dir).SquaredMagnitude() / m_fTurnMass +
+            1.0f / m_fMass);
+    }
 };
 
 VALIDATE_SIZE(CPhysical, 0x138);

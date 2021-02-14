@@ -281,6 +281,7 @@ void RwTexDictionarySetFreeListCreateParams(RwInt32 blockSize, RwInt32 numBlocks
 RwTexDictionary* RwTexDictionaryCreate(void); // 0x7F3600
 RwBool RwTexDictionaryDestroy(RwTexDictionary* dict); // 0x7F36A0
 RwTexture* RwTextureCreate(RwRaster* raster); // 0x7F37C0
+RwTexture* RwTextureRead(char const* name, char const* maskName); // 0x7F3AC0
 RwBool RwTextureDestroy(RwTexture* texture); // 0x7F3820
 RwTexture* RwTextureSetRaster(RwTexture* texture, RwRaster* raster); // 0x7F35D0
 RwTexture* RwTexDictionaryAddTexture(RwTexDictionary* dict, RwTexture* texture); // 0x7F3980
@@ -835,6 +836,7 @@ RpMaterial* RpMaterialUVAnimSetInterpolator(RpMaterial* material, RpUVAnimInterp
 RpMaterial* RpMaterialUVAnimSetCurrentTime(RpMaterial* material, RwReal time); // 0x7CC470
 RpMaterial* RpMaterialUVAnimAddAnimTime(RpMaterial* material, RwReal deltaTime); // 0x7CC4B0
 RpMaterial* RpMaterialUVAnimSubAnimTime(RpMaterial* material, RwReal deltaTime); // 0x7CC4F0
+RpMaterial* RpMaterialUVAnimApplyUpdate(RpMaterial* material); // 0x7CC110  
 RwBool RpMaterialUVAnimExists(const RpMaterial* material); // 0x7CC530
 
 /* rpskin.h */
@@ -848,7 +850,7 @@ RpSkin* RpSkinGeometryGetSkin(RpGeometry* geometry); // 0x7C7550
 RpSkin* RpSkinCreate(RwUInt32 numVertices, RwUInt32 numBones, RwMatrixWeights* vertexWeights, RwUInt32* vertexIndices, RwMatrix* inverseMatrices); // 0x7C75B0
 RpSkin* RpSkinDestroy(RpSkin* skin); // 0x7C77A0
 RwUInt32 RpSkinGetNumBones(RpSkin* skin); // 0x7C77E0
-const RwMatrixWeights* RpSkinGetVertexBoneWeights(RpSkin* skin); // 0x7C77F0
+RwMatrixWeights* RpSkinGetVertexBoneWeights(RpSkin* skin); // 0x7C77F0
 const RwUInt32* RpSkinGetVertexBoneIndices(RpSkin* skin); // 0x7C7800
 const RwMatrix* RpSkinGetSkinToBoneMatrices(RpSkin* skin); // 0x7C7810
 RwBool RpSkinIsSplit(RpSkin* skin); // 0x7C7820

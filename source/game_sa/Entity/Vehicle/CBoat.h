@@ -29,6 +29,8 @@ enum eBoatNodes {
 class CBoat : public CVehicle {
 protected:
     CBoat(plugin::dummy_func_t) : CVehicle(plugin::dummy) {}
+    CBoat(int modelIndex, unsigned char createdBy);
+    ~CBoat();
 public:
     float              m_fMovingHiRotation; // works as counter also
     float              m_fPropSpeed; // propeller speed
@@ -67,13 +69,17 @@ public:
     float              m_afWakePointLifeTime[32];
     unsigned char      m_anWakePointIntensity[32]; // m_anWakePointIntensity[i] = boat->m_vecMoveForce.Magnitude() * 100.0f;
 
-    static CBoat** apFrameWakeGeneratingBoats; // static CBoat *apFrameWakeGeneratingBoats[4]
+    static constexpr int32_t NUM_WAKE_GEN_BOATS = 4;
+    static CBoat*(&apFrameWakeGeneratingBoats)[NUM_WAKE_GEN_BOATS]; // static CBoat *apFrameWakeGeneratingBoats[4]
     static float& MAX_WAKE_LENGTH; // 50.0
     static float& MIN_WAKE_INTERVAL; // 2.0
     static float& WAKE_LIFETIME; // 150.0
     static float& fShapeLength; // 0.4
     static float& fShapeTime; // 0.05
     static float& fRangeMult; // 0.6
+
+    static short* waUnknArr;  // static CBoat::waUnknArr[4]
+    static short* waUnknArr2; // static CBoat::waUnknArr2[4]
 
     static const constexpr uint32_t uiNumVertices = 4;
     static RxObjSpace3DVertex* aRenderVertices;
@@ -83,7 +89,6 @@ public:
 
     static void InjectHooks();
     //funcs
-    CBoat(int modelIndex, unsigned char createdBy);
 
     // Virtual methods
     void SetModelIndex(unsigned int index) override;
@@ -117,8 +122,8 @@ public:
     void PruneWakeTrail();
     void AddWakePoint(CVector posn);
 
-    static bool IsSectorAffectedByWake(CVector2D arg0, float arg1, CBoat** arg2);
-    static float IsVertexAffectedByWake(CVector arg0, CBoat* arg1, short arg2, bool arg3);
+    static bool IsSectorAffectedByWake(CVector2D vecPos, float fOffset, CBoat** ppBoats);
+    static float IsVertexAffectedByWake(CVector vecPos, CBoat* pBoat, short wIndex, bool bUnkn);
     static void CheckForSkippingCalculations();
     static void FillBoatList();
 };

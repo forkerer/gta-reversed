@@ -21,6 +21,9 @@ public:
     ~CColModel();
     CColModel& operator=(CColModel const& colModel);
 
+public:
+    static void InjectHooks();
+
     void MakeMultipleAlloc();
     void AllocateData();
     void AllocateData(int numSpheres, int numBoxes, int numLines, int numVertices, int numTriangles, bool disks);
@@ -30,6 +33,7 @@ public:
     void RemoveTrianglePlanes();
     inline float GetBoundRadius() { return m_boundSphere.m_fRadius; }
     inline CVector& GetBoundCenter() { return m_boundSphere.m_vecCenter; }
+    inline CBoundingBox& GetBoundingBox() { return m_boundBox; }
 
     static void* operator new(unsigned int size);
     static void operator delete(void* data);

@@ -7,13 +7,18 @@ Do not delete this comment block. Respect others' work!
 
 #include "StdInc.h"
 
-CPathFind &ThePaths = **(CPathFind **)(0x40CA27);
+CPathFind &ThePaths = *(CPathFind *)(0x96F050);
 
 CVector CPathNode::GetNodeCoors()
 {
     CVector result;
     ((void(__thiscall *)(CPathNode *, CVector *))0x420A10)(this, &result);
     return result;
+}
+
+void CPathFind::Init()
+{
+    plugin::CallMethod<0x44D080, CPathFind*>(this);
 }
 
 bool CPathFind::TestCrossesRoad(CNodeAddress startNodeAddress, CNodeAddress targetNodeAddress)
@@ -51,6 +56,11 @@ void CPathFind::DoPathSearch(unsigned char pathType, CVector origin, CNodeAddres
             this, pathType, origin, originAddr, target, pResultNodes, pNodesCount, maxNodesToFind, pDistance,
             maxSearchDistance, targetAddr, maxUnkLimit, oneSideOnly, forbiddenNodeAddr, includeNodesWithoutLinks,
             waterPath);
+}
+
+void CPathFind::SetLinksBridgeLights(float fXMin, float fXMax, float fYMin, float fYMax, bool bTrainCrossing)
+{
+    return plugin::CallMethod<0x44D960, CPathFind*, float, float, float, float, bool>(this, fXMin, fXMax, fYMin, fYMax, bTrainCrossing);
 }
 
 CPathNode *CPathFind::GetPathNode(CNodeAddress address)

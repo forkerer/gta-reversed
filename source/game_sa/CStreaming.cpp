@@ -152,7 +152,7 @@ void CStreaming::InjectHooks()
     HookInstall(0x407F80, &CStreaming::WeAreTryingToPhaseVehicleOut);
 }
 
-void* CStreaming::AddEntity(CEntity* pEntity) {
+CLink<CEntity*>* CStreaming::AddEntity(CEntity* pEntity) {
 #ifdef USE_DEFAULT_FUNCTIONS
     return plugin::CallAndReturnDynGlobal<void*, CEntity*>(0x409650, pEntity);
 #else
@@ -440,7 +440,7 @@ bool CStreaming::HasVehicleUpgradeLoaded(std::int32_t modelId)
         return false;
     std::int16_t otherUpgradeModelId = CVehicleModelInfo::ms_linkedUpgrades.FindOtherUpgrade(modelId);
     if(otherUpgradeModelId == -1)
-        return false;
+        return true;
     return ms_aInfoForModel[otherUpgradeModelId].m_nLoadState == LOADSTATE_LOADED;
 #endif
 }
@@ -477,7 +477,7 @@ bool CStreaming::ConvertBufferToObject(unsigned char* pFileBuffer, int modelId)
         CTxdStore::SetCurrentTxd(pBaseModelInfo->m_nTxdIndex);
 
         bool bFileLoaded = false;
-        if (pBaseModelInfo->GetRwModelType() == RWMODEL_INFO_ATOMIC) {
+        if (pBaseModelInfo->GetRwModelType() == rpATOMIC) {
             RtDict* pRtDictionary = nullptr;
             RwChunkHeaderInfo chunkHeaderInfo;
             RwStreamReadChunkHeaderInfo(pRwStream, &chunkHeaderInfo);
@@ -664,7 +664,7 @@ bool CStreaming::DeleteLeastUsedEntityRwObject(bool bNotOnScreen, unsigned int s
             for (CEntity* pEntityLod = pEntity->m_pLod; pEntityLod; pEntityLod = pEntityLod->m_pLod) {
                 pEntityLastLod = pEntityLod;
             }
-            float fModelRadius = pBaseModelInfo->m_pColModel->m_boundSphere.m_fRadius;
+            float fModelRadius = pBaseModelInfo->GetColModel()->GetBoundRadius();
             if (ms_bLoadingScene
                 || bNotOnScreen && !pEntityLastLod->GetIsOnScreen()
                 || pEntity->m_nAreaCode != CGame::currArea && pEntity->m_nAreaCode != AREA_CODE_13
@@ -1585,10 +1585,9 @@ void CStreaming::RequestModelStream(int channelId)
         else
         {
             CBaseModelInfo* pBaseModelInfo = CModelInfo::ms_modelInfoPtrs[modelId];
-            ModelInfoType modelType = pBaseModelInfo->GetModelType();
-            if (isPreviousModelPed && modelType == MODEL_INFO_PED)
+            if (isPreviousModelPed && pBaseModelInfo->GetModelType() == MODEL_INFO_PED)
                 break;
-            if (isPreviousModelBig && modelType == MODEL_INFO_VEHICLE)
+            if (isPreviousModelBig && pBaseModelInfo->GetModelType() == MODEL_INFO_VEHICLE)
                 break;
             unsigned char loadState = ms_aInfoForModel[pBaseModelInfo->m_nTxdIndex + RESOURCE_ID_TXD].m_nLoadState;
             if (loadState != LOADSTATE_LOADED && loadState != LOADSTATE_CHANNELED)
@@ -1611,7 +1610,7 @@ void CStreaming::RequestModelStream(int channelId)
             sectorCountSum -= sectorcount;
             break;
         }
-        CBaseModelInfo* pBaseModelInfo = CModelInfo::ms_modelInfoPtrs[modelId];
+        CBaseModelInfo* pBaseModelInfo = CModelInfo::GetModelInfo(modelId);
         if (modelId >= RESOURCE_ID_TXD) {
             if (sectorcount > 200)
                 isPreviousModelBig = true;
@@ -1682,7 +1681,7 @@ void CStreaming::RequestSpecialModel(int modelId, char const* name, int flags)
             if (pObject && pObject->m_nModelIndex == modelId && pObject->CanBeDeleted()) {
                 CWorld::Remove(pObject);
                 CWorld::RemoveReferencesToDeletedObject(pObject);
-                pObject->DeletingDestructor(1); // TODO: Use delete
+                delete pObject;
             }
         }
     }
@@ -2014,7 +2013,7 @@ void CStreaming::RemoveBuildingsNotInArea(int areaCode) {
         CObject* pObject = CPools::ms_pObjectPool->GetAt(i);
         if (pObject && pObject->m_pRwObject) {
             if (pObject->m_nAreaCode != areaCode && pObject->m_nAreaCode != AREA_CODE_13) {
-                if (!pObject->m_bImBeingRendered && pObject->m_nObjectType == eObjectCreatedBy::OBJECT_GAME)
+                if (!pObject->m_bImBeingRendered && pObject->m_nObjectType == eObjectType::OBJECT_GAME)
                     pObject->DeleteRwObject();
             }
         }
@@ -3318,19 +3317,19 @@ void CStreaming::StreamVehiclesAndPeds() {
         framesBeforeStreamingNextNewCar = 350;
     }
     if (m_bStreamHarvesterModelsThisFrame) {
-        RequestModel(MI_HARVESTERBODYPART1, STREAMING_GAME_REQUIRED);
-        RequestModel(MI_HARVESTERBODYPART2, STREAMING_GAME_REQUIRED);
-        RequestModel(MI_HARVESTERBODYPART3, STREAMING_GAME_REQUIRED);
-        RequestModel(MI_HARVESTERBODYPART4, STREAMING_GAME_REQUIRED);
+        RequestModel(ModelIndices::MI_HARVESTERBODYPART1, STREAMING_GAME_REQUIRED);
+        RequestModel(ModelIndices::MI_HARVESTERBODYPART2, STREAMING_GAME_REQUIRED);
+        RequestModel(ModelIndices::MI_HARVESTERBODYPART3, STREAMING_GAME_REQUIRED);
+        RequestModel(ModelIndices::MI_HARVESTERBODYPART4, STREAMING_GAME_REQUIRED);
         m_bHarvesterModelsRequested = true;
         m_bStreamHarvesterModelsThisFrame = 0;
     }
     else {
         if (m_bHarvesterModelsRequested) {
-            RemoveModel(MI_HARVESTERBODYPART1);
-            RemoveModel(MI_HARVESTERBODYPART2);
-            RemoveModel(MI_HARVESTERBODYPART3);
-            RemoveModel(MI_HARVESTERBODYPART4);
+            RemoveModel(ModelIndices::MI_HARVESTERBODYPART1);
+            RemoveModel(ModelIndices::MI_HARVESTERBODYPART2);
+            RemoveModel(ModelIndices::MI_HARVESTERBODYPART3);
+            RemoveModel(ModelIndices::MI_HARVESTERBODYPART4);
             m_bHarvesterModelsRequested = false;
         }
         m_bStreamHarvesterModelsThisFrame = false;
@@ -3347,8 +3346,8 @@ void CStreaming::StreamVehiclesAndPeds_Always(CVector const& unused) {
     if (!pVehicle) {
         bStream = true;
     }
-    else if (pVehicle->m_nVehicleSubClass != VEHICLE_PLANE) {
-        if (pVehicle->m_nVehicleSubClass != VEHICLE_HELI || pVehicle->m_vecMoveSpeed.Magnitude2D() <= 0.1f) {
+    else if (pVehicle->m_vehicleSubType != VEHICLE_PLANE) {
+        if (pVehicle->m_vehicleSubType != VEHICLE_HELI || pVehicle->m_vecMoveSpeed.Magnitude2D() <= 0.1f) {
             bStream = true;
         }
     }

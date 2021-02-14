@@ -90,6 +90,10 @@ CVector Multiply3x3(CMatrix* matrix, CVector* vector);
 // vector by matrix mult, resulting in a vector where each component is the dot product of the in vector and a matrix direction
 CVector Multiply3x3(CVector* vector, CMatrix* matrix);
 
+void TransformPoint(RwV3d& point, CSimpleTransform const& placement, RwV3d const& vecPos);
+void TransformVectors(RwV3d* vecsOut, int numVectors, CMatrix const& matrix, RwV3d const* vecsin);
+void TransformVectors(RwV3d* vecsOut, int numVectors, CSimpleTransform const& transform, RwV3d const* vecsin);
+
 
 // returns player wanted
 CWanted * FindPlayerWanted(int playerId = -1);
@@ -99,12 +103,18 @@ extern unsigned int &ClumpOffset;
 
 #define RpClumpGetAnimBlendClumpData(clump) (*(CAnimBlendClumpData **)(((unsigned int)(clump) + ClumpOffset)))
 
+#define RpGeometryGetMesh(_geometry, _index) (&((RpMesh*)(((char*)(_geometry)->mesh) + sizeof(RpMeshHeader) + ((_geometry)->mesh->firstMeshOffset)))[_index])
+
 constexpr float TWO_PI = 6.28318530718f;
 constexpr float PI = 3.14159265358979323846f;
-constexpr float PI_2 = PI / 2.0f;
+constexpr float HALF_PI = PI / 2.0f;
 
 constexpr float DegreesToRadians(float angleInDegrees) {
-    return angleInDegrees * PI / 180.0f;
+    return angleInDegrees * PI / 180.0F;
+}
+
+constexpr float RadiansToDegrees(float angleInRadians) {
+    return angleInRadians * 180.0F / PI;
 }
 
 template <typename T>
@@ -197,6 +207,7 @@ void StoreAndSetLightsForInfraredVisionHeatObjects();
 void RestoreLightsForInfraredVisionHeatObjects();
 void SetLightsForInfraredVisionDefaultObjects();
 void SetLightsForNightVision();
+float GetDayNightBalance();
 
 // 'data' is unused
 RpAtomic* RemoveRefsCB(RpAtomic* atomic, void* _IGNORED_ data);
@@ -247,6 +258,10 @@ void AsciiToGxtChar(char const *src, char *dst);
 */
 void Render2dStuff();
 void WriteRaster(RwRaster * pRaster, char const * pszPath);
+bool CalcScreenCoors(CVector const& vecPoint, CVector* pVecOutPos, float* pScreenX, float* pScreenY);
+bool CalcScreenCoors(CVector const& vecPoint, CVector* pVecOutPos);
+
+void LittleTest();
 
 /* Convert UTF-8 string to Windows Unicode. Free pointer using delete[] */
 std::wstring UTF8ToUnicode(const std::string &str);
@@ -257,5 +272,7 @@ extern int WindowsCharset;
 
 extern unsigned short &uiTempBufferIndicesStored;
 extern unsigned short &uiTempBufferVerticesStored;
-extern RxVertexIndex *aTempBufferIndices; // size 4096
-extern RxObjSpace3DVertex* aTempBufferVertices; // size 1024 - after this there are 2 more arrays like this, both sized 512
+constexpr int32_t TOTAL_TEMP_BUFFER_INDICES = 4096;
+extern RxVertexIndex(&aTempBufferIndices)[TOTAL_TEMP_BUFFER_INDICES]; // size 4096
+constexpr int32_t TOTAL_TEMP_BUFFER_VERTICES = 1024;
+extern RxObjSpace3DVertex(&aTempBufferVertices)[TOTAL_TEMP_BUFFER_VERTICES]; // size 1024 - after this there are 2 more arrays like this, both sized 512

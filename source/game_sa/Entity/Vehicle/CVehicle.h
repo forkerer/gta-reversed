@@ -42,22 +42,6 @@ enum eCarLock {
     CARLOCK_SKIP_SHUT_DOORS
 };
 
-enum eVehicleType {
-    VEHICLE_NONE = -1,
-    VEHICLE_AUTOMOBILE = 0,
-    VEHICLE_MTRUCK,
-    VEHICLE_QUAD,
-    VEHICLE_HELI,
-    VEHICLE_PLANE,
-    VEHICLE_BOAT,
-    VEHICLE_TRAIN,
-    VEHICLE_FHELI,
-    VEHICLE_FPLANE,
-    VEHICLE_BIKE,
-    VEHICLE_BMX,
-    VEHICLE_TRAILER
-};
-
 enum eVehicleApperance {
     VEHICLE_APPEARANCE_AUTOMOBILE = 1,
     VEHICLE_APPEARANCE_BIKE,
@@ -135,12 +119,40 @@ typedef int eBikeWheelSpecial;
 
 class CWeapon;
 class CPed;
-typedef int tWheelState;
 
+enum tWheelState : int32_t
+{
+    WHEEL_STATE_NORMAL,	  // standing still or rolling normally
+    WHEEL_STATE_SPINNING, // rotating but not moving
+    WHEEL_STATE_SKIDDING,
+    WHEEL_STATE_FIXED,	  // not rotating
+};
+
+
+struct tHydrualicData
+{
+    // applied when the vehicle is moving
+    // or when hopping keys are pressed (numpad keys)
+    float m_fSuspensionNormalUpperLimit;
+    float m_fSuspensionNormalLowerLimit;
+
+    // applied when the suspension is extended, like when you press the horn button (caps lock on pc)
+    // or when numpad keys are pressed
+    float m_fSuspensionExtendedUpperLimit;
+    float m_fSuspensionExtendedLowerLimit;
+
+    // applied when the vehicle is at rest (idle/not moving)
+    // and does NOT apply if numpad keys are pressed (car hopping)
+    float m_fSuspensionNormalIdleUpperLimit; 
+    float m_fSuspensionNormalIdleLowerLimit;
+    float m_wheelSuspension[4];
+};
+
+VALIDATE_SIZE(tHydrualicData, 0x28);
 
 class CVehicle : public CPhysical {
 protected:
-    CVehicle(plugin::dummy_func_t) : CPhysical(plugin::dummy) {}
+    CVehicle(plugin::dummy_func_t) : CPhysical() {}
 public:
     CAEVehicleAudioEntity      m_vehicleAudio;
     tHandlingData             *m_pHandlingData;
@@ -178,80 +190,76 @@ public:
             unsigned int bSwingingChassis : 1;
         } handlingFlags;
     };
-    CAutoPilot                 m_autoPilot;
-    union {
-        struct {
-            unsigned int bIsLawEnforcer : 1; // Is this guy chasing the player at the moment
-            unsigned int bIsAmbulanceOnDuty : 1; // Ambulance trying to get to an accident
-            unsigned int bIsFireTruckOnDuty : 1; // Firetruck trying to get to a fire
-            unsigned int bIsLocked : 1; // Is this guy locked by the script (cannot be removed)
-            unsigned int bEngineOn : 1; // For sound purposes. Parked cars have their engines switched off (so do destroyed cars)
-            unsigned int bIsHandbrakeOn : 1; // How's the handbrake doing ?
-            unsigned int bLightsOn : 1; // Are the lights switched on ?
-            unsigned int bFreebies : 1; // Any freebies left in this vehicle ?
+    CAutoPilot m_autoPilot;
+    struct {
+        unsigned int bIsLawEnforcer : 1; // Is this guy chasing the player at the moment
+        unsigned int bIsAmbulanceOnDuty : 1; // Ambulance trying to get to an accident
+        unsigned int bIsFireTruckOnDuty : 1; // Firetruck trying to get to a fire
+        unsigned int bIsLocked : 1; // Is this guy locked by the script (cannot be removed)
+        unsigned int bEngineOn : 1; // For sound purposes. Parked cars have their engines switched off (so do destroyed cars)
+        unsigned int bIsHandbrakeOn : 1; // How's the handbrake doing ?
+        unsigned int bLightsOn : 1; // Are the lights switched on ?
+        unsigned int bFreebies : 1; // Any freebies left in this vehicle ?
 
-            unsigned int bIsVan : 1; // Is this vehicle a van (doors at back of vehicle)
-            unsigned int bIsBus : 1; // Is this vehicle a bus
-            unsigned int bIsBig : 1; // Is this vehicle a bus
-            unsigned int bLowVehicle : 1; // Need this for sporty type cars to use low getting-in/out anims
-            unsigned int bComedyControls : 1; // Will make the car hard to control (hopefully in a funny way)
-            unsigned int bWarnedPeds : 1; // Has scan and warn peds of danger been processed?
-            unsigned int bCraneMessageDone : 1; // A crane message has been printed for this car allready
-            unsigned int bTakeLessDamage : 1; // This vehicle is stronger (takes about 1/4 of damage)
+        unsigned int bIsVan : 1; // Is this vehicle a van (doors at back of vehicle)
+        unsigned int bIsBus : 1; // Is this vehicle a bus
+        unsigned int bIsBig : 1; // Is this vehicle a bus
+        unsigned int bLowVehicle : 1; // Need this for sporty type cars to use low getting-in/out anims
+        unsigned int bComedyControls : 1; // Will make the car hard to control (hopefully in a funny way)
+        unsigned int bWarnedPeds : 1; // Has scan and warn peds of danger been processed?
+        unsigned int bCraneMessageDone : 1; // A crane message has been printed for this car allready
+        unsigned int bTakeLessDamage : 1; // This vehicle is stronger (takes about 1/4 of damage)
 
-            unsigned int bIsDamaged : 1; // This vehicle has been damaged and is displaying all its components
-            unsigned int bHasBeenOwnedByPlayer : 1;// To work out whether stealing it is a crime
-            unsigned int bFadeOut : 1; // Fade vehicle out
-            unsigned int bIsBeingCarJacked : 1; // Fade vehicle out
-            unsigned int bCreateRoadBlockPeds : 1;// If this vehicle gets close enough we will create peds (coppers or gang members) round it
-            unsigned int bCanBeDamaged : 1; // Set to FALSE during cut scenes to avoid explosions
-            unsigned int bOccupantsHaveBeenGenerated : 1; // Is true if the occupants have already been generated. (Shouldn't happen again)
-            unsigned int bGunSwitchedOff : 1; // Level designers can use this to switch off guns on boats
+        unsigned int bIsDamaged : 1; // This vehicle has been damaged and is displaying all its components
+        unsigned int bHasBeenOwnedByPlayer : 1;// To work out whether stealing it is a crime
+        unsigned int bFadeOut : 1; // Fade vehicle out
+        unsigned int bIsBeingCarJacked : 1; // Fade vehicle out
+        unsigned int bCreateRoadBlockPeds : 1;// If this vehicle gets close enough we will create peds (coppers or gang members) round it
+        unsigned int bCanBeDamaged : 1; // Set to FALSE during cut scenes to avoid explosions
+        unsigned int bOccupantsHaveBeenGenerated : 1; // Is true if the occupants have already been generated. (Shouldn't happen again)
+        unsigned int bGunSwitchedOff : 1; // Level designers can use this to switch off guns on boats
 
-            unsigned int bVehicleColProcessed : 1;// Has ProcessEntityCollision been processed for this car?
-            unsigned int bIsCarParkVehicle : 1; // Car has been created using the special CAR_PARK script command
-            unsigned int bHasAlreadyBeenRecorded : 1; // Used for replays
-            unsigned int bPartOfConvoy : 1;
-            unsigned int bHeliMinimumTilt : 1; // This heli should have almost no tilt really
-            unsigned int bAudioChangingGear : 1; // sounds like vehicle is changing gear
-            unsigned int bIsDrowning : 1; // is vehicle occupants taking damage in water (i.e. vehicle is dead in water)
-            unsigned int bTyresDontBurst : 1; // If this is set the tyres are invincible
+        unsigned int bVehicleColProcessed : 1;// Has ProcessEntityCollision been processed for this car?
+        unsigned int bIsCarParkVehicle : 1; // Car has been created using the special CAR_PARK script command
+        unsigned int bHasAlreadyBeenRecorded : 1; // Used for replays
+        unsigned int bPartOfConvoy : 1;
+        unsigned int bHeliMinimumTilt : 1; // This heli should have almost no tilt really
+        unsigned int bAudioChangingGear : 1; // sounds like vehicle is changing gear
+        unsigned int bIsDrowning : 1; // is vehicle occupants taking damage in water (i.e. vehicle is dead in water)
+        unsigned int bTyresDontBurst : 1; // If this is set the tyres are invincible
 
-            unsigned int bCreatedAsPoliceVehicle : 1;// True if this guy was created as a police vehicle (enforcer, policecar, miamivice car etc)
-            unsigned int bRestingOnPhysical : 1; // Dont go static cause car is sitting on a physical object that might get removed
-            unsigned int bParking : 1;
-            unsigned int bCanPark : 1;
-            unsigned int bFireGun : 1; // Does the ai of this vehicle want to fire it's gun?
-            unsigned int bDriverLastFrame : 1; // Was there a driver present last frame ?
-            unsigned int bNeverUseSmallerRemovalRange : 1;// Some vehicles (like planes) we don't want to remove just behind the camera.
-            unsigned int bIsRCVehicle : 1; // Is this a remote controlled (small) vehicle. True whether the player or AI controls it.
+        unsigned int bCreatedAsPoliceVehicle : 1;// True if this guy was created as a police vehicle (enforcer, policecar, miamivice car etc)
+        unsigned int bRestingOnPhysical : 1; // Dont go static cause car is sitting on a physical object that might get removed
+        unsigned int bParking : 1;
+        unsigned int bCanPark : 1;
+        unsigned int bFireGun : 1; // Does the ai of this vehicle want to fire it's gun?
+        unsigned int bDriverLastFrame : 1; // Was there a driver present last frame ?
+        unsigned int bNeverUseSmallerRemovalRange : 1;// Some vehicles (like planes) we don't want to remove just behind the camera.
+        unsigned int bIsRCVehicle : 1; // Is this a remote controlled (small) vehicle. True whether the player or AI controls it.
 
-            unsigned int bAlwaysSkidMarks : 1; // This vehicle leaves skidmarks regardless of the wheels' states.
-            unsigned int bEngineBroken : 1; // Engine doesn't work. Player can get in but the vehicle won't drive
-            unsigned int bVehicleCanBeTargetted : 1;// The ped driving this vehicle can be targetted, (for Torenos plane mission)
-            unsigned int bPartOfAttackWave : 1; // This car is used in an attack during a gang war
-            unsigned int bWinchCanPickMeUp : 1; // This car cannot be picked up by any ropes.
-            unsigned int bImpounded : 1; // Has this vehicle been in a police impounding garage
-            unsigned int bVehicleCanBeTargettedByHS : 1;// Heat seeking missiles will not target this vehicle.
-            unsigned int bSirenOrAlarm : 1; // Set to TRUE if siren or alarm active, else FALSE
+        unsigned int bAlwaysSkidMarks : 1; // This vehicle leaves skidmarks regardless of the wheels' states.
+        unsigned int bEngineBroken : 1; // Engine doesn't work. Player can get in but the vehicle won't drive
+        unsigned int bVehicleCanBeTargetted : 1;// The ped driving this vehicle can be targetted, (for Torenos plane mission)
+        unsigned int bPartOfAttackWave : 1; // This car is used in an attack during a gang war
+        unsigned int bWinchCanPickMeUp : 1; // This car cannot be picked up by any ropes.
+        unsigned int bImpounded : 1; // Has this vehicle been in a police impounding garage
+        unsigned int bVehicleCanBeTargettedByHS : 1;// Heat seeking missiles will not target this vehicle.
+        unsigned int bSirenOrAlarm : 1; // Set to TRUE if siren or alarm active, else FALSE
 
-            unsigned int bHasGangLeaningOn : 1;
-            unsigned int bGangMembersForRoadBlock : 1;// Will generate gang members if NumPedsForRoadBlock > 0
-            unsigned int bDoesProvideCover : 1; // If this is false this particular vehicle can not be used to take cover behind.
-            unsigned int bMadDriver : 1; // This vehicle is driving like a lunatic
-            unsigned int bUpgradedStereo : 1; // This vehicle has an upgraded stereo
-            unsigned int bConsideredByPlayer : 1; // This vehicle is considered by the player to enter
-            unsigned int bPetrolTankIsWeakPoint : 1;// If false shootong the petrol tank will NOT Blow up the car
-            unsigned int bDisableParticles : 1; // Disable particles from this car. Used in garage.
+        unsigned int bHasGangLeaningOn : 1;
+        unsigned int bGangMembersForRoadBlock : 1;// Will generate gang members if NumPedsForRoadBlock > 0
+        unsigned int bDoesProvideCover : 1; // If this is false this particular vehicle can not be used to take cover behind.
+        unsigned int bMadDriver : 1; // This vehicle is driving like a lunatic
+        unsigned int bUpgradedStereo : 1; // This vehicle has an upgraded stereo
+        unsigned int bConsideredByPlayer : 1; // This vehicle is considered by the player to enter
+        unsigned int bPetrolTankIsWeakPoint : 1;// If false shootong the petrol tank will NOT Blow up the car
+        unsigned int bDisableParticles : 1; // Disable particles from this car. Used in garage.
 
-            unsigned int bHasBeenResprayed : 1; // Has been resprayed in a respray garage. Reset after it has been checked.
-            unsigned int bUseCarCheats : 1; // If this is true will set the car cheat stuff up in ProcessControl()
-            unsigned int bDontSetColourWhenRemapping : 1;// If the texture gets remapped we don't want to change the colour with it.
-            unsigned int bUsedForReplay : 1; // This car is controlled by replay and should be removed when replay is done.
-        } vehicleFlags;
-        unsigned int m_nVehicleUpperFlags;
-        unsigned int m_nVehicleLowerFlags;
-    };
+        unsigned int bHasBeenResprayed : 1; // Has been resprayed in a respray garage. Reset after it has been checked.
+        unsigned int bUseCarCheats : 1; // If this is true will set the car cheat stuff up in ProcessControl()
+        unsigned int bDontSetColourWhenRemapping : 1;// If the texture gets remapped we don't want to change the colour with it.
+        unsigned int bUsedForReplay : 1; // This car is controlled by replay and should be removed when replay is done.
+    } vehicleFlags;
     unsigned int m_nCreationTime;
     unsigned char  m_nPrimaryColor;
     unsigned char  m_nSecondaryColor;
@@ -264,14 +272,14 @@ public:
     short  m_nForcedRandomRouteSeed; // if this is non-zero the random wander gets deterministic
     CPed *m_pDriver;
     CPed *m_apPassengers[8];
-    unsigned char  m_nNumPassengers;
-    unsigned char  m_nNumGettingIn;
-    unsigned char  m_nGettingInFlags;
-    unsigned char  m_nGettingOutFlags;
-    unsigned char  m_nMaxPassengers;
-    unsigned char  m_nWindowsOpenFlags; // initialised, but not used?
-    unsigned char  m_nNitroBoosts;
-    unsigned char  m_nSpecialColModel;
+    uint8_t  m_nNumPassengers;
+    uint8_t  m_nNumGettingIn;
+    uint8_t  m_nGettingInFlags;
+    uint8_t  m_nGettingOutFlags;
+    uint8_t  m_nMaxPassengers;
+    uint8_t  m_nWindowsOpenFlags; // initialised, but not used?
+    uint8_t  m_nNitroBoosts;
+    int8_t  m_vehicleSpecialColIndex;
     CEntity *m_pEntityWeAreOn; // we get it from CWorld::ProcessVerticalLine or ProcessEntityCollision, it's entity under us, 
                                //only static entities (buildings or roads)
     CFire *m_pFire;
@@ -328,8 +336,8 @@ public:
     char m_nVehicleWeaponInUse; // see enum eCarWeapon
     unsigned int     m_nHornCounter;
     char field_518; // random id related to siren
-    char field_519; // car horn related
-    char field_51A;
+    char m_nCarHornTimer; // car horn related
+    char m_comedyControlState;
     char       m_nHasslePosId;
     CStoredCollPoly m_FrontCollPoly; // poly which is under front part of car
     CStoredCollPoly m_RearCollPoly; // poly which is under rear part of car
@@ -348,8 +356,8 @@ public:
     };
     RwTexture *m_pCustomCarPlate;
     float m_fRawSteerAngle;
-    unsigned int     m_nVehicleClass; // see enum eVehicleType
-    unsigned int     m_nVehicleSubClass;
+    unsigned int     m_vehicleType; // see enum eVehicleType
+    unsigned int     m_vehicleSubType;
     short      m_nPreviousRemapTxd;
     short      m_nRemapTxd;
     RwTexture *m_pRemapTexture;
@@ -370,6 +378,7 @@ public:
     static bool &ms_forceVehicleLightsOff;
     static bool &s_bPlaneGunsEjectShellCasings;
     static CColModel *m_aSpecialColModel; // static CColModel m_aSpecialColModel[4]
+    static tHydrualicData(&m_aSpecialHydraulicData)[4];
 
     static void InjectHooks();
 
@@ -380,7 +389,7 @@ public:
     void SetModelIndex(unsigned int index) override;
     // originally vtable functions
 
-    virtual void ProcessControlCollisionCheck();
+    virtual void ProcessControlCollisionCheck(bool applySpeed);
     virtual void ProcessControlInputs(unsigned char playerNum);
     // component index in m_apModelNodes array
     virtual void GetComponentWorldPosition(int componentId, CVector& posnOut);
@@ -540,7 +549,8 @@ public:
     bool CanPedLeanOut(CPed* ped);
     void SetVehicleCreatedBy(int createdBy);
     void SetupRender();
-    void ProcessWheel(CVector& arg0, CVector& arg1, CVector& arg2, CVector& arg3, int arg4, float arg5, float arg6, float arg7, char arg8, float* arg9, tWheelState* arg10, unsigned short arg11);
+    void ProcessWheel(CVector& wheelFwd, CVector& wheelRight, CVector& wheelContactSpeed, CVector& wheelContactPoint,
+        int wheelsOnGround, float thrust, float brake, float adhesion, int8_t wheelId, float* wheelSpeed, tWheelState* wheelState, uint16_t wheelStatus);
     void ProcessBikeWheel(CVector& arg0, CVector& arg1, CVector& arg2, CVector& arg3, int arg4, float arg5, float arg6, float arg7, float arg8, char arg9, float* arg10, tWheelState* arg11, eBikeWheelSpecial arg12, unsigned short arg13);
     // return nearest wheel?
     int FindTyreNearestPoint(float x, float y);
@@ -593,14 +603,18 @@ private:
     void SetModelIndex_Reversed(unsigned int index);
 
 public:
-    bool IsFakeAircraft() { return m_nVehicleSubClass == VEHICLE_FHELI || m_nVehicleSubClass == VEHICLE_FPLANE; }
-    bool IsPlane() { return m_nVehicleSubClass == VEHICLE_PLANE; }
-    bool IsHeli() { return m_nVehicleSubClass == VEHICLE_HELI; }
-    bool IsVehicleTypeValid() { return m_nVehicleSubClass != VEHICLE_NONE; }
-    bool IsBoat() { return m_nVehicleClass == VEHICLE_BOAT; }
-    bool IsBike() { return m_nVehicleClass == VEHICLE_BIKE; }
-    bool IsQuad() { return m_nVehicleClass == VEHICLE_QUAD; }
-    bool IsSubclassQuad() { return m_nVehicleSubClass == VEHICLE_QUAD; };
+    bool IsFakeAircraft() { return m_vehicleSubType == VEHICLE_FHELI || m_vehicleSubType == VEHICLE_FPLANE; }
+    bool IsPlane() { return m_vehicleSubType == VEHICLE_PLANE; }
+    bool IsHeli() { return m_vehicleSubType == VEHICLE_HELI; }
+    bool IsVehicleTypeValid() { return m_vehicleSubType != VEHICLE_NONE; }
+    bool IsBoat() { return m_vehicleType == VEHICLE_BOAT; }
+    bool IsBike() { return m_vehicleType == VEHICLE_BIKE; }
+    bool IsQuad() { return m_vehicleType == VEHICLE_QUAD; }
+    bool IsSubclassQuad() { return m_vehicleSubType == VEHICLE_QUAD; };
+    bool IsAutomobile() { return m_vehicleType == VEHICLE_AUTOMOBILE; }
+
+    bool IsTransportVehicle() { return m_nModelIndex == MODEL_TAXI || m_nModelIndex == MODEL_CABBIE; }
+    bool IsAmphibiousHeli() { return m_nModelIndex == MODEL_SEASPAR || m_nModelIndex == MODEL_LEVIATHN; }
 
     static void* operator new(unsigned int size);
     static void operator delete(void* data);

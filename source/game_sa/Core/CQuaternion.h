@@ -12,11 +12,16 @@
 
 class  CQuaternion {
 public:
+    CQuaternion();
+public:
     CVector imag;
     float real;
 
+public:
+    static void InjectHooks();
+
     // Quat to matrix
-    void Get(RwMatrix* out);
+    void Get(RwMatrixTag* out);
 
     // Quat to euler angles
     void Get(float *x, float *y, float *z);

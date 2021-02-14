@@ -1,0 +1,10 @@
+#pragma once
+
+#include <PluginBase.h>
+#include <RenderWare.h>
+
+class CCustomBuildingRenderer {
+public:
+    static bool IsCBPCPipelineAttached(RpAtomic* pAtomic);
+    static void AtomicSetup(RpAtomic* pAtomic);
+};
