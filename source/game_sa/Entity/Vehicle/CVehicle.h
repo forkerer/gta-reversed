@@ -151,8 +151,9 @@ struct tHydrualicData
 VALIDATE_SIZE(tHydrualicData, 0x28);
 
 class CVehicle : public CPhysical {
-protected:
-    CVehicle(plugin::dummy_func_t) : CPhysical() {}
+public:
+    CVehicle(unsigned char createdBy);
+    CVehicle(plugin::dummy_func_t) : CPhysical() {} //TODO: Remove
 public:
     CAEVehicleAudioEntity      m_vehicleAudio;
     tHandlingData             *m_pHandlingData;
@@ -380,9 +381,10 @@ public:
     static CColModel *m_aSpecialColModel; // static CColModel m_aSpecialColModel[4]
     static tHydrualicData(&m_aSpecialHydraulicData)[4];
 
+public:
     static void InjectHooks();
 
-    CVehicle(unsigned char createdBy);
+    
 
     void PreRender() override;
     void Render() override;
