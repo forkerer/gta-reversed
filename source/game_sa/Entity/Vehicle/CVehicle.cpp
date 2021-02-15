@@ -69,6 +69,8 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "SpecialEntityCalcCollisionSteps", 0x6D0E90, &CVehicle::SpecialEntityCalcCollisionSteps_Reversed);
     ReversibleHooks::Install("CVehicle", "SetupLighting", 0x553F20, &CVehicle::SetupLighting_Reversed);
     ReversibleHooks::Install("CVehicle", "RemoveLighting", 0x5533D0, &CVehicle::RemoveLighting_Reversed);
+    ReversibleHooks::Install("CVehicle", "PreRender", 0x6D6480, &CVehicle::PreRender_Reversed);
+    ReversibleHooks::Install("CVehicle", "Render", 0x6D0E60, &CVehicle::Render_Reversed);
 
 // CLASS
     ReversibleHooks::Install("CVehicle", "ProcessWheel", 0x6D6C00, &CVehicle::ProcessWheel);
@@ -546,12 +548,33 @@ void CVehicle::PreRender()
 }
 void CVehicle::PreRender_Reversed()
 {
-    plugin::CallMethod<0x6D6480, CVehicle*>(this);
+    if (!IsTrain())
+        CVehicle::CalculateLightingFromCollision();
+
+    CVehicle::PreRenderDriverAndPassengers();
+    if (CModelInfo::GetModelInfo(m_nModelIndex)->m_n2dfxCount)
+        CEntity::ProcessLightsForEntity();
+
+    m_renderLights.m_bRightFront = false;
+    m_renderLights.m_bLeftFront = false;
+    m_renderLights.m_bRightRear = false;
+    m_renderLights.m_bLeftRear = false;
+
+    const auto fCoeff = CPhysical::GetLightingFromCol(false) * 0.4F;
+    CModelInfo::GetModelInfo(m_nModelIndex)->AsVehicleModelInfoPtr()->SetEnvMapCoeff(fCoeff);
 }
 
 void CVehicle::Render()
 {
     return CVehicle::Render_Reversed();
+}
+void CVehicle::Render_Reversed()
+{
+    auto* pVehInfo = CModelInfo::GetModelInfo(m_nModelIndex)->AsVehicleModelInfoPtr();
+    const auto iDirtLevel = static_cast<int>(m_fDirtLevel) & 0xF;
+    CVehicleModelInfo::SetDirtTextures(pVehInfo, iDirtLevel);
+
+    CEntity::Render();
 }
 
 bool CVehicle::SetupLighting()
@@ -575,15 +598,6 @@ void CVehicle::RemoveLighting_Reversed(bool bRemove)
 
     SetAmbientColours();
     DeActivateDirectional();
-}
-
-void CVehicle::FlagToDestroyWhenNextProcessed()
-{
-}
-
-void CVehicle::Render_Reversed()
-{
-    plugin::CallMethod<0x6D0E60, CVehicle*>(this);
 }
 
 // Converted from void CVehicle::ProcessControlCollisionCheck(void) 0x871EDC

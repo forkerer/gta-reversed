@@ -405,7 +405,7 @@ public:
     void Render() override;
     bool SetupLighting() override;
     void RemoveLighting(bool bRemove) override;
-    void FlagToDestroyWhenNextProcessed() override;
+    void FlagToDestroyWhenNextProcessed() override {/* Do nothing */};
 
     virtual void ProcessControlCollisionCheck(bool applySpeed);
     virtual void ProcessControlInputs(unsigned char playerNum);
@@ -643,6 +643,7 @@ public:
     bool IsQuad() const { return m_vehicleType == VEHICLE_QUAD; }
     bool IsSubclassQuad() const { return m_vehicleSubType == VEHICLE_QUAD; }
     bool IsAutomobile() const { return m_vehicleType == VEHICLE_AUTOMOBILE; }
+    bool IsTrain() const { return m_vehicleType == VEHICLE_TRAIN; }
 
     bool IsTransportVehicle() const { return m_nModelIndex == MODEL_TAXI || m_nModelIndex == MODEL_CABBIE; }
     bool IsAmphibiousHeli() const { return m_nModelIndex == MODEL_SEASPAR || m_nModelIndex == MODEL_LEVIATHN; }
