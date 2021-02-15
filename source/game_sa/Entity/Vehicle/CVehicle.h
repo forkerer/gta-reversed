@@ -405,16 +405,16 @@ public:
     void Render() override;
     bool SetupLighting() override;
     void RemoveLighting(bool bRemove) override;
-    void FlagToDestroyWhenNextProcessed() override {/* Do nothing */};
+    void FlagToDestroyWhenNextProcessed() override { /* Do nothing */ }
 
-    virtual void ProcessControlCollisionCheck(bool applySpeed);
-    virtual void ProcessControlInputs(unsigned char playerNum);
+    virtual void ProcessControlCollisionCheck(bool applySpeed) { /* Do nothing */ }
+    virtual void ProcessControlInputs(unsigned char playerNum) { /* Do nothing */ }
     // component index in m_apModelNodes array
-    virtual void GetComponentWorldPosition(int componentId, CVector& posnOut);
+    virtual void GetComponentWorldPosition(int componentId, CVector& posnOut) { /* Do nothing */ }
     // component index in m_apModelNodes array
-    virtual bool IsComponentPresent(int componentId);
-    virtual void OpenDoor(CPed* ped, int componentId, eDoors door, float doorOpenRatio, bool playSound);
-    virtual void ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int arg3, float arg4);
+    virtual bool IsComponentPresent(int componentId) { return false; }
+    virtual void OpenDoor(CPed* ped, int componentId, eDoors door, float doorOpenRatio, bool playSound) { /* Do nothing */ }
+    virtual void ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int nAnimID, float fTime);
     virtual float GetDooorAngleOpenRatio(unsigned int door);
     virtual float GetDooorAngleOpenRatio(eDoors door);
     virtual bool IsDoorReady(unsigned int door);
@@ -475,6 +475,7 @@ private:
     void Render_Reversed();
     bool SetupLighting_Reversed();
     void RemoveLighting_Reversed(bool bRemove);
+    void ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int nAnimID, float fTime);
 
  // CLASS FUNCS
 public:

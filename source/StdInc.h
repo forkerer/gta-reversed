@@ -89,6 +89,7 @@
 #include "game_sa\SurfaceInfos_c.h"
 #include "game_sa\CReplay.h"
 #include "game_sa\CVehicleRecording.h"
+#include "game_sa\CVehicleAnimGroupData.h"
 #include "game_sa\Collision\CColStore.h"
 #include "game_sa\CPedDamageResponseCalculator.h"
 #include "game_sa\CPedDamageResponse.h"

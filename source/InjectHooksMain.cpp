@@ -74,6 +74,7 @@ void InjectHooksMain(void)
     CMotionBlurStreaks::InjectHooks();
     CRegisteredMotionBlurStreak::InjectHooks();
     CCover::InjectHooks();
+    CVehicleAnimGroup::InjectHooks();
     CEvent::InjectHooks();
     CEventSeenPanickedPed::InjectHooks();
     CEventCarUpsideDown::InjectHooks();

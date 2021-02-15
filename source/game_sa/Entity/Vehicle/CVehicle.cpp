@@ -600,42 +600,15 @@ void CVehicle::RemoveLighting_Reversed(bool bRemove)
     DeActivateDirectional();
 }
 
-// Converted from void CVehicle::ProcessControlCollisionCheck(void) 0x871EDC
-void CVehicle::ProcessControlCollisionCheck(bool applySpeed)
-{
-    ((void(__thiscall*)(CVehicle*, bool))(*(void***)this)[23])(this, applySpeed);
-}
-
-// Converted from void CVehicle::ProcessControlInputs(uchar playerNum) 0x871EE0
-void CVehicle::ProcessControlInputs(unsigned char playerNum)
-{
-    ((void(__thiscall*)(CVehicle*, unsigned char))(*(void***)this)[24])(this, playerNum);
-}
-
-// Converted from void CVehicle::GetComponentWorldPosition(int componentId,CVector &posnOut) 0x871EE4
-void CVehicle::GetComponentWorldPosition(int componentId, CVector& posnOut)
-{
-    ((void(__thiscall*)(CVehicle*, int, CVector&))(*(void***)this)[25])(this, componentId, posnOut);
-}
-
-// Converted from bool CVehicle::IsComponentPresent(int componentId) 0x871EE8
-bool CVehicle::IsComponentPresent(int componentId)
-{
-    return ((bool(__thiscall*)(CVehicle*, int))(*(void***)this)[26])(this, componentId);
-}
-
-// Converted from void CVehicle::OpenDoor(CPed *ped,int componentId,eDoors door,float doorOpenRatio,bool playSound) 0x871EEC
-void CVehicle::OpenDoor(CPed* ped, int componentId, eDoors door, float doorOpenRatio, bool playSound)
-{
-    ((void(__thiscall*)(CVehicle*, CPed*, int, eDoors, float, bool))(*(void***)this)[27])(this, ped, componentId, door, doorOpenRatio, playSound);
-}
-
 // Converted from void CVehicle::ProcessOpenDoor(CPed *ped,uint doorComponentId,uint,uint,float) 0x871EF0
-void CVehicle::ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int arg3, float arg4)
+void CVehicle::ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int nAnimID, float fTime)
 {
-    ((void(__thiscall*)(CVehicle*, CPed*, unsigned int, unsigned int, unsigned int, float))(*(void***)this)[28])(this, ped, doorComponentId, arg2, arg3, arg4);
+    CVehicle::ProcessOpenDoor_Reversed(ped, doorComponentId, arg2, nAnimID, fTime);
 }
-
+void CVehicle::ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int nAnimID, float fTime)
+{
+    return plugin::CallMethod<0x6D56C0, CVehicle*, CPed*, unsigned int, unsigned int, unsigned int, float>(this, ped, doorComponentId, arg2, nAnimID, fTime);
+}
 // Converted from float CVehicle::GetDooorAngleOpenRatio(uint door) 0x871EF4
 float CVehicle::GetDooorAngleOpenRatio(unsigned int door)
 {

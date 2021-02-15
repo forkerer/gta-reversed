@@ -10,6 +10,10 @@
 
 class  CAnimBlendSequence {
 public:
+    CAnimBlendSequence();
+    ~CAnimBlendSequence();
+
+public:
     // thanks to jte for some info
     union
     {
@@ -44,7 +48,6 @@ public:
     void *m_pFrames;
 
     //funcs
-    CAnimBlendSequence();
     void CompressKeyframes(unsigned char* arg1);
     int GetDataSize(bool arg1);
     bool MoveMemorY();
@@ -54,7 +57,7 @@ public:
     void SetName(char const* string);
     void SetNumFrames(int count, bool arg2, bool arg3, unsigned char* arg4);
     void Uncompress(unsigned char* arg1);
-    ~CAnimBlendSequence();
+    uint8_t* GetFrame(int iFrame); //TODO: Figure out the frames format, it returns pointer to them
 
 };
 
