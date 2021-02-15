@@ -7,14 +7,8 @@ Do not delete this comment block. Respect others' work!
 
 #include "StdInc.h"
 
-CAEAudioEntity::CAEAudioEntity()
-{
-    m_tempSound.m_pPhysicalEntity = nullptr;
-}
-
-CAEAudioEntity::~CAEAudioEntity()
-{
-}
+CAEAudioEntity::CAEAudioEntity() : m_tempSound()
+{}
 
 void CAEAudioEntity::UpdateParameters(CAESound *sound, short arg2)
 {

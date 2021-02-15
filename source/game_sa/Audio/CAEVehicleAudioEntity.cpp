@@ -2,7 +2,8 @@
 
 CAEVehicleAudioEntity::CAEVehicleAudioEntity() : CAEAudioEntity(), m_skidSound()
 {
-    m_tempSound.m_pPhysicalEntity = nullptr;
+    m_bEnabled = false;
+    m_pEntity = nullptr;
 }
 
 CAEVehicleAudioEntity::~CAEVehicleAudioEntity()

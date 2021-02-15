@@ -20,7 +20,7 @@ CVector& CPhysical::fxDirection = *(CVector*)0xB73720;
 
 CPhysical::CPhysical() : CEntity(plugin::dummy)
 {
-    m_pCollisionList = nullptr;
+    m_pCollisionList.m_pNode = nullptr;
     CPlaceable::AllocateStaticMatrix();
     m_matrix->SetUnity();
     m_vecMoveSpeed.Set(0.0F, 0.0F, 0.0F);
@@ -35,7 +35,7 @@ CPhysical::CPhysical() : CEntity(plugin::dummy)
     m_fVelocityFrequency = 1.0;
     m_fAirResistance = 0.1;
     m_pMovingList = nullptr;
-    m_bFakePhysics = 0;
+    m_nFakePhysics = 0;
     m_nNumEntitiesCollided = 0;
     memset(m_apCollidedEntities, 0, sizeof(m_apCollidedEntities));
     m_nPieceType = 0;

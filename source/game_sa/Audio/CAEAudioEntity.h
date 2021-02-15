@@ -14,7 +14,7 @@ class CEntity;
 class  CAEAudioEntity {
 protected:
     CAEAudioEntity();
-    ~CAEAudioEntity();
+    ~CAEAudioEntity() = default;
 public:
     CEntity *m_pEntity;
     CAESound m_tempSound;

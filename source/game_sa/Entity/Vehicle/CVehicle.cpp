@@ -95,16 +95,22 @@ CVehicle::CVehicle(unsigned char createdBy) : CPhysical(), m_vehicleAudio(), m_a
     vehicleFlags.bEngineOn = true;
     vehicleFlags.bCanBeDamaged = true;
     vehicleFlags.bParking = false;
+    vehicleFlags.bRestingOnPhysical = false;
+    vehicleFlags.bCreatedAsPoliceVehicle = false;
     vehicleFlags.bVehicleCanBeTargettedByHS = true;
     vehicleFlags.bWinchCanPickMeUp = true;
     vehicleFlags.bPetrolTankIsWeakPoint = true;
     vehicleFlags.bConsideredByPlayer = true;
     vehicleFlags.bDoesProvideCover = true;
+    vehicleFlags.bUsedForReplay = false;
+    vehicleFlags.bDontSetColourWhenRemapping = false;
+    vehicleFlags.bUseCarCheats = false;
+    vehicleFlags.bHasBeenResprayed = false;
     vehicleFlags.bNeverUseSmallerRemovalRange = false;
     vehicleFlags.bDriverLastFrame = false;
 
     auto fRand = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-    vehicleFlags.bCanPark = fRand < 0.0F; //Seemingly never true
+    vehicleFlags.bCanPark = fRand < 0.0F; //BUG: Seemingly never true, rand() strips the sign bit to always be 0
 
     CCarCtrl::UpdateCarCount(this, false);
     m_nExtendedRemovalRange = 0;
@@ -126,24 +132,24 @@ CVehicle::CVehicle(unsigned char createdBy) : CPhysical(), m_vehicleAudio(), m_a
     physicalFlags.bCanBeCollidedWith = true;
 
     m_nLastWeaponDamageType = -1;
-    m_nSpecialColModel = -1;
+    m_vehicleSpecialColIndex = -1;
 
     m_pWhoInstalledBombOnMe = nullptr;
     m_wBombTimer = 0;
-    m_pWhoDetonatedMe = 0;
+    m_pWhoDetonatedMe = nullptr;
     m_nTimeWhenBlowedUp = 0;
 
     m_nPacMansCollected = 0;
-    m_pFire = 0;
+    m_pFire = nullptr;
     m_nGunFiringTime = 0;
     m_nCopsInCarTimer = 0;
     m_nUsedForCover = 0;
     m_nHornCounter = 0;
     field_518 = 0;
-    field_519 = 0;
+    m_nCarHornTimer = 0;
     field_4EC = 0;
-    m_pTractor = 0;
-    m_pTrailer = 0;
+    m_pTractor = nullptr;
+    m_pTrailer = nullptr;
     m_nTimeTillWeNeedThisCar = 0;
     m_nAlarmState = 0;
     m_nDoorLock = 1;
@@ -156,15 +162,15 @@ CVehicle::CVehicle(unsigned char createdBy) : CPhysical(), m_vehicleAudio(), m_a
     m_fVehicleFrontGroundZ = 0.0;
     field_511 = 0;
     field_512 = 0;
-    field_51A = 0;
-    m_FrontCollPoly.m_bIsActual = 0;
-    m_RearCollPoly.m_bIsActual = 0;
-    m_pHandlingData = 0;
+    m_comedyControlState = 0;
+    m_FrontCollPoly.m_bIsActual = false;
+    m_RearCollPoly.m_bIsActual = false;
+    m_pHandlingData = nullptr;;
     m_nHandlingFlagsIntValue = static_cast<eVehicleHandlingFlags>(0);
     m_autoPilot.m_nCarMission = MISSION_NONE;
     m_autoPilot.m_nTempAction = 0;
     m_autoPilot.m_nTimeToStartMission = CTimer::m_snTimeInMilliseconds;
-    m_autoPilot.m_nCarCtrlFlags &= 0xFBu;
+    m_autoPilot.carCtrlFlags.bAvoidLevelTransitions = false;
     m_nRemapTxd = -1;
     m_nPreviousRemapTxd = -1;
     m_pRemapTexture = nullptr;
@@ -182,7 +188,7 @@ CVehicle::CVehicle(unsigned char createdBy) : CPhysical(), m_vehicleAudio(), m_a
     m_fDirtLevel = (rand() % 15);
     m_nCreationTime = CTimer::m_snTimeInMilliseconds;
 
-    for (size_t i = 0; i <= 3; ++i)
+    for (size_t i = 0; i < 4; ++i)
         m_anCollisionLighting[i] = 0x48;
 }
 

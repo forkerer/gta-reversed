@@ -3,7 +3,7 @@
 CAETwinLoopSoundEntity::CAETwinLoopSoundEntity() : CAEAudioEntity()
 {
     m_bIsInitialised = 0;
-    for (size_t i = 0; i <= 1; ++i)
+    for (size_t i = 0; i < 2; ++i)
         m_apSounds[i] = nullptr;
 }
 
@@ -39,11 +39,12 @@ CAETwinLoopSoundEntity::~CAETwinLoopSoundEntity()
     if (!m_bIsInitialised)
         return;
 
-    for (size_t i = 0; i <= 1; ++i) {
-        if (m_apSounds[i]) {
-            m_apSounds[i]->StopSoundAndForget();
-            m_apSounds[i] = nullptr;
-        }
+    for (size_t i = 0; i <= 2; ++i) {
+        if (!m_apSounds[i])
+            continue;
+
+        m_apSounds[i]->StopSoundAndForget();
+        m_apSounds[i] = nullptr;
     }
     m_bIsInitialised = 0;
 }
