@@ -6,6 +6,7 @@ public:
     static int &Mode;
 
     static void Display();
+    static void RecordVehicleDeleted(CVehicle* vehicle);
 };
 
 /*

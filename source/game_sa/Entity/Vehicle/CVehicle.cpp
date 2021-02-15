@@ -62,6 +62,16 @@ char(*VehicleNames)[14] = (char(*)[14])0x8D3978;
 
 void CVehicle::InjectHooks()
 {
+// VTABLE
+    ReversibleHooks::Install("CVehicle", "SetModelIndex", 0x6D6A40, &CVehicle::SetModelIndex_Reversed);
+    ReversibleHooks::Install("CVehicle", "DeleteRwObject", 0x6D6410, &CVehicle::DeleteRwObject_Reversed);
+    ReversibleHooks::Install("CVehicle", "SpecialEntityPreCollisionStuff", 0x6D6640, &CVehicle::SpecialEntityPreCollisionStuff_Reversed);
+    ReversibleHooks::Install("CVehicle", "SpecialEntityCalcCollisionSteps", 0x6D0E90, &CVehicle::SpecialEntityCalcCollisionSteps_Reversed);
+    ReversibleHooks::Install("CVehicle", "SetupLighting", 0x553F20, &CVehicle::SetupLighting_Reversed);
+    ReversibleHooks::Install("CVehicle", "RemoveLighting", 0x5533D0, &CVehicle::RemoveLighting_Reversed);
+
+// CLASS
+    ReversibleHooks::Install("CVehicle", "ProcessWheel", 0x6D6C00, &CVehicle::ProcessWheel);
     ReversibleHooks::Install("CVehicle", "IsDriver_Ped", 0x6D1C40, (bool(CVehicle::*)(CPed*))(&CVehicle::IsDriver));
     ReversibleHooks::Install("CVehicle", "IsDriver_Int", 0x6D1C60, (bool(CVehicle::*)(int))(&CVehicle::IsDriver));
     ReversibleHooks::Install("CVehicle", "AddExhaustParticles", 0x6DE240, &CVehicle::AddExhaustParticles);
@@ -69,8 +79,6 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "ProcessBoatControl", 0x6DBCE0, &CVehicle::ProcessBoatControl);
     ReversibleHooks::Install("CVehicle", "ChangeLawEnforcerState", 0x6D2330, &CVehicle::ChangeLawEnforcerState);
 
-    ReversibleHooks::Install("CVehicle", "SetModelIndex", 0x6D6A40, &CVehicle::SetModelIndex_Reversed);
-    ReversibleHooks::Install("CVehicle", "ProcessWheel", 0x6D6C00, &CVehicle::ProcessWheel);
 }
 
 CVehicle::CVehicle(unsigned char createdBy) : CPhysical(), m_vehicleAudio(), m_autoPilot()
@@ -165,7 +173,7 @@ CVehicle::CVehicle(unsigned char createdBy) : CPhysical(), m_vehicleAudio(), m_a
     m_comedyControlState = 0;
     m_FrontCollPoly.m_bIsActual = false;
     m_RearCollPoly.m_bIsActual = false;
-    m_pHandlingData = nullptr;;
+    m_pHandlingData = nullptr;
     m_nHandlingFlagsIntValue = static_cast<eVehicleHandlingFlags>(0);
     m_autoPilot.m_nCarMission = MISSION_NONE;
     m_autoPilot.m_nTempAction = 0;
@@ -192,9 +200,353 @@ CVehicle::CVehicle(unsigned char createdBy) : CPhysical(), m_vehicleAudio(), m_a
         m_anCollisionLighting[i] = 0x48;
 }
 
+CVehicle::~CVehicle()
+{
+    CReplay::RecordVehicleDeleted(this);
+    m_nAlarmState = 0;
+    CVehicle::DeleteRwObject();
+    CRadar::ClearBlipForEntity(eBlipType::BLIP_CAR, CPools::ms_pVehiclePool->GetRef(this));
+
+    if (m_pDriver)
+        m_pDriver->FlagToDestroyWhenNextProcessed();
+
+    for (auto i = 0; i < m_nMaxPassengers; ++i)
+        if (m_apPassengers[i])
+            m_apPassengers[i]->FlagToDestroyWhenNextProcessed();
+
+    if (m_pFire)
+    {
+        m_pFire->Extinguish();
+        m_pFire = nullptr;
+    }
+
+    CCarCtrl::UpdateCarCount(this, true);
+    if (vehicleFlags.bIsAmbulanceOnDuty)
+    {
+        --CCarCtrl::NumAmbulancesOnDuty;
+        vehicleFlags.bIsAmbulanceOnDuty = false;
+    }
+
+    if (vehicleFlags.bIsFireTruckOnDuty)
+    {
+        --CCarCtrl::NumFireTrucksOnDuty;
+        vehicleFlags.bIsFireTruckOnDuty = false;
+    }
+
+    if (m_vehicleSpecialColIndex > -1)
+    {
+        CVehicle::m_aSpecialColVehicle[m_vehicleSpecialColIndex] = nullptr;
+        m_vehicleSpecialColIndex = -1;
+    }
+
+    if (m_pOverheatParticle)
+    {
+        g_fxMan.DestroyFxSystem(m_pOverheatParticle);
+        m_pOverheatParticle = nullptr;
+    }
+
+    if (m_pFireParticle)
+    {
+        g_fxMan.DestroyFxSystem(m_pFireParticle);
+        m_pFireParticle = nullptr;
+    }
+
+    if (m_pDustParticle)
+    {
+        g_fxMan.DestroyFxSystem(m_pDustParticle);
+        m_pDustParticle = nullptr;
+    }
+
+    if (m_pCustomCarPlate)
+    {
+        RwTextureDestroy(m_pCustomCarPlate);
+        m_pCustomCarPlate = nullptr;
+    }
+
+    const auto iRopeInd = CRopes::FindRope(reinterpret_cast<uint32_t>(this) + 1);
+    if (iRopeInd >= 0)
+        CRopes::GetRope(iRopeInd).Remove();
+
+    if (!physicalFlags.bDestroyed && m_fHealth < 250.0F)
+        CDarkel::RegisterCarBlownUpByPlayer(this, 0);
+}
+
+void* CVehicle::operator new(unsigned int size) {
+    return CPools::ms_pVehiclePool->New();
+}
+
+void CVehicle::operator delete(void* data) {
+    CPools::ms_pVehiclePool->Delete(static_cast<CVehicle*>(data));
+}
+
+void CVehicle::SetModelIndex(unsigned int index)
+{
+    return CVehicle::SetModelIndex_Reversed(index);
+}
+void CVehicle::SetModelIndex_Reversed(unsigned int index)
+{
+    CEntity::SetModelIndex(index);
+    auto pVehModelInfo = reinterpret_cast<CVehicleModelInfo*>(CModelInfo::GetModelInfo(index));
+    CVehicle::CustomCarPlate_TextureCreate(pVehModelInfo);
+
+    for (size_t i = 0; i <= 1; ++i)
+        m_anExtras[i] = CVehicleModelInfo::ms_compsUsed[i];
+
+    m_nMaxPassengers = CVehicleModelInfo::GetMaximumNumberOfPassengersFromNumberOfDoors(index);
+    switch (m_nModelIndex)
+    {
+    case eModelID::MODEL_RCBANDIT:
+    case eModelID::MODEL_RCBARON:
+    case eModelID::MODEL_RCRAIDER:
+    case eModelID::MODEL_RCGOBLIN:
+    case eModelID::MODEL_RCTIGER:
+        vehicleFlags.bIsRCVehicle = true;
+        break;
+    default:
+        vehicleFlags.bIsRCVehicle = false;
+        break;
+    }
+
+    //Set up weapons
+    switch (m_nModelIndex)
+    {
+    case eModelID::MODEL_RUSTLER:
+    case eModelID::MODEL_STUNT:
+        m_nVehicleWeaponInUse = eCarWeapon::CAR_WEAPON_HEAVY_GUN;
+        break;
+    case eModelID::MODEL_BEAGLE:
+        m_nVehicleWeaponInUse = eCarWeapon::CAR_WEAPON_FREEFALL_BOMB;
+        break;
+    case eModelID::MODEL_HYDRA:
+    case eModelID::MODEL_TORNADO:
+        m_nVehicleWeaponInUse = eCarWeapon::CAR_WEAPON_LOCK_ON_ROCKET;
+        break;
+    }
+}
+
+void CVehicle::DeleteRwObject()
+{
+    CVehicle::DeleteRwObject_Reversed();
+}
+
+void CVehicle::DeleteRwObject_Reversed()
+{
+    if (m_nPreviousRemapTxd != -1)
+    {
+        m_pRemapTexture = nullptr;
+        CTxdStore::RemoveRef(m_nPreviousRemapTxd);
+        m_nPreviousRemapTxd = -1;
+        m_nRemapTxd = -1;
+    }
+
+    RpClumpForAllAtomics(m_pRwClump, RemoveAllUpgradesCB, nullptr);
+    memset(m_anUpgrades, 0xFFu, sizeof(m_anUpgrades));
+    CEntity::DeleteRwObject();
+}
+
+void CVehicle::SpecialEntityPreCollisionStuff(CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled,
+    bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck)
+{
+    CVehicle::SpecialEntityPreCollisionStuff_Reversed(colEntity, bIgnoreStuckCheck, bCollisionDisabled, bCollidedEntityCollisionIgnored, bCollidedEntityUnableToMove, bThisOrCollidedEntityStuck);
+}
+void CVehicle::SpecialEntityPreCollisionStuff_Reversed(CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled,
+    bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck)
+{
+    if (colEntity->IsPed()
+        && colEntity->AsPed()->bKnockedOffBike
+        && colEntity->AsPed()->m_pVehicle == this)
+    {
+        *bCollisionDisabled = true;
+        return;
+    }
+
+    if (physicalFlags.bSubmergedInWater
+        && m_nStatus != eEntityStatus::STATUS_PLAYER
+        && (m_nStatus != eEntityStatus::STATUS_HELI && colEntity->DoesNotCollideWithFlyers())) //Bug? Seems like it should check for it being heli
+    {
+        *bCollisionDisabled = true;
+        return;
+    }
+
+    if (m_pEntityIgnoredCollision == colEntity || colEntity->AsPhysical()->m_pEntityIgnoredCollision == this)
+    {
+        *bCollidedEntityCollisionIgnored = true;
+        physicalFlags.b13 = true;
+        return;
+    }
+
+    if (m_pAttachedTo == colEntity)
+    {
+        *bCollidedEntityCollisionIgnored = true;
+        return;
+    }
+
+    if (colEntity->AsPhysical()->m_pAttachedTo == this)
+    {
+        *bCollisionDisabled = true;
+        physicalFlags.b13 = true;
+        return;
+    }
+
+    if (physicalFlags.bDisableCollisionForce || colEntity->AsPhysical()->physicalFlags.bDisableCollisionForce)
+    {
+        *bCollisionDisabled = true;
+        return;
+    }
+
+    if (m_bIsStuck
+        && colEntity->IsVehicle()
+        && (colEntity->AsVehicle()->physicalFlags.bDisableCollisionForce && !colEntity->AsVehicle()->physicalFlags.bCollidable))
+    {
+        *bCollidedEntityCollisionIgnored = true;
+        physicalFlags.b13 = true;
+        return;
+    }
+
+    if (colEntity->AsPhysical()->IsImmovable())
+    {
+        if (bIgnoreStuckCheck)
+            *bCollidedEntityCollisionIgnored = true;
+        else if (m_bIsStuck || colEntity->m_bIsStuck)
+            *bThisOrCollidedEntityStuck = true;
+
+        return;
+    }
+
+    if (colEntity->IsObject())
+    {
+        if (colEntity->AsObject()->IsFallenLampPost())
+        {
+            *bCollisionDisabled = true;
+            colEntity->AsObject()->m_pEntityIgnoredCollision = this;
+        }
+        else
+        {
+            if (colEntity->IsModelTempCollision())
+            {
+                *bCollisionDisabled = true;
+                return;
+            }
+
+            if (colEntity->AsObject()->IsTemporary()
+                || colEntity->AsObject()->IsExploded()
+                || !colEntity->IsStatic())
+            {
+                if (IsConstructionVehicle())
+                {
+                    if (m_bIsStuck || colEntity->m_bIsStuck)
+                        *bThisOrCollidedEntityStuck = true;
+                }
+                else if (!colEntity->AsObject()->CanBeSmashed() && !IsBike())
+                {
+                    auto tempMat = CMatrix();
+                    auto* pColModel = colEntity->GetColModel();
+                    auto& vecMax = pColModel->GetBoundingBox().m_vecMax;
+                    if (vecMax.x < 1.0F && vecMax.y < 1.0F && vecMax.z < 1.0F)
+                    {
+                        const auto vecSize = pColModel->GetBoundingBox().GetSize();
+                        const auto vecTransformed = *colEntity->m_matrix * vecSize;
+
+                        if (GetPosition().z > vecTransformed.z)
+                            *bCollidedEntityCollisionIgnored = true;
+                        else
+                        {
+                            Invert(m_matrix, &tempMat);
+                            if ((tempMat * vecTransformed).z < 0.0F)
+                                *bCollidedEntityCollisionIgnored = true;
+                        }
+                    }
+                }
+            }
+
+            if (!*bCollidedEntityCollisionIgnored
+                && !*bCollisionDisabled
+                && !*bThisOrCollidedEntityStuck
+                && colEntity->m_bIsStuck)
+            {
+                *bCollidedEntityUnableToMove = true;
+            }
+            return;
+        }
+    }
+
+    if (colEntity->IsRCCar())
+    {
+        *bCollidedEntityCollisionIgnored = true;
+        physicalFlags.b13 = true;
+        return;
+    }
+
+    if (IsRCCar() && (colEntity->IsVehicle() || colEntity->IsPed()))
+    {
+        *bCollidedEntityCollisionIgnored = true;
+        physicalFlags.b13 = true;
+        return;
+    }
+
+    if (colEntity == m_pTractor || colEntity == m_pTrailer)
+    {
+        *bThisOrCollidedEntityStuck = true;
+        physicalFlags.b13 = true;
+        return;
+    }
+
+    if (colEntity->m_bIsStuck)
+    {
+        *bCollidedEntityUnableToMove = true;
+        return;
+    }
+}
+
+unsigned char CVehicle::SpecialEntityCalcCollisionSteps(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2)
+{
+    return CVehicle::SpecialEntityCalcCollisionSteps_Reversed(bProcessCollisionBeforeSettingTimeStep, unk2);
+}
+unsigned char CVehicle::SpecialEntityCalcCollisionSteps_Reversed(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2)
+{
+    if (physicalFlags.bDisableCollisionForce)
+        return 1;
+
+    const auto fMoveSquared = m_vecMoveSpeed.SquaredMagnitude() * pow(CTimer::ms_fTimeStep, 2.0F);
+    if (fMoveSquared < 0.16F)
+        return 1;
+
+    auto fMove = sqrt(fMoveSquared);
+    if (m_nStatus != eEntityStatus::STATUS_PLAYER)
+    {
+        if (fMoveSquared <= 0.32F)
+            fMove *= (10.0F / 4.0F);
+        else
+            fMove *= (10.0F / 3.0F);
+    }
+    else if (IsBike())
+        fMove *= (10.0F / 1.5F);
+    else
+        fMove *= (10.0F / 2.0F);
+
+    auto& pBnd = CEntity::GetColModel()->GetBoundingBox();
+    auto fLongestDir = fabs(DotProduct(m_vecMoveSpeed, GetForward()) * CTimer::ms_fTimeStep / pBnd.GetLength());
+    fLongestDir = std::max(fLongestDir, fabs(DotProduct(m_vecMoveSpeed, GetRight()) * CTimer::ms_fTimeStep / pBnd.GetWidth()));
+    fLongestDir = std::max(fLongestDir, fabs(DotProduct(m_vecMoveSpeed, GetUp()) * CTimer::ms_fTimeStep / pBnd.GetHeight()));
+
+    if (IsBike())
+        fLongestDir *= 1.5F;
+
+    if (fLongestDir < 1.0F)
+        *bProcessCollisionBeforeSettingTimeStep = true;
+    else if (fLongestDir < 2.0F)
+        *unk2 = true;
+
+    return static_cast<uint8_t>(ceil(fMove));
+}
+
 void CVehicle::PreRender()
 {
     return CVehicle::PreRender_Reversed();
+}
+void CVehicle::PreRender_Reversed()
+{
+    plugin::CallMethod<0x6D6480, CVehicle*>(this);
 }
 
 void CVehicle::Render()
@@ -202,17 +554,36 @@ void CVehicle::Render()
     return CVehicle::Render_Reversed();
 }
 
-void CVehicle::SetModelIndex(unsigned int index)
+bool CVehicle::SetupLighting()
 {
-    return CVehicle::SetModelIndex_Reversed(index);
+    return CVehicle::SetupLighting_Reversed();
+}
+bool CVehicle::SetupLighting_Reversed()
+{
+    ActivateDirectional();
+    return CRenderer::SetupLightingForEntity(this);
 }
 
-void* CVehicle::operator new(unsigned int size) {
-    return ((void* (__cdecl*)(unsigned int))0x6E2D50)(size);
+void CVehicle::RemoveLighting(bool bRemove)
+{
+    CVehicle::RemoveLighting_Reversed(bRemove);
+}
+void CVehicle::RemoveLighting_Reversed(bool bRemove)
+{
+    if (!physicalFlags.bDestroyed)
+        CPointLights::RemoveLightsAffectingObject();
+
+    SetAmbientColours();
+    DeActivateDirectional();
 }
 
-void CVehicle::operator delete(void* data) {
-    ((void(__cdecl*)(void*))0x6E2D90)(data);
+void CVehicle::FlagToDestroyWhenNextProcessed()
+{
+}
+
+void CVehicle::Render_Reversed()
+{
+    plugin::CallMethod<0x6D0E60, CVehicle*>(this);
 }
 
 // Converted from void CVehicle::ProcessControlCollisionCheck(void) 0x871EDC
@@ -1949,55 +2320,4 @@ void CVehicle::FireFixedMachineGuns()
 void CVehicle::DoDriveByShooting()
 {
     plugin::CallMethod<0x741FD0, CVehicle*>(this);
-}
-
-void CVehicle::PreRender_Reversed()
-{
-    plugin::CallMethod<0x6D6480, CVehicle*>(this);
-}
-
-void CVehicle::Render_Reversed()
-{
-    plugin::CallMethod<0x6D0E60, CVehicle*>(this);
-}
-
-void CVehicle::SetModelIndex_Reversed(unsigned int index)
-{
-    CEntity::SetModelIndex(index);
-    auto pVehModelInfo = reinterpret_cast<CVehicleModelInfo*>(CModelInfo::GetModelInfo(index));
-    CVehicle::CustomCarPlate_TextureCreate(pVehModelInfo);
-
-    for (size_t i = 0; i <= 1; ++i)
-        m_anExtras[i] = CVehicleModelInfo::ms_compsUsed[i];
-
-    m_nMaxPassengers = CVehicleModelInfo::GetMaximumNumberOfPassengersFromNumberOfDoors(index);
-    switch (m_nModelIndex)
-    {
-    case eModelID::MODEL_RCBANDIT:
-    case eModelID::MODEL_RCBARON:
-    case eModelID::MODEL_RCRAIDER:
-    case eModelID::MODEL_RCGOBLIN:
-    case eModelID::MODEL_RCTIGER:
-        vehicleFlags.bIsRCVehicle = true;
-        break;
-    default:
-        vehicleFlags.bIsRCVehicle = false;
-        break;
-    }
-
-    //Set up weapons
-    switch (m_nModelIndex)
-    {
-    case eModelID::MODEL_RUSTLER:
-    case eModelID::MODEL_STUNT:
-        m_nVehicleWeaponInUse = eCarWeapon::CAR_WEAPON_HEAVY_GUN;
-        break;
-    case eModelID::MODEL_BEAGLE:
-        m_nVehicleWeaponInUse = eCarWeapon::CAR_WEAPON_FREEFALL_BOMB;
-        break;
-    case eModelID::MODEL_HYDRA:
-    case eModelID::MODEL_TORNADO:
-        m_nVehicleWeaponInUse = eCarWeapon::CAR_WEAPON_LOCK_ON_ROCKET;
-        break;
-    }
 }

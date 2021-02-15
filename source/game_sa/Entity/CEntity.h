@@ -15,6 +15,9 @@
 #include "C2dEffect.h"
 #include "eModelID.h"
 
+class CDummy;
+class CBuilding;
+
 class  CEntity : public CPlaceable {
 protected:
     CEntity(plugin::dummy_func_t) : CPlaceable(plugin::dummy) {}
@@ -204,11 +207,20 @@ public:
     inline bool IsObject() const { return m_nType == ENTITY_TYPE_OBJECT; }
     inline bool IsBuilding() const { return m_nType == ENTITY_TYPE_BUILDING; }
     inline bool IsDummy() const { return m_nType == ENTITY_TYPE_DUMMY; }
+
+    inline CPhysical* AsPhysical() { return reinterpret_cast<CPhysical*>(this); }
+    inline CVehicle* AsVehicle() { return reinterpret_cast<CVehicle*>(this); }
+    inline CPed* AsPed() { return reinterpret_cast<CPed*>(this); }
+    inline CObject* AsObject() { return reinterpret_cast<CObject*>(this); }
+    inline CBuilding* AsBuilding() { return reinterpret_cast<CBuilding*>(this); }
+    inline CDummy* AsDummy() { return reinterpret_cast<CDummy*>(this); }
+
     inline bool IsModelTempCollision() const
     {
         return m_nModelIndex >= eModelID::MODEL_TEMPCOL_DOOR1 && m_nModelIndex <= eModelID::MODEL_TEMPCOL_BODYPART2;
     }
     inline bool IsStatic() const { return m_bIsStatic || m_bIsStaticWaitingForCollision; }
+    inline bool IsRCCar() const { return m_nModelIndex == MODEL_RCBANDIT || m_nModelIndex == MODEL_RCTIGER || m_nModelIndex == MODEL_RCCAM; }
 };
 
 VALIDATE_SIZE(CEntity, 0x38);

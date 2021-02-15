@@ -152,8 +152,11 @@ VALIDATE_SIZE(tHydrualicData, 0x28);
 
 class CVehicle : public CPhysical {
 public:
-    CVehicle(unsigned char createdBy);
     CVehicle(plugin::dummy_func_t) : CPhysical() {} //TODO: Remove
+    CVehicle(unsigned char createdBy);
+    ~CVehicle();
+    static void* operator new(unsigned int size);
+    static void operator delete(void* data);
 public:
     CAEVehicleAudioEntity      m_vehicleAudio;
     tHandlingData             *m_pHandlingData;
@@ -289,7 +292,7 @@ public:
     uint8_t  m_nMaxPassengers;
     uint8_t  m_nWindowsOpenFlags; // initialised, but not used?
     uint8_t  m_nNitroBoosts;
-    int8_t  m_vehicleSpecialColIndex;
+    int8_t   m_vehicleSpecialColIndex;
     CEntity *m_pEntityWeAreOn; // we get it from CWorld::ProcessVerticalLine or ProcessEntityCollision, it's entity under us, 
                                //only static entities (buildings or roads)
     CFire *m_pFire;
@@ -393,12 +396,16 @@ public:
 public:
     static void InjectHooks();
 
-    
-
+// VIRTUAL
+    void SetModelIndex(unsigned int index) override;
+    void DeleteRwObject() override;
+    void SpecialEntityPreCollisionStuff(CEntity* colEntity, bool bIgnoreStuckCheck, bool* bCollisionDisabled, bool* bCollidedEntityCollisionIgnored, bool* bCollidedEntityUnableToMove, bool* bThisOrCollidedEntityStuck) override;
+    unsigned char SpecialEntityCalcCollisionSteps(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2) override;
     void PreRender() override;
     void Render() override;
-    void SetModelIndex(unsigned int index) override;
-    // originally vtable functions
+    bool SetupLighting() override;
+    void RemoveLighting(bool bRemove) override;
+    void FlagToDestroyWhenNextProcessed() override;
 
     virtual void ProcessControlCollisionCheck(bool applySpeed);
     virtual void ProcessControlInputs(unsigned char playerNum);
@@ -453,9 +460,24 @@ public:
     // always return true
     virtual bool Load();
 
-    //funcs
+// VIRTUAL METHODS REVERSED
+private:
+    void SetModelIndex_Reversed(unsigned int index);
+    void DeleteRwObject_Reversed();
+    void SpecialEntityPreCollisionStuff_Reversed(CEntity* colEntity,
+                                                 bool bIgnoreStuckCheck,
+                                                 bool* bCollisionDisabled,
+                                                 bool* bCollidedEntityCollisionIgnored,
+                                                 bool* bCollidedEntityUnableToMove,
+                                                 bool* bThisOrCollidedEntityStuck);
+    unsigned char SpecialEntityCalcCollisionSteps_Reversed(bool* bProcessCollisionBeforeSettingTimeStep, bool* unk2);
+    void PreRender_Reversed();
+    void Render_Reversed();
+    bool SetupLighting_Reversed();
+    void RemoveLighting_Reversed(bool bRemove);
 
-    static void Shutdown();
+ // CLASS FUNCS
+public:
     // -1 if no remap index
     int GetRemapIndex();
     void SetRemapTexDictionary(int txdId);
@@ -505,7 +527,6 @@ public:
     float HeightAboveCeiling(float arg0, eFlightModel arg1);
     void SetComponentVisibility(RwFrame* component, unsigned int visibilityState);
     void ApplyBoatWaterResistance(tBoatHandlingData* boatHandling, float fImmersionDepth);
-    static void SetComponentAtomicAlpha(RpAtomic* atomic, int alpha);
     void UpdateClumpAlpha();
     void UpdatePassengerList();
     CPed* PickRandomPassenger();
@@ -608,27 +629,24 @@ public:
     void FireFixedMachineGuns();
     void DoDriveByShooting();
 
-private:
-    void PreRender_Reversed();
-    void Render_Reversed();
-    void SetModelIndex_Reversed(unsigned int index);
+// STATIC FUNCS
+    static void Shutdown();
+    static void SetComponentAtomicAlpha(RpAtomic* atomic, int alpha);
 
 public:
-    bool IsFakeAircraft() { return m_vehicleSubType == VEHICLE_FHELI || m_vehicleSubType == VEHICLE_FPLANE; }
-    bool IsPlane() { return m_vehicleSubType == VEHICLE_PLANE; }
-    bool IsHeli() { return m_vehicleSubType == VEHICLE_HELI; }
-    bool IsVehicleTypeValid() { return m_vehicleSubType != VEHICLE_NONE; }
-    bool IsBoat() { return m_vehicleType == VEHICLE_BOAT; }
-    bool IsBike() { return m_vehicleType == VEHICLE_BIKE; }
-    bool IsQuad() { return m_vehicleType == VEHICLE_QUAD; }
-    bool IsSubclassQuad() { return m_vehicleSubType == VEHICLE_QUAD; };
-    bool IsAutomobile() { return m_vehicleType == VEHICLE_AUTOMOBILE; }
+    bool IsFakeAircraft() const { return m_vehicleSubType == VEHICLE_FHELI || m_vehicleSubType == VEHICLE_FPLANE; }
+    bool IsPlane() const { return m_vehicleSubType == VEHICLE_PLANE; }
+    bool IsHeli() const { return m_vehicleSubType == VEHICLE_HELI; }
+    bool IsVehicleTypeValid() const { return m_vehicleSubType != VEHICLE_NONE; }
+    bool IsBoat() const { return m_vehicleType == VEHICLE_BOAT; }
+    bool IsBike() const { return m_vehicleType == VEHICLE_BIKE; }
+    bool IsQuad() const { return m_vehicleType == VEHICLE_QUAD; }
+    bool IsSubclassQuad() const { return m_vehicleSubType == VEHICLE_QUAD; }
+    bool IsAutomobile() const { return m_vehicleType == VEHICLE_AUTOMOBILE; }
 
-    bool IsTransportVehicle() { return m_nModelIndex == MODEL_TAXI || m_nModelIndex == MODEL_CABBIE; }
-    bool IsAmphibiousHeli() { return m_nModelIndex == MODEL_SEASPAR || m_nModelIndex == MODEL_LEVIATHN; }
-
-    static void* operator new(unsigned int size);
-    static void operator delete(void* data);
+    bool IsTransportVehicle() const { return m_nModelIndex == MODEL_TAXI || m_nModelIndex == MODEL_CABBIE; }
+    bool IsAmphibiousHeli() const { return m_nModelIndex == MODEL_SEASPAR || m_nModelIndex == MODEL_LEVIATHN; }
+    bool IsConstructionVehicle() const { return  m_nModelIndex == MODEL_DUMPER || m_nModelIndex == MODEL_DOZER || m_nModelIndex == MODEL_FORKLIFT; }
 
     inline unsigned char GetCreatedBy() { return m_nCreatedBy; }
     inline bool IsCreatedBy(eVehicleCreatedBy v) { return v == m_nCreatedBy; }

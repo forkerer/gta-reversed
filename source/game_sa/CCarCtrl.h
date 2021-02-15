@@ -16,6 +16,8 @@ class  CCarCtrl
 {
 public:
     static unsigned int& NumLawEnforcerCars;
+    static unsigned int& NumAmbulancesOnDuty;
+    static unsigned int& NumFireTrucksOnDuty;
 
 	static void InjectHooks();
 

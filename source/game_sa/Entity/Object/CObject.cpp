@@ -411,21 +411,18 @@ void CObject::SpecialEntityPreCollisionStuff_Reversed(CEntity* colEntity, bool b
             {
                 if (IsModelTempCollision())
                     *bCollisionDisabled = true;
-                else if (m_nObjectType == eObjectType::OBJECT_TEMPORARY || (objectFlags.bIsExploded || !CEntity::IsStatic()))
+                else if (IsTemporary() || IsExploded() || !CEntity::IsStatic())
                 {
-                    if (colEntity->m_nModelIndex == eModelID::MODEL_DUMPER
-                        || colEntity->m_nModelIndex == eModelID::MODEL_DOZER
-                        || colEntity->m_nModelIndex == eModelID::MODEL_FORKLIFT)
+                    if (colEntity->AsVehicle()->IsConstructionVehicle())
                     {
-
                         if (m_bIsStuck || colEntity->m_bIsStuck)
                             *bThisOrCollidedEntityStuck = true;
                     }
-                    else if (m_nColDamageEffect < eObjectColDamageEffect::COL_DAMAGE_EFFECT_SMASH_COMPLETELY)
+                    else if (!CanBeSmashed())
                     {
                         auto tempMat = CMatrix();
                         auto* pColModel = CEntity::GetColModel();
-                        auto vecSize = pColModel->GetBoundingBox().m_vecMax - pColModel->GetBoundingBox().m_vecMin;
+                        auto vecSize = pColModel->GetBoundingBox().GetSize();
                         auto vecTransformed = *m_matrix * vecSize;
 
                         auto& vecCollidedPos = colEntity->GetPosition();
