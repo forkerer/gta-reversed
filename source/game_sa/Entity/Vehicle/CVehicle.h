@@ -437,16 +437,16 @@ public:
     virtual bool IsRoomForPedToLeaveCar(unsigned int arg0, CVector* arg1) { return false; }
     virtual void ProcessDrivingAnims(CPed* driver, unsigned char bBlend);
     // get special ride anim data for bile or quad
-    virtual CRideAnimData* GetRideAnimData();
-    virtual void SetupSuspensionLines();
-    virtual CVector* AddMovingCollisionSpeed(CVector* out, CVector& vecDistance);
-    virtual void Fix();
-    virtual void SetupDamageAfterLoad();
-    virtual void DoBurstAndSoftGroundRatios();
+    virtual CRideAnimData* GetRideAnimData() { return nullptr; }
+    virtual void SetupSuspensionLines() { /* Do nothing */ }
+    virtual CVector* AddMovingCollisionSpeed(CVector* out, CVector& vecDistance) { out->Set(0.0F, 0.0F, 0.0F); return out; }
+    virtual void Fix() { /* Do nothing */ }
+    virtual void SetupDamageAfterLoad() { /* Do nothing */ }
+    virtual void DoBurstAndSoftGroundRatios() { /* Do nothing */ }
     virtual float GetHeightAboveRoad();
-    virtual void PlayCarHorn();
-    virtual int GetNumContactWheels();
-    virtual void VehicleDamage(float damageIntensity, unsigned short collisionComponent, CEntity* damager, CVector* vecCollisionCoors, CVector* vecCollisionDirection, eWeaponType weapon);
+    virtual void PlayCarHorn() { /* Do nothing */ }
+    virtual int GetNumContactWheels() { return 4; }
+    virtual void VehicleDamage(float damageIntensity, unsigned short collisionComponent, CEntity* damager, CVector* vecCollisionCoors, CVector* vecCollisionDirection, eWeaponType weapon) { /* Do nothing */ }
     virtual bool CanPedStepOutCar(bool arg0);
     virtual bool CanPedJumpOutCar(CPed* ped);
     virtual bool GetTowHitchPos(CVector& posnOut, bool arg1, CVehicle* arg2);
@@ -477,6 +477,7 @@ private:
     void RemoveLighting_Reversed(bool bRemove);
     void ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int animGroup, unsigned int animId, float fTime);
     void ProcessDrivingAnims_Reversed(CPed* driver, unsigned char bBlend);
+    float GetHeightAboveRoad_Reversed();
 
  // CLASS FUNCS
 public:

@@ -63,6 +63,7 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "Render", 0x6D0E60, &CVehicle::Render_Reversed);
     ReversibleHooks::Install("CVehicle", "ProcessOpenDoor", 0x6D56C0, &CVehicle::ProcessOpenDoor_Reversed);
     ReversibleHooks::Install("CVehicle", "ProcessDrivingAnims", 0x6DF4A0, &CVehicle::ProcessDrivingAnims_Reversed);
+    ReversibleHooks::Install("CVehicle", "GetHeightAboveRoad", 0x6D63F0, &CVehicle::GetHeightAboveRoad_Reversed);
 
 // CLASS
     ReversibleHooks::Install("CVehicle", "ProcessWheel", 0x6D6C00, &CVehicle::ProcessWheel);
@@ -982,64 +983,14 @@ void CVehicle::ProcessDrivingAnims_Reversed(CPed* driver, unsigned char bBlend)
         pLookBackAnim->m_fBlendDelta = -4.0F;;
 }
 
-// Converted from CRideAnimData* CVehicle::GetRideAnimData(void) 0x871F3C
-CRideAnimData* CVehicle::GetRideAnimData()
-{
-    return ((CRideAnimData * (__thiscall*)(CVehicle*))(*(void***)this)[47])(this);
-}
-
-// Converted from void CVehicle::SetupSuspensionLines(void) 0x871F40
-void CVehicle::SetupSuspensionLines()
-{
-    ((void(__thiscall*)(CVehicle*))(*(void***)this)[48])(this);
-}
-
-// Converted from CVector CVehicle::AddMovingCollisionSpeed(CVector &) 0x871F44
-CVector* CVehicle::AddMovingCollisionSpeed(CVector* out, CVector& vecDistance)
-{
-    return ((CVector * (__thiscall*)(CVehicle*, CVector*, CVector&))(*(void***)this)[49])(this, out, vecDistance);
-}
-
-// Converted from void CVehicle::Fix(void) 0x871F48
-void CVehicle::Fix()
-{
-    ((void(__thiscall*)(CVehicle*))(*(void***)this)[50])(this);
-}
-
-// Converted from void CVehicle::SetupDamageAfterLoad(void) 0x871F4C
-void CVehicle::SetupDamageAfterLoad()
-{
-    ((void(__thiscall*)(CVehicle*))(*(void***)this)[51])(this);
-}
-
-// Converted from void CVehicle::DoBurstAndSoftGroundRatios(void) 0x871F50
-void CVehicle::DoBurstAndSoftGroundRatios()
-{
-    ((void(__thiscall*)(CVehicle*))(*(void***)this)[52])(this);
-}
-
 // Converted from float CVehicle::GetHeightAboveRoad(void) 0x871F54
 float CVehicle::GetHeightAboveRoad()
 {
-    return ((float(__thiscall*)(CVehicle*))(*(void***)this)[53])(this);
+    return CVehicle::GetHeightAboveRoad_Reversed();
 }
-
-// Converted from void CVehicle::PlayCarHorn(void) 0x871F58
-void CVehicle::PlayCarHorn()
+float CVehicle::GetHeightAboveRoad_Reversed()
 {
-    ((void(__thiscall*)(CVehicle*))(*(void***)this)[54])(this);
-}
-
-// Converted from int CVehicle::GetNumContactWheels(void) 0x871F5C
-int CVehicle::GetNumContactWheels()
-{
-    return ((int(__thiscall*)(CVehicle*))(*(void***)this)[55])(this);
-}
-
-// Converted from void CVehicle::VehicleDamage(float damageIntensity,ushort collisionComponent,CEntity *damager,CVector *vecCollisionCoors,CVector *vecCollisionDirection,eWeaponType weapon) 0x871F60
-void CVehicle::VehicleDamage(float damageIntensity, unsigned short collisionComponent, CEntity* damager, CVector* vecCollisionCoors, CVector* vecCollisionDirection, eWeaponType weapon)
-{
-    ((void(__thiscall*)(CVehicle*, float, unsigned short, CEntity*, CVector*, CVector*, eWeaponType))(*(void***)this)[56])(this, damageIntensity, collisionComponent, damager, vecCollisionCoors, vecCollisionDirection, weapon);
+    return CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel()->GetBoundingBox().m_vecMin.z * -1.0F;
 }
 
 // Converted from bool CVehicle::CanPedStepOutCar(bool) 0x871F64
