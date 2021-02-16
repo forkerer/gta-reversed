@@ -233,6 +233,7 @@
 #include "game_sa\CRepeatSector.h"
 #include "game_sa\CRestart.h"
 #include "game_sa\CRGBA.h"
+#include "game_sa\CRideAnims.h"
 #include "game_sa\CRideAnimData.h"
 #include "game_sa\CRope.h"
 #include "game_sa\CRopes.h"

@@ -144,10 +144,12 @@ public:
 
     static void GetInOutTimings(int iGroup, eInOutTimingMode mode, float* pfAnimStart, float* pfAnimEnd);
     static int GetGroupForAnim(int iGroup, int animId);
-    static bool UsesTruckDrivingAnims(int iGroup);
     static CVector GetAnimDoorOffset(int iGroup, eVehAnimDoorOffset doorId);
     static float ComputeCriticalBlendTime(int iGroup, int animId);
 
+    static bool UsesTruckDrivingAnims(int iGroup);
+    static bool UsesKartDrivingAnims(int iGroup);
+    static bool UsesHovercraftDrivingAnims(int iGroup);
 public:
 // Helpers
     inline static CVehicleAnimGroup& GetVehicleAnimGroup(int iGroup) { return m_vehicleAnimGroups[iGroup]; }

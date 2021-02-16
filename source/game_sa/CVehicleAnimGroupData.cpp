@@ -230,8 +230,9 @@ void CVehicleAnimGroupData::InjectHooks()
 {
     ReversibleHooks::Install("CVehicleAnimGroupData", "GetInOutTimings", 0x645630, &CVehicleAnimGroupData::GetInOutTimings);
     ReversibleHooks::Install("CVehicleAnimGroupData", "GetGroupForAnim", 0x639FC0, &CVehicleAnimGroupData::GetGroupForAnim);
-    ReversibleHooks::Install("CVehicleAnimGroupData", "UsesTruckDrivingAnims", 0x639FE0, &CVehicleAnimGroupData::UsesTruckDrivingAnims);
     ReversibleHooks::Install("CVehicleAnimGroupData", "GetAnimDoorOffset", 0x645600, &CVehicleAnimGroupData::GetAnimDoorOffset);
+    ReversibleHooks::Install("CVehicleAnimGroupData", "UsesTruckDrivingAnims", 0x639FE0, &CVehicleAnimGroupData::UsesTruckDrivingAnims);
+    ReversibleHooks::Install("CVehicleAnimGroupData", "UsesKartDrivingAnims", 0x6D09E0, &CVehicleAnimGroupData::UsesKartDrivingAnims);
 }
 
 void CVehicleAnimGroupData::GetInOutTimings(int iGroup, eInOutTimingMode mode, float* pfAnimStart, float* pfAnimEnd)
@@ -246,11 +247,6 @@ int CVehicleAnimGroupData::GetGroupForAnim(int iGroup, int animId)
     return CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).GetGroup(animId);
 }
 
-bool CVehicleAnimGroupData::UsesTruckDrivingAnims(int iGroup)
-{
-    return CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).m_specialFlags.bUseTruckDriveAnims;
-}
-
 CVector CVehicleAnimGroupData::GetAnimDoorOffset(int iGroup, eVehAnimDoorOffset doorId)
 {
     return CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).GetDoorOffset(doorId);
@@ -260,4 +256,19 @@ float CVehicleAnimGroupData::ComputeCriticalBlendTime(int iGroup, int animId)
 {
     // CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).GetGroup(animId)
     return CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).ComputeCriticalBlendTime(animId);
+}
+
+bool CVehicleAnimGroupData::UsesTruckDrivingAnims(int iGroup)
+{
+    return CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).m_specialFlags.bUseTruckDriveAnims;
+}
+
+bool CVehicleAnimGroupData::UsesKartDrivingAnims(int iGroup)
+{
+    return CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).m_specialFlags.bUseKartDriveAnims;
+}
+
+bool CVehicleAnimGroupData::UsesHovercraftDrivingAnims(int iGroup)
+{
+    return CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).m_specialFlags.bUseHovercraftDriveAnims;
 }

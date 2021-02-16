@@ -415,27 +415,27 @@ public:
     virtual bool IsComponentPresent(int componentId) { return false; }
     virtual void OpenDoor(CPed* ped, int componentId, eDoors door, float doorOpenRatio, bool playSound) { /* Do nothing */ }
     virtual void ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int nAnimID, float fTime);
-    virtual float GetDooorAngleOpenRatio(unsigned int door);
-    virtual float GetDooorAngleOpenRatio(eDoors door);
-    virtual bool IsDoorReady(unsigned int door);
-    virtual bool IsDoorReady(eDoors door);
-    virtual bool IsDoorFullyOpen(unsigned int door);
-    virtual bool IsDoorFullyOpen(eDoors door);
-    virtual bool IsDoorClosed(unsigned int door);
-    virtual bool IsDoorClosed(eDoors door);
-    virtual bool IsDoorMissing(unsigned int door);
-    virtual bool IsDoorMissing(eDoors door);
+    virtual float GetDooorAngleOpenRatio(eDoors door) { return 0.0F; }
+    virtual float GetDooorAngleOpenRatio(unsigned int door) { return 0.0F; }
+    virtual bool IsDoorReady(eDoors door) { return false; }
+    virtual bool IsDoorReady(unsigned int door) { return false; }
+    virtual bool IsDoorFullyOpen(eDoors door) { return false; }
+    virtual bool IsDoorFullyOpen(unsigned int door) { return false; }
+    virtual bool IsDoorClosed(eDoors door){ return false; }
+    virtual bool IsDoorClosed(unsigned int door){ return false; }
+    virtual bool IsDoorMissing(eDoors door) { return false; }
+    virtual bool IsDoorMissing(unsigned int door){ return false; }
     // check if car has roof as extra
-    virtual bool IsOpenTopCar();
+    virtual bool IsOpenTopCar(){ return false; }
     // remove ref to this entity
-    virtual void RemoveRefsToVehicle(CEntity* entity);
-    virtual void BlowUpCar(CEntity* damager, unsigned char bHideExplosion);
-    virtual void BlowUpCarCutSceneNoExtras(bool bNoCamShake, bool bNoSpawnFlyingComps, bool bDetachWheels, bool bExplosionSound);
-    virtual bool SetUpWheelColModel(CColModel* wheelCol);
+    virtual void RemoveRefsToVehicle(CEntity* entity) { /* Do nothing */ }
+    virtual void BlowUpCar(CEntity* damager, unsigned char bHideExplosion) { /* Do nothing */ }
+    virtual void BlowUpCarCutSceneNoExtras(bool bNoCamShake, bool bNoSpawnFlyingComps, bool bDetachWheels, bool bExplosionSound) { /* Do nothing */ }
+    virtual bool SetUpWheelColModel(CColModel* wheelCol) { return false; }
     // returns false if it's not possible to burst vehicle's tyre or it is already damaged. bPhysicalEffect=true applies random moving force to vehicle
-    virtual bool BurstTyre(unsigned char tyreComponentId, bool bPhysicalEffect);
-    virtual bool IsRoomForPedToLeaveCar(unsigned int arg0, CVector* arg1);
-    virtual void ProcessDrivingAnims(CPed* driver, unsigned char arg1);
+    virtual bool BurstTyre(unsigned char tyreComponentId, bool bPhysicalEffect) { return false; }
+    virtual bool IsRoomForPedToLeaveCar(unsigned int arg0, CVector* arg1) { return false; }
+    virtual void ProcessDrivingAnims(CPed* driver, unsigned char bBlend);
     // get special ride anim data for bile or quad
     virtual CRideAnimData* GetRideAnimData();
     virtual void SetupSuspensionLines();
@@ -476,6 +476,7 @@ private:
     bool SetupLighting_Reversed();
     void RemoveLighting_Reversed(bool bRemove);
     void ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int animGroup, unsigned int animId, float fTime);
+    void ProcessDrivingAnims_Reversed(CPed* driver, unsigned char bBlend);
 
  // CLASS FUNCS
 public:
@@ -686,16 +687,6 @@ extern float &AUTOGYRO_ROTORTILT_ANGLE; // 0.25
 extern float &ROTOR_SEMI_THICKNESS; // 0.05
 extern float *fSpeedMult; // float fSpeedMult[5] = {0.8, 0.75, 0.85, 0.9, 0.85, 0.85}
 extern float &fDamagePosSpeedShift; // 0.4
-extern unsigned int *aDriveAnimIdsLow; // unsigned int aDriveAnimIdsLow[4] = {61, 68, 69, 78}
-extern unsigned int *aDriveAnimIdsBoat; // unsigned int aDriveAnimIdsBoat[4] = {81, 82, 83, 84}
-extern unsigned int *aDriveAnimIdsBad; // unsigned int aDriveAnimIdsBad[4] = {62, 70, 71, 79}
-extern unsigned int *aDriveAnimIdsBadSlow; // unsigned int aDriveAnimIdsBadSlow[4] = {62, 87, 88, 79}
-extern unsigned int *aDriveAnimIdsStd; // unsigned int aDriveAnimIdsStd[4] = {60, 66, 67, 78}
-extern unsigned int *aDriveAnimIdsStdSlow; // unsigned int aDriveAnimIdsStdSlow[4] = {60, 85, 86, 78}
-extern unsigned int *aDriveAnimIdsPro; // unsigned int aDriveAnimIdsPro[4] = {63, 72, 73, 80}
-extern unsigned int *aDriveAnimIdsProSlow; // unsigned int aDriveAnimIdsProSlow[4] = {63, 89, 90, 80}
-extern unsigned int *aDriveAnimIdsTruck; // unsigned int aDriveAnimIdsTruck[4] = {91, 92, 93, 94}
-extern unsigned int *aDriveAnimIdsKart; // unsigned int aDriveAnimIdsKart[4] = {95, 96, 97, 98}
 extern float &DIFF_LIMIT; // 0.8
 extern float &DIFF_SPRING_MULT_X; // 0.05
 extern float &DIFF_SPRING_MULT_Y; // 0.05
