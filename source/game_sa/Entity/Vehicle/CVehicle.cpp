@@ -71,6 +71,7 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "RemoveLighting", 0x5533D0, &CVehicle::RemoveLighting_Reversed);
     ReversibleHooks::Install("CVehicle", "PreRender", 0x6D6480, &CVehicle::PreRender_Reversed);
     ReversibleHooks::Install("CVehicle", "Render", 0x6D0E60, &CVehicle::Render_Reversed);
+    ReversibleHooks::Install("CVehicle", "ProcessOpenDoor", 0x6D56C0, &CVehicle::ProcessOpenDoor_Reversed);
 
 // CLASS
     ReversibleHooks::Install("CVehicle", "ProcessWheel", 0x6D6C00, &CVehicle::ProcessWheel);
@@ -605,9 +606,237 @@ void CVehicle::ProcessOpenDoor(CPed* ped, unsigned int doorComponentId, unsigned
 {
     CVehicle::ProcessOpenDoor_Reversed(ped, doorComponentId, arg2, nAnimID, fTime);
 }
-void CVehicle::ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int nAnimID, float fTime)
+void CVehicle::ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int animGroup, unsigned int animId, float fTime)
 {
-    return plugin::CallMethod<0x6D56C0, CVehicle*, CPed*, unsigned int, unsigned int, unsigned int, float>(this, ped, doorComponentId, arg2, nAnimID, fTime);
+    eDoors iCheckedDoor;
+    switch (doorComponentId)
+    {
+    case COMPONENT_DOOR_RF:
+        iCheckedDoor = DOOR_RIGHT_FRONT;
+        break;
+    case COMPONENT_DOOR_LR:
+        iCheckedDoor = DOOR_RIGHT_REAR;
+        break;
+    case COMPONENT_DOOR_RR:
+        iCheckedDoor = DOOR_LEFT_FRONT;
+        break;
+    case COMPONENT_WING_LF:
+        iCheckedDoor = DOOR_LEFT_REAR;
+        break;
+    default:
+        assert(false); //Shouldn't get here
+        iCheckedDoor = static_cast<eDoors>(fTime);
+    }
+
+    if (this->IsDoorMissing(iCheckedDoor))
+        return;
+
+    float fAnimStart, fAnimEnd;
+    switch (animId)
+    {
+    case ANIM_ID_CAR_OPEN_LHS:
+    case ANIM_ID_CAR_OPEN_RHS:
+    case ANIM_ID_CAR_OPEN_LHS_1:
+    case ANIM_ID_CAR_OPEN_RHS_1:
+        {
+        CVehicleAnimGroupData::GetInOutTimings(this->m_pHandlingData->m_nAnimGroup, eInOutTimingMode::OPEN_OUT, &fAnimStart, &fAnimEnd);
+        if (fTime < fAnimStart)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 0.0F, false);
+        else if (fTime > fAnimEnd)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
+        else if (fTime > fAnimStart && fTime < fAnimEnd)
+        {
+            const auto fNewRatio = invLerp(fAnimStart, fAnimEnd, fTime);
+            const auto fCurRatio = this->GetDooorAngleOpenRatio(iCheckedDoor);
+            if (fCurRatio < fNewRatio)
+                this->OpenDoor(ped, doorComponentId, iCheckedDoor, fNewRatio, true);
+        }
+
+        return;
+        }
+
+    case ANIM_ID_CAR_PULLOUT_LHS:
+    case ANIM_ID_CAR_PULLOUT_RHS:
+    case ANIM_ID_UNKNOWN_15:
+        switch (animGroup)
+        {
+        case ANIM_GROUP_STDCARAMIMS:
+        case ANIM_GROUP_LOWCARAMIMS:
+        case ANIM_GROUP_TRKCARANIMS:
+        case ANIM_GROUP_COACHCARANIMS:
+        case ANIM_GROUP_BUSCARANIMS:
+        case ANIM_GROUP_CONVCARANIMS:
+        case ANIM_GROUP_MTRKCARANIMS:
+        case ANIM_GROUP_STDTALLCARAMIMS:
+        case ANIM_GROUP_BFINJCARAMIMS:
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
+        }
+
+        return;
+
+    case ANIM_ID_CAR_CLOSEDOOR_LHS_0:
+    case ANIM_ID_CAR_CLOSEDOOR_RHS_0:
+    case ANIM_ID_CAR_CLOSEDOOR_LHS_1:
+    case ANIM_ID_CAR_CLOSEDOOR_RHS_1:
+        {
+        CVehicleAnimGroupData::GetInOutTimings(this->m_pHandlingData->m_nAnimGroup, eInOutTimingMode::CLOSE_IN, &fAnimStart, &fAnimEnd);
+        if (fTime < fAnimStart)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
+        else if (fTime > fAnimEnd)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 0.0F, true);
+        else if (fTime > fAnimStart && fTime < fAnimEnd)
+        {
+            const auto fNewRatio = 1.0F - invLerp(fAnimStart, fAnimEnd, fTime);
+            const auto fCurRatio = this->GetDooorAngleOpenRatio(iCheckedDoor);
+            if (fCurRatio < fNewRatio)
+                this->OpenDoor(ped, doorComponentId, iCheckedDoor, fNewRatio, true);
+        }
+
+        return;
+        }
+
+    case ANIM_ID_CAR_GETOUT_LHS_0:
+    case ANIM_ID_CAR_GETOUT_RHS_0:
+    case ANIM_ID_CAR_GETOUT_LHS_1:
+    case ANIM_ID_CAR_GETOUT_RHS_1:
+        {
+        CVehicleAnimGroupData::GetInOutTimings(this->m_pHandlingData->m_nAnimGroup, eInOutTimingMode::OPEN_IN, &fAnimStart, &fAnimEnd);
+        if (fTime < fAnimStart)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 0.0F, true);
+        else if (fTime > fAnimEnd)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
+        else if (fTime > fAnimStart && fTime < fAnimEnd)
+        {
+            const auto fNewRatio = invLerp(fAnimStart, fAnimEnd, fTime);
+            const auto fCurRatio = this->GetDooorAngleOpenRatio(iCheckedDoor);
+            if (fCurRatio < fNewRatio)
+                this->OpenDoor(ped, doorComponentId, iCheckedDoor, fNewRatio, true);
+        }
+
+        return;
+        }
+
+    case ANIM_ID_CAR_JACKEDLHS:
+    case ANIM_ID_CAR_JACKEDRHS:
+        if (fTime < 0.1F)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 0.0F, true);
+        else if (fTime > 0.4F)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
+        else if (fTime > 0.1F && fTime < 0.4F)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, (fTime - 0.1F) * (10.0F / 3.0F), true);
+
+        return;
+
+    case ANIM_ID_CAR_CLOSE_LHS_0:
+    case ANIM_ID_CAR_CLOSE_RHS_0:
+    case ANIM_ID_CAR_CLOSE_LHS_1:
+    case ANIM_ID_CAR_CLOSE_RHS_1:
+        {
+        CVehicleAnimGroupData::GetInOutTimings(this->m_pHandlingData->m_nAnimGroup, eInOutTimingMode::CLOSE_OUT, &fAnimStart, &fAnimEnd);
+        if (fTime < fAnimStart)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
+        else if (fTime > fAnimEnd)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 0.0F, true);
+        else if (fTime > fAnimStart && fTime < fAnimEnd)
+        {
+            const auto fNewRatio = 1.0F - invLerp(fAnimStart, fAnimEnd, fTime);
+            const auto fCurRatio = this->GetDooorAngleOpenRatio(iCheckedDoor);
+            if (fCurRatio < fNewRatio)
+                this->OpenDoor(ped, doorComponentId, iCheckedDoor, fNewRatio, true);
+        }
+
+        return;
+        }
+
+    case ANIM_ID_CAR_ROLLOUT_LHS:
+    case ANIM_ID_CAR_ROLLOUT_RHS:
+    {
+        switch (animGroup)
+        {
+        case ANIM_GROUP_STDCARAMIMS:
+        case ANIM_GROUP_LOWCARAMIMS:
+        case ANIM_GROUP_TRKCARANIMS:
+        case ANIM_GROUP_RUSTPLANEANIMS:
+        case ANIM_GROUP_COACHCARANIMS:
+        case ANIM_GROUP_CONVCARANIMS:
+        case ANIM_GROUP_MTRKCARANIMS:
+        case ANIM_GROUP_STDTALLCARAMIMS:
+        case ANIM_GROUP_BFINJCARAMIMS:
+            fAnimStart = 0.01F;
+            fAnimEnd = 0.1F;
+            break;
+        default:
+            assert(false); // Shouldn't ever enter this
+            break;
+        }
+
+        if (fTime < fAnimStart)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 0.0F, true);
+        else if (fTime > fAnimEnd)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
+        else if (fTime > fAnimStart && fTime < fAnimEnd)
+        {
+            const auto fNewRatio = invLerp(fAnimStart, fAnimEnd, fTime);
+            const auto fCurRatio = this->GetDooorAngleOpenRatio(iCheckedDoor);
+            if (fCurRatio < fNewRatio)
+                this->OpenDoor(ped, doorComponentId, iCheckedDoor, fNewRatio, true);
+        }
+
+        return;
+    }
+
+    case ANIM_ID_CAR_ROLLDOOR: {
+        float fAnimEnd2;
+        switch (animGroup)
+        {
+        case ANIM_GROUP_STDCARAMIMS:
+        case ANIM_GROUP_LOWCARAMIMS:
+        case ANIM_GROUP_TRKCARANIMS:
+        case ANIM_GROUP_RUSTPLANEANIMS:
+        case ANIM_GROUP_COACHCARANIMS:
+        case ANIM_GROUP_CONVCARANIMS:
+        case ANIM_GROUP_MTRKCARANIMS:
+        case ANIM_GROUP_STDTALLCARAMIMS:
+        case ANIM_GROUP_BFINJCARAMIMS:
+            fAnimStart = 0.05;
+            fAnimEnd = 0.3;
+            fAnimEnd2 = 0.475F;
+            break;
+        default:
+            assert(false); // Shouldn't ever enter this
+            break;
+        }
+
+        if (fTime > fAnimEnd2)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 0.0F, true);
+        else if (fTime > fAnimStart && fTime < fAnimEnd) {
+            const auto fNewRatio = invLerp(fAnimStart, 0.2F, fTime);
+            const auto fCurRatio = this->GetDooorAngleOpenRatio(iCheckedDoor);
+            if (fCurRatio < fNewRatio)
+                this->OpenDoor(ped, doorComponentId, iCheckedDoor, fNewRatio, true);
+        }
+        else if (fTime > fAnimEnd && fTime < fAnimEnd2)
+        {
+            const auto fNewRatio = 1.0F - invLerp(fAnimEnd, fAnimEnd2, fTime);
+            const auto fCurRatio = this->GetDooorAngleOpenRatio(iCheckedDoor);
+            if (fCurRatio > fNewRatio)
+                this->OpenDoor(ped, doorComponentId, iCheckedDoor, fNewRatio, true);
+        }
+
+        return;
+    }
+
+    case ANIM_ID_CAR_FALLOUT_LHS:
+    case ANIM_ID_CAR_FALLOUT_RHS:
+        if (fTime < 0.1F)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 0.0F, true);
+        else if (fTime > 0.4F)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
+        else if (fTime > 0.1F && fTime < 0.4F)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, (fTime - 0.1F) * (10.0F / 3.0F), true);
+
+        return;
+    }
 }
 // Converted from float CVehicle::GetDooorAngleOpenRatio(uint door) 0x871EF4
 float CVehicle::GetDooorAngleOpenRatio(unsigned int door)

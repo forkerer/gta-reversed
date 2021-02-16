@@ -475,7 +475,7 @@ private:
     void Render_Reversed();
     bool SetupLighting_Reversed();
     void RemoveLighting_Reversed(bool bRemove);
-    void ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int arg2, unsigned int nAnimID, float fTime);
+    void ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int animGroup, unsigned int animId, float fTime);
 
  // CLASS FUNCS
 public:
