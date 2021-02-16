@@ -172,56 +172,92 @@ float CVehicleAnimGroup::ComputeCriticalBlendTime(int animId)
 
 CVector CVehicleAnimGroup::ComputeAnimDoorOffsets(eVehAnimDoorOffset doorId)
 {
-    if (GetDoorOffset(doorId).SquaredMagnitude() != 0.0F)
-        return GetDoorOffset(doorId);
-
-    int animId;
-    switch(doorId)
+    // Memoize door offset if it's not set yet
+    if (GetDoorOffset(doorId).SquaredMagnitude() == 0.0F)
     {
-    case ENTER_FRONT:
-        animId = ANIM_ID_CAR_GETIN_LHS_0;
-        break;
+        int animId;
+        switch (doorId)
+        {
+        case ENTER_FRONT:
+            animId = ANIM_ID_CAR_GETIN_LHS_0;
+            break;
 
-    case ENTER_REAR:
-        animId = ANIM_ID_CAR_GETIN_LHS_1;
-        break;
+        case ENTER_REAR:
+            animId = ANIM_ID_CAR_GETIN_LHS_1;
+            break;
 
-    case ENTER_BIKE_FRONT:
-        animId = ANIM_ID_CAR_GETIN_BIKE_FRONT;
-        break;
+        case ENTER_BIKE_FRONT:
+            animId = ANIM_ID_CAR_GETIN_BIKE_FRONT;
+            break;
 
-    case EXIT_FRONT:
-        animId = ANIM_ID_CAR_GETOUT_LHS_0;
-        break;
+        case EXIT_FRONT:
+            animId = ANIM_ID_CAR_GETOUT_LHS_0;
+            break;
 
-    case EXIT_REAR:
-        animId = ANIM_ID_CAR_GETOUT_LHS_1;
-        break;
+        case EXIT_REAR:
+            animId = ANIM_ID_CAR_GETOUT_LHS_1;
+            break;
 
-    case JACK_PED_LEFT:
-        animId = ANIM_ID_CAR_JACKEDLHS;
-        break;
+        case JACK_PED_LEFT:
+            animId = ANIM_ID_CAR_JACKEDLHS;
+            break;
 
-    case JACK_PED_RIGHT:
-        animId = ANIM_ID_CAR_JACKEDRHS;
-        break;
+        case JACK_PED_RIGHT:
+            animId = ANIM_ID_CAR_JACKEDRHS;
+            break;
 
-    default:
-        assert(false); // Shouldn't enter default case ever
-        animId = doorId;
+        default:
+            assert(false); // Shouldn't enter default case ever
+            animId = doorId;
+        }
+
+        const auto groupId = CVehicleAnimGroup::GetGroup(animId);
+        auto* pAnimAssoc = CAnimManager::GetAnimAssociation(groupId, animId);
+        auto* pSequences = pAnimAssoc->m_pHierarchy->m_pSequences;
+        CAnimManager::UncompressAnimation(pAnimAssoc->m_pHierarchy);
+        if (pSequences->m_nFrameCount > 0)
+        {
+            const auto iFrame = pSequences->m_nFrameCount - 1;
+            auto* pFrame = pSequences->GetUncompressedFrame(iFrame);
+            GetDoorOffset(doorId) = pFrame->m_vecTranslation;
+        }
     }
 
-    const auto groupId = CVehicleAnimGroup::GetGroup(animId);
-    auto* pAnimAssoc = CAnimManager::GetAnimAssociation(groupId, animId);
-    auto* pSequences = pAnimAssoc->m_pHierarchy->m_pSequences;
-    CAnimManager::UncompressAnimation(pAnimAssoc->m_pHierarchy);
-    if (pSequences->m_nFrameCount > 0)
-    {
-        const auto iFrame = pSequences->m_nFrameCount - 1;
-        auto* pFrame = pSequences->GetFrame(iFrame);
-        return *reinterpret_cast<CVector*>(&pFrame[20]);
-    }
+    return GetDoorOffset(doorId);
+}
 
-    assert(false); // We seriously shouldn't reach this code.
-    return CVector();
+void CVehicleAnimGroupData::InjectHooks()
+{
+    ReversibleHooks::Install("CVehicleAnimGroupData", "GetInOutTimings", 0x645630, &CVehicleAnimGroupData::GetInOutTimings);
+    ReversibleHooks::Install("CVehicleAnimGroupData", "GetGroupForAnim", 0x639FC0, &CVehicleAnimGroupData::GetGroupForAnim);
+    ReversibleHooks::Install("CVehicleAnimGroupData", "UsesTruckDrivingAnims", 0x639FE0, &CVehicleAnimGroupData::UsesTruckDrivingAnims);
+    ReversibleHooks::Install("CVehicleAnimGroupData", "GetAnimDoorOffset", 0x645600, &CVehicleAnimGroupData::GetAnimDoorOffset);
+}
+
+void CVehicleAnimGroupData::GetInOutTimings(int iGroup, eInOutTimingMode mode, float* pfAnimStart, float* pfAnimEnd)
+{
+    auto& group = CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup);
+    *pfAnimStart = group.GetInOutTiming(eInOutTiming::TIMING_START).m_afTimings[mode];
+    *pfAnimEnd = group.GetInOutTiming(eInOutTiming::TIMING_END).m_afTimings[mode];
+}
+
+int CVehicleAnimGroupData::GetGroupForAnim(int iGroup, int animId)
+{
+    return CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).GetGroup(animId);
+}
+
+bool CVehicleAnimGroupData::UsesTruckDrivingAnims(int iGroup)
+{
+    return CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).m_specialFlags.bUseTruckDriveAnims;
+}
+
+CVector CVehicleAnimGroupData::GetAnimDoorOffset(int iGroup, eVehAnimDoorOffset doorId)
+{
+    return CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).GetDoorOffset(doorId);
+}
+
+float CVehicleAnimGroupData::ComputeCriticalBlendTime(int iGroup, int animId)
+{
+    // CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).GetGroup(animId)
+    return CVehicleAnimGroupData::GetVehicleAnimGroup(iGroup).ComputeCriticalBlendTime(animId);
 }

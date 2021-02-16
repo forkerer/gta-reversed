@@ -66,15 +66,19 @@ public:
     sVehAnimGroupGeneralTiming() : m_fGetInTime(0.0F), m_fJumpOutTime(0.0F), m_fGetOutTime(0.0F), m_fCarJackTime(0.0F), m_fFallOutTime(0.0F) {}
 };
 
+enum eInOutTimingMode : unsigned char {
+    OPEN_OUT = 0,
+    CLOSE_IN = 1,
+    OPEN_IN = 2,
+    CLOSE_OUT = 3,
+};
+
 struct sVehAnimGroupInOutTiming
 {
-    float m_fOpenOutTime;
-    float m_fCloseInTime;
-    float m_fOpenInTime;
-    float m_fCloseOutTime;
+    float m_afTimings[4]; // access using eInOutTimingMode
 
 public:
-    sVehAnimGroupInOutTiming() : m_fOpenOutTime(0.0F), m_fCloseInTime(0.0F), m_fOpenInTime(0.0F), m_fCloseOutTime(0.0F) {}
+    sVehAnimGroupInOutTiming() : m_afTimings{ 0.0F } {}
 };
 
 enum eInOutTiming : unsigned char {
@@ -122,6 +126,7 @@ public:
     CVector ComputeAnimDoorOffsets(eVehAnimDoorOffset doorId);
 
 public:
+// Helpers
     sVehAnimGroupInOutTiming& GetInOutTiming(const eInOutTiming timing) { return m_aInOutTiming[timing]; }
     CVector& GetDoorOffset(const eVehAnimDoorOffset door) { return m_aVecDoorOffsets[door]; }
 };
@@ -132,5 +137,18 @@ class CVehicleAnimGroupData
 {
 public:
     static constexpr int NUM_VEH_ANIM_GROUPS = 30;
-    static CVehicleAnimGroup(&m_vehicleAnimGroups)[NUM_VEH_ANIM_GROUPS];
+    static CVehicleAnimGroup(&m_vehicleAnimGroups)[NUM_VEH_ANIM_GROUPS]; // Access using GetVehicleAnimGroup()
+
+public:
+    static void InjectHooks();
+
+    static void GetInOutTimings(int iGroup, eInOutTimingMode mode, float* pfAnimStart, float* pfAnimEnd);
+    static int GetGroupForAnim(int iGroup, int animId);
+    static bool UsesTruckDrivingAnims(int iGroup);
+    static CVector GetAnimDoorOffset(int iGroup, eVehAnimDoorOffset doorId);
+    static float ComputeCriticalBlendTime(int iGroup, int animId);
+
+public:
+// Helpers
+    inline static CVehicleAnimGroup& GetVehicleAnimGroup(int iGroup) { return m_vehicleAnimGroups[iGroup]; }
 };

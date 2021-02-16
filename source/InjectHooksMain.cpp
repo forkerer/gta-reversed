@@ -70,11 +70,13 @@ void InjectHooksMain(void)
     CBox::InjectHooks();
     CColModel::InjectHooks();
     CAnimBlendAssociation::InjectHooks();
+    CAnimBlendSequence::InjectHooks();
     CTrafficLights::InjectHooks();
     CMotionBlurStreaks::InjectHooks();
     CRegisteredMotionBlurStreak::InjectHooks();
     CCover::InjectHooks();
     CVehicleAnimGroup::InjectHooks();
+    CVehicleAnimGroupData::InjectHooks();
     CEvent::InjectHooks();
     CEventSeenPanickedPed::InjectHooks();
     CEventCarUpsideDown::InjectHooks();
