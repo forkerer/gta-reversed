@@ -64,6 +64,10 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "ProcessOpenDoor", 0x6D56C0, &CVehicle::ProcessOpenDoor_Reversed);
     ReversibleHooks::Install("CVehicle", "ProcessDrivingAnims", 0x6DF4A0, &CVehicle::ProcessDrivingAnims_Reversed);
     ReversibleHooks::Install("CVehicle", "GetHeightAboveRoad", 0x6D63F0, &CVehicle::GetHeightAboveRoad_Reversed);
+    ReversibleHooks::Install("CVehicle", "CanPedStepOutCar", 0x6D1F30, &CVehicle::CanPedStepOutCar_Reversed);
+    ReversibleHooks::Install("CVehicle", "CanPedJumpOutCar", 0x6D2030, &CVehicle::CanPedJumpOutCar_Reversed);
+    ReversibleHooks::Install("CVehicle", "GetTowHitchPos", 0x6DFB70, &CVehicle::GetTowHitchPos_Reversed);
+    ReversibleHooks::Install("CVehicle", "GetTowBarPos", 0x6DFBE0, &CVehicle::GetTowBarPos_Reversed);
 
 // CLASS
     ReversibleHooks::Install("CVehicle", "ProcessWheel", 0x6D6C00, &CVehicle::ProcessWheel);
@@ -647,24 +651,26 @@ void CVehicle::ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId,
         return;
         }
 
-    case ANIM_ID_CAR_PULLOUT_LHS:
-    case ANIM_ID_CAR_PULLOUT_RHS:
-    case ANIM_ID_UNKNOWN_15:
-        switch (animGroup)
-        {
-        case ANIM_GROUP_STDCARAMIMS:
-        case ANIM_GROUP_LOWCARAMIMS:
-        case ANIM_GROUP_TRKCARANIMS:
-        case ANIM_GROUP_COACHCARANIMS:
-        case ANIM_GROUP_BUSCARANIMS:
-        case ANIM_GROUP_CONVCARANIMS:
-        case ANIM_GROUP_MTRKCARANIMS:
-        case ANIM_GROUP_STDTALLCARAMIMS:
-        case ANIM_GROUP_BFINJCARAMIMS:
+    case ANIM_ID_CAR_CLOSE_LHS_0:
+    case ANIM_ID_CAR_CLOSE_RHS_0:
+    case ANIM_ID_CAR_CLOSE_LHS_1:
+    case ANIM_ID_CAR_CLOSE_RHS_1:
+    {
+        CVehicleAnimGroupData::GetInOutTimings(m_pHandlingData->m_nAnimGroup, eInOutTimingMode::CLOSE_OUT, &fAnimStart, &fAnimEnd);
+        if (fTime < fAnimStart)
             this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
+        else if (fTime > fAnimEnd)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 0.0F, true);
+        else if (fTime > fAnimStart && fTime < fAnimEnd)
+        {
+            const auto fNewRatio = 1.0F - invLerp(fAnimStart, fAnimEnd, fTime);
+            const auto fCurRatio = this->GetDooorAngleOpenRatio(iCheckedDoor);
+            if (fCurRatio < fNewRatio)
+                this->OpenDoor(ped, doorComponentId, iCheckedDoor, fNewRatio, true);
         }
 
         return;
+    }
 
     case ANIM_ID_CAR_CLOSEDOOR_LHS_0:
     case ANIM_ID_CAR_CLOSEDOOR_RHS_0:
@@ -719,26 +725,35 @@ void CVehicle::ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId,
 
         return;
 
-    case ANIM_ID_CAR_CLOSE_LHS_0:
-    case ANIM_ID_CAR_CLOSE_RHS_0:
-    case ANIM_ID_CAR_CLOSE_LHS_1:
-    case ANIM_ID_CAR_CLOSE_RHS_1:
-        {
-        CVehicleAnimGroupData::GetInOutTimings(m_pHandlingData->m_nAnimGroup, eInOutTimingMode::CLOSE_OUT, &fAnimStart, &fAnimEnd);
-        if (fTime < fAnimStart)
-            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
-        else if (fTime > fAnimEnd)
+    case ANIM_ID_CAR_FALLOUT_LHS:
+    case ANIM_ID_CAR_FALLOUT_RHS:
+        if (fTime < 0.1F)
             this->OpenDoor(ped, doorComponentId, iCheckedDoor, 0.0F, true);
-        else if (fTime > fAnimStart && fTime < fAnimEnd)
+        else if (fTime > 0.4F)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
+        else if (fTime > 0.1F && fTime < 0.4F)
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, (fTime - 0.1F) * (10.0F / 3.0F), true);
+
+        return;
+
+    case ANIM_ID_CAR_PULLOUT_LHS:
+    case ANIM_ID_CAR_PULLOUT_RHS:
+    case ANIM_ID_UNKNOWN_15:
+        switch (animGroup)
         {
-            const auto fNewRatio = 1.0F - invLerp(fAnimStart, fAnimEnd, fTime);
-            const auto fCurRatio = this->GetDooorAngleOpenRatio(iCheckedDoor);
-            if (fCurRatio < fNewRatio)
-                this->OpenDoor(ped, doorComponentId, iCheckedDoor, fNewRatio, true);
+        case ANIM_GROUP_STDCARAMIMS:
+        case ANIM_GROUP_LOWCARAMIMS:
+        case ANIM_GROUP_TRKCARANIMS:
+        case ANIM_GROUP_COACHCARANIMS:
+        case ANIM_GROUP_BUSCARANIMS:
+        case ANIM_GROUP_CONVCARANIMS:
+        case ANIM_GROUP_MTRKCARANIMS:
+        case ANIM_GROUP_STDTALLCARAMIMS:
+        case ANIM_GROUP_BFINJCARAMIMS:
+            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
         }
 
         return;
-        }
 
     case ANIM_ID_CAR_ROLLOUT_LHS:
     case ANIM_ID_CAR_ROLLOUT_RHS:
@@ -817,17 +832,6 @@ void CVehicle::ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId,
 
         return;
     }
-
-    case ANIM_ID_CAR_FALLOUT_LHS:
-    case ANIM_ID_CAR_FALLOUT_RHS:
-        if (fTime < 0.1F)
-            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 0.0F, true);
-        else if (fTime > 0.4F)
-            this->OpenDoor(ped, doorComponentId, iCheckedDoor, 1.0F, true);
-        else if (fTime > 0.1F && fTime < 0.4F)
-            this->OpenDoor(ped, doorComponentId, iCheckedDoor, (fTime - 0.1F) * (10.0F / 3.0F), true);
-
-        return;
     }
 }
 
@@ -994,45 +998,108 @@ float CVehicle::GetHeightAboveRoad_Reversed()
 }
 
 // Converted from bool CVehicle::CanPedStepOutCar(bool) 0x871F64
-bool CVehicle::CanPedStepOutCar(bool arg0)
+bool CVehicle::CanPedStepOutCar(bool bIgnoreSpeedUpright)
 {
-    return ((bool(__thiscall*)(CVehicle*, bool))(*(void***)this)[57])(this, arg0);
+    return CVehicle::CanPedStepOutCar_Reversed(bIgnoreSpeedUpright);
+}
+bool CVehicle::CanPedStepOutCar_Reversed(bool bIgnoreSpeedUpright)
+{
+    auto const fUpZ = m_matrix->GetUp().z;
+    if (fabs(fUpZ) <= 0.1F) 
+    {
+        if (fabs(m_vecMoveSpeed.z) > 0.05F
+            || m_vecMoveSpeed.Magnitude2D() > 0.01F
+            || m_vecTurnSpeed.SquaredMagnitude() > 0.0004F) { // 0.02F * 0.02F
+
+            return false;
+        }
+
+        return true;
+    }
+
+    if (IsBoat())
+        return true;
+
+    if (bIgnoreSpeedUpright)
+        return m_vecTurnSpeed.SquaredMagnitude() > 0.0004F;
+
+    return m_vecMoveSpeed.Magnitude2D() <= 0.01F && fabs(m_vecMoveSpeed.z) <= 0.05F && m_vecTurnSpeed.SquaredMagnitude() <= 0.0004F;
+
 }
 
 // Converted from bool CVehicle::CanPedJumpOutCar(CPed *ped) 0x871F68
 bool CVehicle::CanPedJumpOutCar(CPed* ped)
 {
-    return ((bool(__thiscall*)(CVehicle*, CPed*))(*(void***)this)[58])(this, ped);
+    return CVehicle::CanPedJumpOutCar_Reversed(ped);
+}
+bool CVehicle::CanPedJumpOutCar_Reversed(CPed* ped)
+{
+    if (IsBike())
+    {
+        if (m_apPassengers[0] || ped == m_apPassengers[0])
+            return m_vecMoveSpeed.SquaredMagnitude2D() >= 0.07F;
+
+        return false;
+    }
+
+    auto fHorSpeedSquared = m_vecMoveSpeed.SquaredMagnitude2D();
+    if (!IsPlane()
+        && !IsHeli()
+        && (!IsAutomobile() || m_matrix->GetUp().z >= 0.3F || m_nLastCollisionTime <= CTimer::m_snTimeInMilliseconds - 1000))
+    {
+        return fHorSpeedSquared >= 0.1F && fHorSpeedSquared <= 0.5F;
+    }
+
+    if (fHorSpeedSquared >= 0.1F)
+        return true;
+
+    if (this->CanPedStepOutCar(false))
+        return false;
+
+    m_vecTurnSpeed *= 0.9F; //BUG(PRONE): We are modifying vehicle move and turn speeds in function that seems that it should be const
+    auto const fMoveSpeedSquared = m_vecMoveSpeed.SquaredMagnitude();
+    if (fMoveSpeedSquared / 100.0F > pow(CTimer::ms_fTimeStep, 2.0F) * pow(0.008F, 2.0F))
+    {
+        m_vecMoveSpeed *= 0.9F;
+        return false;
+    }
+
+    auto fMoveMult = CTimer::ms_fTimeStep / sqrt(fMoveSpeedSquared) * 0.016F;
+    fMoveMult = std::max(0.0F, 1.0F - fMoveMult);
+    m_vecMoveSpeed *= fMoveMult;
+    return false;
 }
 
 // Converted from bool CVehicle::GetTowHitchPos(CVector &posnOut,bool,CVehicle*) 0x871F6C
-bool CVehicle::GetTowHitchPos(CVector& posnOut, bool arg1, CVehicle* arg2)
+bool CVehicle::GetTowHitchPos(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh)
 {
-    return ((bool(__thiscall*)(CVehicle*, CVector&, bool, CVehicle*))(*(void***)this)[59])(this, posnOut, arg1, arg2);
+    return CVehicle::GetTowHitchPos_Reversed(posnOut, bCheckModelInfo, veh);
+}
+bool CVehicle::GetTowHitchPos_Reversed(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh)
+{
+    if (!bCheckModelInfo)
+        return false;
+
+    auto const fColFront = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel()->GetBoundingBox().m_vecMax.y;
+    posnOut.Set(0.0F, fColFront + 1.0F, 0.0F);
+    posnOut = *m_matrix * posnOut;
+    return true;
 }
 
 // Converted from bool CVehicle::GetTowBarPos(CVector &posnOut,bool,CVehicle*) 0x871F70
-bool CVehicle::GetTowBarPos(CVector& posnOut, bool arg1, CVehicle* arg2)
+bool CVehicle::GetTowBarPos(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh)
 {
-    return ((bool(__thiscall*)(CVehicle*, CVector&, bool, CVehicle*))(*(void***)this)[60])(this, posnOut, arg1, arg2);
+    return CVehicle::GetTowBarPos_Reversed(posnOut, bCheckModelInfo, veh);
 }
-
-// Converted from bool CVehicle::SetTowLink(CVehicle*,bool) 0x871F74
-bool CVehicle::SetTowLink(CVehicle* arg0, bool arg1)
+bool CVehicle::GetTowBarPos_Reversed(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh)
 {
-    return ((bool(__thiscall*)(CVehicle*, CVehicle*, bool))(*(void***)this)[61])(this, arg0, arg1);
-}
+    if (!bCheckModelInfo)
+        return false;
 
-// Converted from bool CVehicle::BreakTowLink(void) 0x871F78
-bool CVehicle::BreakTowLink()
-{
-    return ((bool(__thiscall*)(CVehicle*))(*(void***)this)[62])(this);
-}
-
-// Converted from float CVehicle::FindWheelWidth(bool bRear) 0x871F7C
-float CVehicle::FindWheelWidth(bool bRear)
-{
-    return ((float(__thiscall*)(CVehicle*, bool))(*(void***)this)[63])(this, bRear);
+    auto const fColRear = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel()->GetBoundingBox().m_vecMin.y;
+    posnOut.Set(0.0F, fColRear - 1.0F, 0.0F);
+    posnOut = *m_matrix * posnOut;
+    return true;
 }
 
 // Converted from bool CVehicle::Save(void) 0x871F80

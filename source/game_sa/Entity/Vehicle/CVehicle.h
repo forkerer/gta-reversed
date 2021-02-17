@@ -447,14 +447,14 @@ public:
     virtual void PlayCarHorn() { /* Do nothing */ }
     virtual int GetNumContactWheels() { return 4; }
     virtual void VehicleDamage(float damageIntensity, unsigned short collisionComponent, CEntity* damager, CVector* vecCollisionCoors, CVector* vecCollisionDirection, eWeaponType weapon) { /* Do nothing */ }
-    virtual bool CanPedStepOutCar(bool arg0);
+    virtual bool CanPedStepOutCar(bool bIgnoreSpeedUpright);
     virtual bool CanPedJumpOutCar(CPed* ped);
-    virtual bool GetTowHitchPos(CVector& posnOut, bool arg1, CVehicle* arg2);
-    virtual bool GetTowBarPos(CVector& posnOut, bool arg1, CVehicle* arg2);
+    virtual bool GetTowHitchPos(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh);
+    virtual bool GetTowBarPos(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh);
     // always return true
-    virtual bool SetTowLink(CVehicle* arg0, bool arg1);
-    virtual bool BreakTowLink();
-    virtual float FindWheelWidth(bool bRear);
+    virtual bool SetTowLink(CVehicle* arg0, bool arg1) { return false; }
+    virtual bool BreakTowLink() { return false; }
+    virtual float FindWheelWidth(bool bRear) { return 0.25F; }
     // always return true
     virtual bool Save();
     // always return true
@@ -478,6 +478,10 @@ private:
     void ProcessOpenDoor_Reversed(CPed* ped, unsigned int doorComponentId, unsigned int animGroup, unsigned int animId, float fTime);
     void ProcessDrivingAnims_Reversed(CPed* driver, unsigned char bBlend);
     float GetHeightAboveRoad_Reversed();
+    bool CanPedStepOutCar_Reversed(bool bIgnoreSpeedUpright);
+    bool CanPedJumpOutCar_Reversed(CPed* ped);
+    bool GetTowHitchPos_Reversed(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh);
+    bool GetTowBarPos_Reversed(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh);
 
  // CLASS FUNCS
 public:

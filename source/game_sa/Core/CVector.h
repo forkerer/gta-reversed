@@ -70,6 +70,11 @@ public:
     {
         return x*x + y*y + z*z;
     }
+
+    inline float SquaredMagnitude2D()
+    {
+        return x * x + y * y;
+    }
 };
 
 inline CVector operator-(const CVector& vecOne, const CVector& vecTwo) {
