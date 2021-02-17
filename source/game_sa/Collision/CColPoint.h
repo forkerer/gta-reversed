@@ -9,12 +9,21 @@
 #include "PluginBase.h"
 #include "CVector.h"
 
-struct  tColLighting
+struct tColLighting
 {
     unsigned char day : 4;
     unsigned char night : 4;
-};
 
+    tColLighting() = default;
+    tColLighting(const unsigned char ucLighting)
+    {
+        day = ucLighting & 0xF;
+        night = (ucLighting >> 4) & 0xF;
+    }
+
+    float GetCurrentLighting() const;
+};
+VALIDATE_SIZE(tColLighting, 0x1);
 
 class  CColPoint {
 public:

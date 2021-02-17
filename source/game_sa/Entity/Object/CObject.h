@@ -82,8 +82,7 @@ public:
     char field_146;
     char            m_nGarageDoorGarageIndex;
     unsigned char   m_nLastWeaponDamage;
-    unsigned char   m_nDayBrightness : 4;
-    unsigned char   m_nNightBrightness : 4;
+    tColLighting    m_nColLighting;
     short           m_nRefModelIndex;
     unsigned char   m_nCarColor[4]; // this is used for detached car parts
     int             m_dwRemovalTime; // time when this object must be deleted

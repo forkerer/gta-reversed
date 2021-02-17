@@ -74,6 +74,11 @@ void CVehicle::InjectHooks()
 // CLASS
     ReversibleHooks::Install("CVehicle", "Shutdown", 0x6D0B40, &CVehicle::Shutdown);
     ReversibleHooks::Install("CVehicle", "GetRemapIndex", 0x6D0B70, &CVehicle::GetRemapIndex);
+    ReversibleHooks::Install("CVehicle", "SetRemapTexDictionary", 0x6D0BC0, &CVehicle::SetRemapTexDictionary);
+    ReversibleHooks::Install("CVehicle", "SetRemap", 0x6D0C00, &CVehicle::SetRemap);
+    ReversibleHooks::Install("CVehicle", "SetCollisionLighting", 0x6D0CA0, &CVehicle::SetCollisionLighting);
+    ReversibleHooks::Install("CVehicle", "UpdateLightingFromStoredPolys", 0x6D0CC0, &CVehicle::UpdateLightingFromStoredPolys);
+    ReversibleHooks::Install("CVehicle", "CalculateLightingFromCollision", 0x6D0CF0, &CVehicle::CalculateLightingFromCollision);
     ReversibleHooks::Install("CVehicle", "ProcessWheel", 0x6D6C00, &CVehicle::ProcessWheel);
     ReversibleHooks::Install("CVehicle", "IsDriver_Ped", 0x6D1C40, (bool(CVehicle::*)(CPed*))(&CVehicle::IsDriver));
     ReversibleHooks::Install("CVehicle", "IsDriver_Int", 0x6D1C60, (bool(CVehicle::*)(int))(&CVehicle::IsDriver));
@@ -198,9 +203,7 @@ CVehicle::CVehicle(unsigned char createdBy) : CPhysical(), m_vehicleAudio(), m_a
     m_nVehicleWeaponInUse = 0;
     m_fDirtLevel = (rand() % 15);
     m_nCreationTime = CTimer::m_snTimeInMilliseconds;
-
-    for (size_t i = 0; i < 4; ++i)
-        m_anCollisionLighting[i] = 0x48;
+    CVehicle::SetCollisionLighting(0x48);
 }
 
 CVehicle::~CVehicle()
@@ -1161,31 +1164,75 @@ int CVehicle::GetRemapIndex()
 // Converted from thiscall void CVehicle::SetRemapTexDictionary(int txdId) 0x6D0BC0
 void CVehicle::SetRemapTexDictionary(int txdId)
 {
-    ((void(__thiscall*)(CVehicle*, int))0x6D0BC0)(this, txdId);
+    if (txdId == m_nPreviousRemapTxd)
+        return;
+
+    if (txdId == -1)
+    {
+        m_pRemapTexture = nullptr;
+        CTxdStore::RemoveRef(m_nPreviousRemapTxd);
+        m_nPreviousRemapTxd = -1;
+    }
+
+    m_nRemapTxd = txdId;
 }
 
 // Converted from thiscall void CVehicle::SetRemap(int remapIndex) 0x6D0C00
 void CVehicle::SetRemap(int remapIndex)
 {
-    ((void(__thiscall*)(CVehicle*, int))0x6D0C00)(this, remapIndex);
+    if (remapIndex == -1)
+    {
+        if (m_nPreviousRemapTxd == -1)
+            return;
+
+        m_pRemapTexture = nullptr;
+        CTxdStore::RemoveRef(m_nPreviousRemapTxd);
+        m_nPreviousRemapTxd = -1;
+        m_nRemapTxd = -1;
+    }
+    else
+    {
+        auto const infoRemapInd = CModelInfo::GetModelInfo(m_nModelIndex)->AsVehicleModelInfoPtr()->m_anRemapTxds[remapIndex];
+        if (infoRemapInd == m_nPreviousRemapTxd)
+            return;
+
+        if (infoRemapInd == -1)
+        {
+            m_pRemapTexture = nullptr;
+            CTxdStore::RemoveRef(m_nPreviousRemapTxd);
+            m_nPreviousRemapTxd = -1;
+        }
+
+        m_nRemapTxd = infoRemapInd;
+    }
 }
 
 // Converted from thiscall void CVehicle::SetCollisionLighting(uchar lighting) 0x6D0CA0
 void CVehicle::SetCollisionLighting(unsigned char lighting)
 {
-    ((void(__thiscall*)(CVehicle*, unsigned char))0x6D0CA0)(this, lighting);
+    for (auto& colLighting : m_anCollisionLighting)
+        colLighting = lighting;
 }
 
 // Converted from thiscall void CVehicle::UpdateLightingFromStoredPolys(void) 0x6D0CC0
 void CVehicle::UpdateLightingFromStoredPolys()
 {
-    ((void(__thiscall*)(CVehicle*))0x6D0CC0)(this);
+    m_anCollisionLighting[0] = m_FrontCollPoly.m_nLighting;
+    m_anCollisionLighting[1] = m_FrontCollPoly.m_nLighting;
+    m_anCollisionLighting[2] = m_RearCollPoly.m_nLighting;
+    m_anCollisionLighting[2] = m_RearCollPoly.m_nLighting;
 }
 
 // Converted from thiscall void CVehicle::CalculateLightingFromCollision(void) 0x6D0CF0
 void CVehicle::CalculateLightingFromCollision()
 {
-    ((void(__thiscall*)(CVehicle*))0x6D0CF0)(this);
+    float fAvgLight = 0.0F;
+    for (auto& colLighting : m_anCollisionLighting)
+        fAvgLight += colLighting.GetCurrentLighting();
+
+    fAvgLight /= 4.0F;
+    m_fContactSurfaceBrightness = fAvgLight;
+
 }
 
 // Converted from thiscall void CVehicle::ResetAfterRender(void) 0x6D0E20

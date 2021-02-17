@@ -569,11 +569,7 @@ void CObject::PreRender_Reversed()
         CObject::DoBurnEffect();
 
     if (!m_pAttachedTo)
-    {
-        const auto fDay = static_cast<float>(m_nDayBrightness) / 30.0F;
-        const auto fNight = static_cast<float>(m_nNightBrightness) / 30.0F;
-        m_fContactSurfaceBrightness = lerp(fDay, fNight, CCustomBuildingDNPipeline::m_fDNBalanceParam);
-    }
+        m_fContactSurfaceBrightness = m_nColLighting.GetCurrentLighting();
 
     if (m_pRwObject && RwObjectGetType(m_pRwObject) == rpCLUMP && objectFlags.bFadingIn)
     {
@@ -934,8 +930,8 @@ void CObject::Init() {
     m_dwBurnTime = 0;
     m_fScale = 1.0F;
 
-    m_nDayBrightness = 0x8;
-    m_nNightBrightness = 0x4;
+    m_nColLighting.day = 0x8;
+    m_nColLighting.night = 0x4;
     m_wScriptTriggerIndex = -1;
 }
 
@@ -973,10 +969,7 @@ void CObject::GetLightingFromCollisionBelow() {
     CColPoint colPoint;
     CEntity* pEntity;
     if (CWorld::ProcessVerticalLine(GetPosition(), -1000.0F, colPoint, pEntity, true, false, false, false, true, false, nullptr))
-    {
-        m_nDayBrightness = colPoint.m_nLightingB.day;
-        m_nNightBrightness = colPoint.m_nLightingB.night;
-    }
+        m_nColLighting = colPoint.m_nLightingB;
 }
 
 // Converted from thiscall void CObject::ProcessSamSiteBehaviour(void) 0x5A07D0

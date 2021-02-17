@@ -354,7 +354,7 @@ public:
     char       m_nHasslePosId;
     CStoredCollPoly m_FrontCollPoly; // poly which is under front part of car
     CStoredCollPoly m_RearCollPoly; // poly which is under rear part of car
-    unsigned char      m_anCollisionLighting[4]; // left front, left rear, right front, right rear
+    tColLighting      m_anCollisionLighting[4]; // left front, left rear, right front, right rear
     FxSystem_c *m_pOverheatParticle;
     FxSystem_c *m_pFireParticle;
     FxSystem_c *m_pDustParticle;
