@@ -21,7 +21,7 @@ int& CVehicle::m_nLastControlInput = *(int*)0xC1CC04;
 CColModel** CVehicle::m_aSpecialColVehicle = (CColModel * *)0xC1CC08;
 bool& CVehicle::ms_forceVehicleLightsOff = *(bool*)0xC1CC18;
 bool& CVehicle::s_bPlaneGunsEjectShellCasings = *(bool*)0xC1CC19;
-CColModel* CVehicle::m_aSpecialColModel = (CColModel*)0xC1CC78;
+CColModel (&CVehicle::m_aSpecialColModel)[4] = *(CColModel(*)[4])0xC1CC78;
 tHydrualicData(&CVehicle::m_aSpecialHydraulicData)[4] = *(tHydrualicData(*)[4])0xC1CB60;
 
 float& fBurstTyreMod = *(float*)0x8D34B4;
@@ -68,8 +68,12 @@ void CVehicle::InjectHooks()
     ReversibleHooks::Install("CVehicle", "CanPedJumpOutCar", 0x6D2030, &CVehicle::CanPedJumpOutCar_Reversed);
     ReversibleHooks::Install("CVehicle", "GetTowHitchPos", 0x6DFB70, &CVehicle::GetTowHitchPos_Reversed);
     ReversibleHooks::Install("CVehicle", "GetTowBarPos", 0x6DFBE0, &CVehicle::GetTowBarPos_Reversed);
+    ReversibleHooks::Install("CVehicle", "Save", 0x5D4760, &CVehicle::Save_Reversed);
+    ReversibleHooks::Install("CVehicle", "Load", 0x5D2900, &CVehicle::Load_Reversed);
 
 // CLASS
+    ReversibleHooks::Install("CVehicle", "Shutdown", 0x6D0B40, &CVehicle::Shutdown);
+    ReversibleHooks::Install("CVehicle", "GetRemapIndex", 0x6D0B70, &CVehicle::GetRemapIndex);
     ReversibleHooks::Install("CVehicle", "ProcessWheel", 0x6D6C00, &CVehicle::ProcessWheel);
     ReversibleHooks::Install("CVehicle", "IsDriver_Ped", 0x6D1C40, (bool(CVehicle::*)(CPed*))(&CVehicle::IsDriver));
     ReversibleHooks::Install("CVehicle", "IsDriver_Int", 0x6D1C60, (bool(CVehicle::*)(int))(&CVehicle::IsDriver));
@@ -1105,25 +1109,53 @@ bool CVehicle::GetTowBarPos_Reversed(CVector& posnOut, bool bCheckModelInfo, CVe
 // Converted from bool CVehicle::Save(void) 0x871F80
 bool CVehicle::Save()
 {
-    return ((bool(__thiscall*)(CVehicle*))(*(void***)this)[64])(this);
+    return CVehicle::Save_Reversed();
+}
+bool CVehicle::Save_Reversed()
+{
+    uint32_t iStructSize = sizeof(CVehicleSaveStructure);
+    auto iSaveStruct = CVehicleSaveStructure();
+    iSaveStruct.Construct(this);
+    CGenericGameStorage::SaveDataToWorkBuffer(&iStructSize, sizeof(uint32_t)); // Unused, game ignores it on load and uses const value
+    CGenericGameStorage::SaveDataToWorkBuffer(&iSaveStruct, iStructSize);
+    return true;
 }
 
 // Converted from bool CVehicle::Load(void) 0x871F84
 bool CVehicle::Load()
 {
-    return ((bool(__thiscall*)(CVehicle*))(*(void***)this)[65])(this);
+    return CVehicle::Load_Reversed();
+}
+bool CVehicle::Load_Reversed()
+{
+    uint32_t iStructSize;
+    auto iSaveStruct = CVehicleSaveStructure();
+    CGenericGameStorage::LoadDataFromWorkBuffer(&iStructSize, sizeof(uint32_t));
+    CGenericGameStorage::LoadDataFromWorkBuffer(&iSaveStruct, sizeof(CVehicleSaveStructure)); //BUG: Should use the value readen line above this, not constant
+    iSaveStruct.Extract(this);
+    return true;
 }
 
 // Converted from stdcall void CVehicle::Shutdown(void) 0x6D0B40
 void CVehicle::Shutdown()
 {
-    ((void(__cdecl*)())0x6D0B40)();
+    for (auto& specialColModel : CVehicle::m_aSpecialColModel)
+        if (specialColModel.m_pColData)
+            specialColModel.RemoveCollisionVolumes();
 }
 
 // Converted from thiscall int CVehicle::GetRemapIndex(void) 0x6D0B70
 int CVehicle::GetRemapIndex()
 {
-    return ((int(__thiscall*)(CVehicle*))0x6D0B70)(this);
+    auto* modelInfo = CModelInfo::GetModelInfo(m_nModelIndex)->AsVehicleModelInfoPtr();
+    if (modelInfo->GetNumRemaps() <= 0)
+        return -1;
+
+    for (auto i = 0; i < modelInfo->GetNumRemaps(); ++i)
+        if (modelInfo->m_anRemapTxds[i] == m_nPreviousRemapTxd)
+            return i;
+
+    return -1;
 }
 
 // Converted from thiscall void CVehicle::SetRemapTexDictionary(int txdId) 0x6D0BC0

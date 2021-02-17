@@ -12,6 +12,11 @@ void CColModel::AllocateData(int numSpheres, int numBoxes, int numLines, int num
         (this, numSpheres, numBoxes, numLines, numVertices, numTriangles, disks);
 }
 
+void CColModel::RemoveCollisionVolumes()
+{
+    plugin::CallMethod<0x40F9E0, CColModel*>(this);
+}
+
 CColModel::CColModel() : m_boundBox()
 {
     m_boundSphere.m_nMaterial = 0;

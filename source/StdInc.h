@@ -185,6 +185,7 @@
 #include "game_sa\CNodeAddress.h"
 #include "game_sa\CObjectData.h"
 #include "game_sa\CObjectSaveStructure.h"
+#include "game_sa\CVehicleSaveStructure.h"
 #include "game_sa\common.h"
 #include "game_sa\CCustomRoadsignMgr.h"
 #include "game_sa\CompressedVector.h"

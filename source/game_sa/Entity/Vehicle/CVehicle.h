@@ -390,7 +390,7 @@ public:
     static CColModel **m_aSpecialColVehicle; // CColModel *CVehicle::m_aSpecialColVehicle[4]
     static bool &ms_forceVehicleLightsOff;
     static bool &s_bPlaneGunsEjectShellCasings;
-    static CColModel *m_aSpecialColModel; // static CColModel m_aSpecialColModel[4]
+    static CColModel (&m_aSpecialColModel)[4]; // static CColModel m_aSpecialColModel[4]
     static tHydrualicData(&m_aSpecialHydraulicData)[4];
 
 public:
@@ -451,13 +451,10 @@ public:
     virtual bool CanPedJumpOutCar(CPed* ped);
     virtual bool GetTowHitchPos(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh);
     virtual bool GetTowBarPos(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh);
-    // always return true
     virtual bool SetTowLink(CVehicle* arg0, bool arg1) { return false; }
     virtual bool BreakTowLink() { return false; }
     virtual float FindWheelWidth(bool bRear) { return 0.25F; }
-    // always return true
     virtual bool Save();
-    // always return true
     virtual bool Load();
 
 // VIRTUAL METHODS REVERSED
@@ -482,6 +479,8 @@ private:
     bool CanPedJumpOutCar_Reversed(CPed* ped);
     bool GetTowHitchPos_Reversed(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh);
     bool GetTowBarPos_Reversed(CVector& posnOut, bool bCheckModelInfo, CVehicle* veh);
+    bool Save_Reversed();
+    bool Load_Reversed();
 
  // CLASS FUNCS
 public:
