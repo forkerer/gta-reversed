@@ -15,6 +15,9 @@
 #include "C2dEffect.h"
 #include "eModelID.h"
 
+class CTrain;
+class CBike;
+class CAutomobile;
 class CDummy;
 class CBuilding;
 
@@ -210,6 +213,9 @@ public:
 
     inline CPhysical* AsPhysical() { return reinterpret_cast<CPhysical*>(this); }
     inline CVehicle* AsVehicle() { return reinterpret_cast<CVehicle*>(this); }
+    inline CAutomobile* AsAutomobile() { return reinterpret_cast<CAutomobile*>(this); }
+    inline CBike* AsBike() { return reinterpret_cast<CBike*>(this); }
+    inline CTrain* AsTrain() { return reinterpret_cast<CTrain*>(this); }
     inline CPed* AsPed() { return reinterpret_cast<CPed*>(this); }
     inline CObject* AsObject() { return reinterpret_cast<CObject*>(this); }
     inline CBuilding* AsBuilding() { return reinterpret_cast<CBuilding*>(this); }

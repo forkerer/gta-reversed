@@ -154,7 +154,7 @@ class CVehicle : public CPhysical {
 public:
     CVehicle(plugin::dummy_func_t) : CPhysical() {} //TODO: Remove
     CVehicle(unsigned char createdBy);
-    ~CVehicle();
+    ~CVehicle() override;
     static void* operator new(unsigned int size);
     static void operator delete(void* data);
 public:
@@ -654,6 +654,7 @@ public:
     bool IsTransportVehicle() const { return m_nModelIndex == MODEL_TAXI || m_nModelIndex == MODEL_CABBIE; }
     bool IsAmphibiousHeli() const { return m_nModelIndex == MODEL_SEASPAR || m_nModelIndex == MODEL_LEVIATHN; }
     bool IsConstructionVehicle() const { return  m_nModelIndex == MODEL_DUMPER || m_nModelIndex == MODEL_DOZER || m_nModelIndex == MODEL_FORKLIFT; }
+    bool IsRoadVehicle() const { return m_vehicleSubType != VEHICLE_HELI && m_vehicleSubType != VEHICLE_PLANE && m_vehicleSubType != VEHICLE_TRAIN; }
 
     inline unsigned char GetCreatedBy() { return m_nCreatedBy; }
     inline bool IsCreatedBy(eVehicleCreatedBy v) { return v == m_nCreatedBy; }
