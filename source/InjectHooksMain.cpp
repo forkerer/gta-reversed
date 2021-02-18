@@ -69,6 +69,7 @@ void InjectHooksMain(void)
     CColLine::InjectHooks();
     CBox::InjectHooks();
     CColModel::InjectHooks();
+    CCollisionData::InjectHooks();
     CAnimBlendAssociation::InjectHooks();
     CAnimBlendSequence::InjectHooks();
     CTrafficLights::InjectHooks();
