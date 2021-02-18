@@ -15,4 +15,7 @@ public:
     signed short z;
 };
 
+void UncompressVector(CVector* outVec, CompressedVector* compressedVec);
+CVector UncompressVector(CompressedVector* compressedVec);
+
 VALIDATE_SIZE(CompressedVector, 6);

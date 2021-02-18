@@ -3,7 +3,10 @@
 void CCollisionData::InjectHooks()
 {
     ReversibleHooks::Install("CCollisionData", "RemoveCollisionVolumes", 0x40F070, &CCollisionData::RemoveCollisionVolumes);
+    ReversibleHooks::Install("CCollisionData", "RemoveTrianglePlanes", 0x40F6A0, &CCollisionData::RemoveTrianglePlanes);
     ReversibleHooks::Install("CCollisionData", "Copy", 0x40F120, &CCollisionData::Copy);
+    ReversibleHooks::Install("CCollisionData", "GetTrianglePoint", 0x40F5E0, &CCollisionData::GetTrianglePoint);
+    ReversibleHooks::Install("CCollisionData", "GetShadTrianglePoint", 0x40F640, &CCollisionData::GetShadTrianglePoint);
 }
 
 CCollisionData::CCollisionData()
@@ -180,5 +183,16 @@ void CCollisionData::CalculateTrianglePlanes()
 
 void CCollisionData::RemoveTrianglePlanes()
 {
-    plugin::CallMethod<0x40F6A0, CCollisionData*>(this);
+    CMemoryMgr::Free(m_pTrianglePlanes);
+    m_pTrianglePlanes = nullptr;
+}
+
+void CCollisionData::GetTrianglePoint(CVector& outVec, int vertId)
+{
+    UncompressVector(&outVec, &m_pVertices[vertId]);
+}
+
+void CCollisionData::GetShadTrianglePoint(CVector& outVec, int vertId)
+{
+    UncompressVector(&outVec, &m_pShadowVertices[vertId]);
 }
