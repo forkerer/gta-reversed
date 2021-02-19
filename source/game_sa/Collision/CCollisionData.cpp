@@ -7,6 +7,9 @@ void CCollisionData::InjectHooks()
     ReversibleHooks::Install("CCollisionData", "Copy", 0x40F120, &CCollisionData::Copy);
     ReversibleHooks::Install("CCollisionData", "GetTrianglePoint", 0x40F5E0, &CCollisionData::GetTrianglePoint);
     ReversibleHooks::Install("CCollisionData", "GetShadTrianglePoint", 0x40F640, &CCollisionData::GetShadTrianglePoint);
+    ReversibleHooks::Install("CCollisionData", "CalculateTrianglePlanes", 0x40F590, &CCollisionData::CalculateTrianglePlanes);
+    ReversibleHooks::Install("CCollisionData", "SetLinkPtr", 0x40F6C0, &CCollisionData::SetLinkPtr);
+    ReversibleHooks::Install("CCollisionData", "GetLinkPtr", 0x40F6E0, &CCollisionData::GetLinkPtr);
 }
 
 CCollisionData::CCollisionData()
@@ -123,18 +126,20 @@ void CCollisionData::Copy(CCollisionData const& src)
         if (src.m_nNumTriangles)
         {
             // Get number of vertices
-            unsigned short iVertsCount = 0;
+            unsigned short iHighestVertInd = 0;
             for (auto i = 0; i < src.m_nNumTriangles; ++i)
-                iVertsCount = std::max({iVertsCount,
+                iHighestVertInd = std::max({iHighestVertInd,
                                         src.m_pTriangles[i].m_nVertA,
                                         src.m_pTriangles[i].m_nVertB,
                                         src.m_pTriangles[i].m_nVertC});
 
-            if (iVertsCount)
-                m_pVertices = static_cast<CompressedVector*>(CMemoryMgr::Malloc((iVertsCount + 1) * sizeof(CompressedVector)));
-
-            for (auto i = 0; i < iVertsCount; ++i)
-                m_pVertices[i] = src.m_pVertices[i];
+            if (iHighestVertInd)
+            {
+                iHighestVertInd++; // allocated space needs to be 1 bigger to compensate for index 0
+                m_pVertices = static_cast<CompressedVector*>(CMemoryMgr::Malloc(iHighestVertInd * sizeof(CompressedVector)));
+                for (auto i = 0; i < iHighestVertInd; ++i)
+                    m_pVertices[i] = src.m_pVertices[i];
+            }
 
             m_pTriangles = static_cast<CColTriangle*>(CMemoryMgr::Malloc(m_nNumTriangles * sizeof(CColTriangle)));
         }
@@ -156,18 +161,20 @@ void CCollisionData::Copy(CCollisionData const& src)
         if (src.m_nNumShadowTriangles)
         {
             // Get number of vertices
-            unsigned short iVertsCount = 0;
+            unsigned short iHighestVertInd = 0;
             for (auto i = 0; i < src.m_nNumShadowTriangles; ++i)
-                iVertsCount = std::max({ iVertsCount,
+                iHighestVertInd = std::max({ iHighestVertInd,
                                         src.m_pShadowTriangles[i].m_nVertA,
                                         src.m_pShadowTriangles[i].m_nVertB,
                                         src.m_pShadowTriangles[i].m_nVertC });
 
-            if (iVertsCount)
-                m_pShadowVertices = static_cast<CompressedVector*>(CMemoryMgr::Malloc((iVertsCount + 1) * sizeof(CompressedVector)));
-
-            for (auto i = 0; i < iVertsCount; ++i)
-                m_pShadowVertices[i] = src.m_pShadowVertices[i];
+            if (iHighestVertInd)
+            {
+                iHighestVertInd++; // allocated space needs to be 1 bigger to compensate for index 0
+                m_pShadowVertices = static_cast<CompressedVector*>(CMemoryMgr::Malloc(iHighestVertInd * sizeof(CompressedVector)));
+                for (auto i = 0; i < iHighestVertInd; ++i)
+                    m_pShadowVertices[i] = src.m_pShadowVertices[i];
+            }
 
             m_pShadowTriangles = static_cast<CColTriangle*>(CMemoryMgr::Malloc(m_nNumShadowTriangles * sizeof(CColTriangle)));
         }
@@ -176,9 +183,12 @@ void CCollisionData::Copy(CCollisionData const& src)
         m_pShadowTriangles[i] = src.m_pShadowTriangles[i];
 }
 
+// Memory layout: | CColTrianglePlane[] | (4 Byte aligned)CLink<CCollisionData*>* |
 void CCollisionData::CalculateTrianglePlanes()
 {
-    plugin::CallMethod<0x40F590, CCollisionData*>(this);
+    m_pTrianglePlanes = static_cast<CColTrianglePlane*>(CMemoryMgr::Malloc((m_nNumTriangles + 1) * sizeof(CColTrianglePlane)));
+    for (auto i = 0; i < m_nNumTriangles; ++i)
+        m_pTrianglePlanes[i].Set(m_pVertices, m_pTriangles[i]);
 }
 
 void CCollisionData::RemoveTrianglePlanes()
@@ -195,4 +205,26 @@ void CCollisionData::GetTrianglePoint(CVector& outVec, int vertId)
 void CCollisionData::GetShadTrianglePoint(CVector& outVec, int vertId)
 {
     UncompressVector(&outVec, &m_pShadowVertices[vertId]);
+}
+
+void CCollisionData::SetLinkPtr(CLink<CCollisionData*>* link)
+{
+    // Original calculation method:
+    // const auto dwLinkAddress = (reinterpret_cast<uint32_t>(&m_pTrianglePlanes[m_nNumTriangles]) + 3) & 0xFFFFFFFC; // 4 bytes aligned address
+
+    auto* pLinkPtr = static_cast<void*>(&m_pTrianglePlanes[m_nNumTriangles]);
+    auto space = sizeof(CColTrianglePlane);
+    auto* pAlignedAddress = std::align(4, sizeof(CLink<CCollisionData*>*), pLinkPtr, space);// 4 bytes aligned address
+    *static_cast<CLink<CCollisionData*>**>(pAlignedAddress) = link;
+}
+
+CLink<CCollisionData*>* CCollisionData::GetLinkPtr()
+{
+    // Original calculation method:
+    // const auto dwLinkAddress = (reinterpret_cast<uint32_t>(&m_pTrianglePlanes[m_nNumTriangles]) + 3) & 0xFFFFFFFC; // 4 bytes aligned address
+
+    auto* pLinkPtr = static_cast<void*>(&m_pTrianglePlanes[m_nNumTriangles]);
+    auto space = sizeof(CColTrianglePlane);
+    auto* pAlignedAddress = std::align(4, sizeof(CLink<CCollisionData*>*), pLinkPtr, space);// 4 bytes aligned address
+    return *static_cast<CLink<CCollisionData*>**>(pAlignedAddress);
 }

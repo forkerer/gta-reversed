@@ -65,8 +65,10 @@ void InjectHooksMain(void)
     CPed::InjectHooks();
     CPedIntelligence::InjectHooks();
     CTrain::InjectHooks();
+    CCollision::InjectHooks();
     CColSphere::InjectHooks();
     CColLine::InjectHooks();
+    CColTrianglePlane::InjectHooks();
     CBox::InjectHooks();
     CColModel::InjectHooks();
     CCollisionData::InjectHooks();

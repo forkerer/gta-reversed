@@ -17,7 +17,7 @@ CColModel::CColModel() : m_boundBox()
     m_boundSphere.m_nMaterial = 0;
     m_pColData = nullptr;
     m_boundSphere.m_bFlag0x01 = false;
-    m_boundSphere.m_bOwnsAllocatedColModel = false;
+    m_boundSphere.m_bIsSingleColDataAlloc = false;
     m_boundSphere.m_bIsActive = true;
 }
 
@@ -43,20 +43,20 @@ CColModel& CColModel::operator=(CColModel const& colModel)
 
 void CColModel::MakeMultipleAlloc()
 {
-    if (!m_boundSphere.m_bOwnsAllocatedColModel)
+    if (!m_boundSphere.m_bIsSingleColDataAlloc)
         return;
 
     auto* colData = new CCollisionData();
     colData->Copy(*m_pColData);
     delete m_pColData;
 
-    m_boundSphere.m_bOwnsAllocatedColModel = false;
+    m_boundSphere.m_bIsSingleColDataAlloc = false;
     m_pColData = colData;
 }
 
 void CColModel::AllocateData()
 {
-    m_boundSphere.m_bOwnsAllocatedColModel = false;
+    m_boundSphere.m_bIsSingleColDataAlloc = false;
     m_pColData = new CCollisionData();
 }
 
@@ -74,8 +74,16 @@ void CColModel::AllocateData(int numSpheres, int numBoxes, int numLines, int num
     const auto linesOrDisksOffset = spheresOffset + spheresSize;
     const auto boxesOffset = linesOrDisksOffset + linesOrDisksSize;
     const auto vertsOffset = boxesOffset + boxesSize;
-    //BUG?: Seems like it could clip the last 3 bytes of vertices array
-    const auto trianglesOffset = (vertsOffset + vertsSize) & 0xFFFFFFFC; // Align the offset to 4 bytes boundary
+
+    // ORIGNAL ALIGNMENT LOGIC, with possible bug
+    // BUG?: Seems like it could clip the last 3 bytes of vertices array
+    //  const auto trianglesOffset = (vertsOffset + vertsSize) & 0xFFFFFFFC; // Align the offset to 4 bytes boundary
+
+    auto* pTrisStart = reinterpret_cast<void*>(vertsOffset + vertsSize);
+    auto space = trianglesSize + 4;
+    auto* pAlignedAddress = std::align(4, trianglesSize, pTrisStart, space);// 4 bytes aligned address
+    const auto trianglesOffset = reinterpret_cast<uint32_t>(pAlignedAddress);
+    assert(trianglesOffset && trianglesOffset >= (vertsOffset + vertsSize)); // Just to make sure that the alignment works properly
 
     CColModel::AllocateData(trianglesOffset + trianglesSize);
     m_pColData->m_nNumSpheres = numSpheres;
@@ -99,7 +107,7 @@ void CColModel::AllocateData(int numSpheres, int numBoxes, int numLines, int num
 
 void CColModel::AllocateData(int size)
 {
-    m_boundSphere.m_bOwnsAllocatedColModel = true;
+    m_boundSphere.m_bIsSingleColDataAlloc = true;
     m_pColData = static_cast<CCollisionData*>(CMemoryMgr::Malloc(size));
 }
 
@@ -108,7 +116,7 @@ void CColModel::RemoveCollisionVolumes()
     if (!m_pColData)
         return;
 
-    if (m_boundSphere.m_bOwnsAllocatedColModel) {
+    if (m_boundSphere.m_bIsSingleColDataAlloc) {
         CCollision::RemoveTrianglePlanes(m_pColData);
         CMemoryMgr::Free(m_pColData);
     }
