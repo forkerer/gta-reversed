@@ -18,6 +18,17 @@ bool CDebugMenu::m_showMenu = false;
 CSprite2d CDebugMenu::m_mouseSprite;
 ImGuiIO* CDebugMenu::io = {};
 
+//https://stackoverflow.com/a/19839371
+bool findStringCaseInsensitive(const std::string& strHaystack, const std::string& strNeedle)
+{
+    auto it = std::search(
+        strHaystack.begin(), strHaystack.end(),
+        strNeedle.begin(), strNeedle.end(),
+        [](char ch1, char ch2) { return std::toupper(ch1) == std::toupper(ch2); }
+    );
+    return (it != strHaystack.end());
+}
+
 void CDebugMenu::ImguiInitialise() {
     if (!m_imguiInitialised) {
         IMGUI_CHECKVERSION();
@@ -640,14 +651,31 @@ void CDebugMenu::ProcessMissionTool()
 
 void CDebugMenu::ProcessHooksTool()
 {
+    static std::string HooksFilterContent;
+
+    ImGui::PushItemWidth(465.0f);
+    bool reclaim_focus = false;
+    ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue;
+    if (ImGui::InputText(" ", &HooksFilterContent, input_text_flags)) {
+        reclaim_focus = true;
+    }
+    ImGui::PopItemWidth();
+
+    // Auto-focus on window apparition
+    ImGui::SetItemDefaultFocus();
+    if (reclaim_focus)
+        ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
+
+
+    ImGui::BeginChild("##hookstool", ImVec2(0, 0));
     ImGui::SetNextItemOpen(true);
     if (ImGui::TreeNode("Reversible Hooks"))
     {
-        static std::string sHookIdentifier;
-        static std::string sHookFunctionName;
-
         const auto& allHooks = ReversibleHooks::GetAllHooks();
         for (auto& classHooks : allHooks) {
+            if (!HooksFilterContent.empty() && !findStringCaseInsensitive(classHooks.first, HooksFilterContent))
+                continue;
+
             ImGui::AlignTextToFramePadding();
             bool treeOpen = ImGui::TreeNodeEx(classHooks.first.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap);
             ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 40);
@@ -689,6 +717,7 @@ void CDebugMenu::ProcessHooksTool()
         }
         ImGui::TreePop();
     }
+    ImGui::EndChild();
 }
 
 void CDebugMenu::ImguiDisplayPlayerInfo()
