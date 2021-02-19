@@ -95,6 +95,12 @@ public:
     char field_94;
     bool m_bPlaneDogfightSomething;
     short field_96;
+
+    void SetCarMission(eCarMission carMission)
+    {
+        if (m_nCarMission != MISSION_CRASH_PLANE_AND_BURN && m_nCarMission != MISSION_CRASH_HELI_AND_BURN)
+            m_nCarMission = carMission;
+    }
 };
 
 VALIDATE_SIZE(CAutoPilot, 0x98);
