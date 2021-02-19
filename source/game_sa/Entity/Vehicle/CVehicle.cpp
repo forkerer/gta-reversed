@@ -1043,13 +1043,13 @@ bool CVehicle::CanPedJumpOutCar_Reversed(CPed* ped)
 {
     if (IsBike())
     {
-        if (m_apPassengers[0] || ped == m_apPassengers[0])
+        if (!m_apPassengers[0] || ped == m_apPassengers[0])
             return m_vecMoveSpeed.SquaredMagnitude2D() >= 0.07F;
 
         return false;
     }
 
-    auto fHorSpeedSquared = m_vecMoveSpeed.SquaredMagnitude2D();
+    const auto fHorSpeedSquared = m_vecMoveSpeed.SquaredMagnitude2D();
     if (!IsPlane()
         && !IsHeli()
         && (!IsAutomobile() || m_matrix->GetUp().z >= 0.3F || m_nLastCollisionTime <= CTimer::m_snTimeInMilliseconds - 1000))

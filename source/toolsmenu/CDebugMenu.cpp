@@ -649,6 +649,7 @@ void CDebugMenu::ProcessMissionTool()
     }
 }
 
+//TODO: The code is a mess, clean it up
 void CDebugMenu::ProcessHooksTool()
 {
     static std::string HooksFilterContent;
@@ -669,9 +670,37 @@ void CDebugMenu::ProcessHooksTool()
 
     ImGui::BeginChild("##hookstool", ImVec2(0, 0));
     ImGui::SetNextItemOpen(true);
+    ImGui::AlignTextToFramePadding();
     if (ImGui::TreeNode("Reversible Hooks"))
     {
         const auto& allHooks = ReversibleHooks::GetAllHooks();
+        // Handle disabling/enabling of all hooks at once
+        ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 40);
+
+        std::string disabledAllStr = "all_disabled";
+        ImGui::PushID(disabledAllStr.c_str());
+        if (ImGui::Button("-")) {
+            for (auto& classHooks : allHooks)
+                for (auto& hook : classHooks.second)
+                    if (hook->m_bIsHooked)
+                        hook->Switch();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Disable all");
+        ImGui::PopID();
+
+        ImGui::SameLine();
+        std::string enableAllStr = "all_enabled";
+        ImGui::PushID(enableAllStr.c_str());
+        if (ImGui::Button("+")) {
+            for (auto& classHooks : allHooks)
+                for (auto& hook : classHooks.second)
+                    if (!hook->m_bIsHooked)
+                        hook->Switch();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable all");
+        ImGui::PopID();
+        // End of disabling/enabling of all hooks at once
+
         for (auto& classHooks : allHooks) {
             if (!HooksFilterContent.empty() && !findStringCaseInsensitive(classHooks.first, HooksFilterContent))
                 continue;
