@@ -659,7 +659,6 @@ public:
     inline unsigned char GetCreatedBy() { return m_nCreatedBy; }
     inline bool IsCreatedBy(eVehicleCreatedBy v) { return v == m_nCreatedBy; }
 };
-
 VALIDATE_SIZE(CVehicle, 0x5A0);
 
 bool IsVehiclePointerValid(CVehicle* vehicle);

@@ -9,23 +9,28 @@
 #include "PluginBase.h"
 #include "CVector.h"
 class CAEAudioEntity;
-/*
+
 enum  eSoundEnvironment : unsigned short {
-    SOUND_FRONT_END = 1,
-    SOUND_UNCANCELLABLE = 2,
-    SOUND_REQUEST_UPDATES = 4,
-    SOUND_PLAY_PHYSICALLY = 8,
-    SOUND_UNPAUSABLE = 16,
-    SOUND_START_PERCENTAGE = 32,
-    SOUND_MUSIC_MASTERED = 64,
-    SOUND_LIFESPAN_TIED_TO_PHYSICAL_ENTITY = 128,
-    SOUND_UNDUCKABLE = 256,
-    SOUND_UNCOMPRESSABLE = 512,
-    SOUND_ROLLED_OFF = 1024,
-    SOUND_SMOOTH_DUCKING = 2048,
-    SOUND_FORCED_FRONT = 4096
+    SOUND_FRONT_END                        = 0x1,
+    SOUND_UNCANCELLABLE                    = 0x2,
+    SOUND_REQUEST_UPDATES                  = 0x4,
+    SOUND_PLAY_PHYSICALLY                  = 0x8,
+    SOUND_UNPAUSABLE                       = 0x10,
+    SOUND_START_PERCENTAGE                 = 0x20,
+    SOUND_MUSIC_MASTERED                   = 0x40,
+    SOUND_LIFESPAN_TIED_TO_PHYSICAL_ENTITY = 0x80,
+    SOUND_UNDUCKABLE                       = 0x100,
+    SOUND_UNCOMPRESSABLE                   = 0x200,
+    SOUND_ROLLED_OFF                       = 0x400,
+    SOUND_SMOOTH_DUCKING                   = 0x800,
+    SOUND_FORCED_FRONT                     = 0x1000
 };
-*/
+
+enum eSoundState : short {
+    SOUND_ACTIVE = 0,
+    SOUND_STOPPED = 1,
+};
+
 class  CAESound {
 public:
     CAESound() { m_pPhysicalEntity = nullptr; }
@@ -66,7 +71,8 @@ public:
             unsigned short m_bStartPercentage : 1;
             unsigned short m_bMusicMastered : 1;
             unsigned short m_bLifespanTiedToPhysicalEntity : 1;
-            unsigned short m_bUndackable : 1;
+
+            unsigned short m_bUnduckable : 1;
             unsigned short m_bUncompressable : 1;
             unsigned short m_bRolledOff : 1;
             unsigned short m_bSmoothDucking : 1;
@@ -76,10 +82,10 @@ public:
     unsigned short        m_nIsUsed;
     short field_5A;
     short                 m_nCurrentPlayPosition;
-    short field_5E;
+    short                 m_nHasStarted;
     float                 m_fFinalVolume;
     float                 m_fFrequency;
-    short                 m_nPlayingState;
+    short                 m_nPlayingState; // see eSoundState
     char field_6A[2];
     float                 m_fSoundHeadRoom;
     short m_nSoundLength;
@@ -91,21 +97,21 @@ public:
     void operator=(CAESound& sound);
     void UnregisterWithPhysicalEntity();
     void StopSound();
-    bool GetUncancellable();
-    bool GetFrontEnd();
-    bool GetRequestUpdates();
-    bool GetUnpausable();
-    bool GetPlayPhysically();
-    bool GetStartPercentage();
-    bool GetMusicMastered();
-    bool GetLifespanTiedToPhysicalEntity();
-    bool GetUnduckable();
-    bool GetUncompressable();
-    bool GetRolledOff();
-    bool GetSmoothDucking();
-    bool GetForcedFront();
-    void SetIndividualEnvironment(unsigned short environment, unsigned short state);
-    void UpdatePlayTime(short arg1, short arg2, short arg3);
+    bool GetUncancellable() { return m_bUncancellable; }
+    bool GetFrontEnd() { return m_bFrontEnd; }
+    bool GetRequestUpdates() { return m_bRequestUpdates; }
+    bool GetUnpausable() { return m_bUnpausable; }
+    bool GetPlayPhysically() { return m_bPlayPhysically; };
+    bool GetStartPercentage() { return m_bStartPercentage; }
+    bool GetMusicMastered() { return m_bMusicMastered; }
+    bool GetLifespanTiedToPhysicalEntity() { return m_bLifespanTiedToPhysicalEntity; }
+    bool GetUnduckable() { return m_bUnduckable; }
+    bool GetUncompressable() { return m_bUncompressable; }
+    bool GetRolledOff() { return m_bRolledOff; }
+    bool GetSmoothDucking() { return m_bSmoothDucking; }
+    bool GetForcedFront() { return m_bForcedFront; }
+    void SetIndividualEnvironment(unsigned short envFlag, unsigned short bEnabled); // pass eSoundEnvironment as envFlag
+    void UpdatePlayTime(short soundLength, short newPlayPosition, short playProgress);
     void GetRelativePosition(CVector *outPosn);
     void CalculateFrequency();
     void UpdateFrequency();

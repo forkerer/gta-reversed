@@ -36,7 +36,7 @@ CAESound::CAESound(CAESound& sound)
     m_nEnvironmentFlags = sound.m_nEnvironmentFlags;
     m_nIsUsed = sound.m_nIsUsed;
     m_nCurrentPlayPosition = sound.m_nCurrentPlayPosition;
-    field_5E = sound.field_5E;
+    m_nHasStarted = sound.m_nHasStarted;
     m_fFinalVolume = sound.m_fFinalVolume;
     m_fFrequency = sound.m_fFrequency;
     m_nPlayingState = sound.m_nPlayingState;
@@ -74,7 +74,7 @@ CAESound::CAESound(short bankSlotId, short sfxId, CAEAudioEntity *baseAudio, CVe
     m_fTimeScale = timeScale;
     field_54 = arg9;
     m_nEnvironmentFlags = environmentFlags;
-    field_5E = 0;
+    m_nHasStarted = 0;
     m_nCurrentPlayPosition = 0;
     m_fSoundHeadRoom = 0.0F;
     field_20 = arg11;
@@ -116,7 +116,7 @@ void CAESound::operator=(CAESound& sound)
     m_nEnvironmentFlags = sound.m_nEnvironmentFlags;
     m_nIsUsed = sound.m_nIsUsed;
     m_nCurrentPlayPosition = sound.m_nCurrentPlayPosition;
-    field_5E = sound.field_5E;
+    m_nHasStarted = sound.m_nHasStarted;
     m_fFinalVolume = sound.m_fFinalVolume;
     m_fFrequency = sound.m_fFrequency;
     m_nPlayingState = sound.m_nPlayingState;
@@ -142,88 +142,53 @@ void CAESound::UnregisterWithPhysicalEntity()
 
 void CAESound::StopSound()
 {
-    ((void(__thiscall *)(CAESound *))0x4EF1C0)(this);
+    //((void(__thiscall *)(CAESound *))0x4EF1C0)(this);
+    m_nPlayingState = eSoundState::SOUND_STOPPED;
+    CAESound::UnregisterWithPhysicalEntity();
 }
 
-bool CAESound::GetUncancellable()
+void CAESound::SetIndividualEnvironment(unsigned short envFlag, unsigned short bEnabled)
 {
-    return ((bool(__thiscall *)(CAESound *))0x4EF1E0)(this);
+    /*((void(__thiscall *)(CAESound *, unsigned short, unsigned short))0x4EF2B0)(this, environment,
+        state);*/
+    if (bEnabled)
+        m_nEnvironmentFlags |= envFlag;
+    else
+        m_nEnvironmentFlags &= ~envFlag;
+
 }
 
-bool CAESound::GetFrontEnd()
+void CAESound::UpdatePlayTime(short soundLength, short newPlayPosition, short playProgress)
 {
-    return ((bool(__thiscall *)(CAESound *))0x4EF1F0)(this);
-}
+    //((void(__thiscall *)(CAESound *, short, short, short))0x4EF2E0)(this, soundLength, playPosition, playProgress);
+    m_nSoundLength = soundLength;
+    if (m_nHasStarted)
+        return;
 
-bool CAESound::GetRequestUpdates()
-{
-    return ((bool(__thiscall *)(CAESound *))0x4EF200)(this);
-}
+    if (m_nPlayingState != eSoundState::SOUND_ACTIVE)
+    {
+        m_nCurrentPlayPosition = -1;
+        return;
+    }
 
-bool CAESound::GetUnpausable()
-{
-    return ((bool(__thiscall *)(CAESound *))0x4EF210)(this);
-}
+    m_nCurrentPlayPosition += static_cast<short>(static_cast<float>(playProgress) * m_fFrequency);
+    if (m_nCurrentPlayPosition < soundLength)
+        return;
 
-bool CAESound::GetPlayPhysically()
-{
-    return ((bool(__thiscall *)(CAESound *))0x4EF220)(this);
-}
+    if (newPlayPosition == -1)
+    {
+        m_nCurrentPlayPosition = -1;
+        return;
+    }
 
-bool CAESound::GetStartPercentage()
-{
-    return ((bool(__thiscall *)(CAESound *))0x4EF230)(this);
-}
-
-bool CAESound::GetMusicMastered()
-{
-    return ((bool(__thiscall *)(CAESound *))0x4EF240)(this);
-}
-
-bool CAESound::GetLifespanTiedToPhysicalEntity()
-{
-    return ((bool(__thiscall *)(CAESound *))0x4EF250)(this);
-}
-
-bool CAESound::GetUnduckable()
-{
-    return ((bool(__thiscall *)(CAESound *))0x4EF260)(this);
-}
-
-bool CAESound::GetUncompressable()
-{
-    return ((bool(__thiscall *)(CAESound *))0x4EF270)(this);
-}
-
-bool CAESound::GetRolledOff()
-{
-    return ((bool(__thiscall *)(CAESound *))0x4EF280)(this);
-}
-
-bool CAESound::GetSmoothDucking()
-{
-    return ((bool(__thiscall *)(CAESound *))0x4EF290)(this);
-}
-
-bool CAESound::GetForcedFront()
-{
-    return ((bool(__thiscall *)(CAESound *))0x4EF2A0)(this);
-}
-
-void CAESound::SetIndividualEnvironment(unsigned short environment, unsigned short state)
-{
-    ((void(__thiscall *)(CAESound *, unsigned short, unsigned short))0x4EF2B0)(this, environment,
-        state);
-}
-
-void CAESound::UpdatePlayTime(short arg1, short arg2, short arg3)
-{
-    ((void(__thiscall *)(CAESound *, short, short, short))0x4EF2E0)(this, arg1, arg2, arg3);
+    m_nCurrentPlayPosition = newPlayPosition + (m_nCurrentPlayPosition % soundLength);
 }
 
 void CAESound::GetRelativePosition(CVector *outPosn)
 {
-    ((void(__thiscall *)(CAESound *, CVector *))0x4EF350)(this, outPosn);
+    //((void(__thiscall *)(CAESound *, CVector *))0x4EF350)(this, outPosn);
+    if (!CAESound::GetFrontEnd())
+        return CAEAudioEnvi
 }
 
 void CAESound::CalculateFrequency()

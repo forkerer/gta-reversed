@@ -1,4 +1,6 @@
 #include "StdInc.h"
+
+#include "CAEAudioEnvironment.h"
 #include "CAEAudioUtility.h"
 #include "CAEDataStream.h"
 #include "CAEMFDecoder.h"
@@ -210,6 +212,7 @@ void InjectHooksMain(void)
     CGarage::InjectHooks();
     CGarages::InjectHooks();
 
+    CAEAudioEnvironment::InjectHooks();
     CAEAudioUtility::InjectHooks();
     CAEDataStream::InjectHooks();
     CAEStreamingDecoder::InjectHooks();
