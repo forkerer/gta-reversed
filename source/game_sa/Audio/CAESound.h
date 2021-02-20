@@ -37,8 +37,9 @@ public:
     CAESound(CAESound& sound);
     CAESound(short bankSlotId, short sfxId, CAEAudioEntity* baseAudio, CVector posn, float volume,
         float fDistance, float speed, float timeScale, unsigned char arg9,
-        unsigned short environmentFlags, float arg11);
+        unsigned short environmentFlags, float speedVariability);
     ~CAESound();
+    CAESound& operator=(CAESound const& sound);
 public:
     short                 m_nBankSlotId;
     short                 m_nSoundIdInSlot;
@@ -49,7 +50,7 @@ public:
     float                 m_fVolume;
     float                 m_fSoundDistance;
     float                 m_fSpeed;
-    float field_20;
+    float                 m_fSpeedVariability;
     CVector               m_vecCurrPosn;
     CVector               m_vecPrevPosn;
     int                   m_nLastFrameUpdate;
@@ -94,7 +95,6 @@ public:
 public:
     static void InjectHooks();
     
-    void operator=(CAESound& sound);
     void UnregisterWithPhysicalEntity();
     void StopSound();
     bool GetUncancellable() { return m_bUncancellable; }
@@ -120,12 +120,15 @@ public:
     void NewVPSLentry();
     void RegisterWithPhysicalEntity(CEntity *entity);
     void StopSoundAndForget();
-    void SetPosition(CVector posn);
+    void SetPosition(CVector vecPos);
     void CalculateVolume();
     void Initialise(short bankSlotId, short sfxId, CAEAudioEntity *baseAudio, CVector posn,
         float volume, float maxDistance, float speed, float timeScale, unsigned char arg9,
-        unsigned short environmentFlags, float arg11, short currPlayPosn);
+        unsigned short environmentFlags, float speedVariability, short currPlayPosn);
     void UpdateParameters(short arg1);
-};
 
+public:
+    static constexpr float fSlowMoFrequencyScalingFactor = 0.5F;
+};
 VALIDATE_SIZE(CAESound, 0x74);
+

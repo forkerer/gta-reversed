@@ -10,6 +10,8 @@ void CAEAudioEnvironment::InjectHooks()
     ReversibleHooks::Install("CAEAudioEnvironment", "GetDistanceAttenuation", 0x4D7F20, &CAEAudioEnvironment::GetDistanceAttenuation);
     ReversibleHooks::Install("CAEAudioEnvironment", "GetDirectionalMikeAttenuation", 0x4D7F60, &CAEAudioEnvironment::GetDirectionalMikeAttenuation);
     ReversibleHooks::Install("CAEAudioEnvironment", "GetReverbEnvironmentAndDepth", 0x4D8010, &CAEAudioEnvironment::GetReverbEnvironmentAndDepth);
+    ReversibleHooks::Install("CAEAudioEnvironment", "GetPositionRelativeToCamera_vec", 0x4D80B0, (void(*)(CVector*, CVector*)) & CAEAudioEnvironment::GetPositionRelativeToCamera);
+    ReversibleHooks::Install("CAEAudioEnvironment", "GetPositionRelativeToCamera_placeable", 0x4D8340, (void(*)(CVector*, CPlaceable*)) & CAEAudioEnvironment::GetPositionRelativeToCamera);
 }
 
 float CAEAudioEnvironment::GetDopplerRelativeFrequency(float prevDist,
@@ -45,13 +47,14 @@ float CAEAudioEnvironment::GetDistanceAttenuation(float dist)
 float CAEAudioEnvironment::GetDirectionalMikeAttenuation(CVector const& soundDir)
 {
     // https://en.wikipedia.org/wiki/Cutoff_frequency
-    static const float fCutoffFrequency = sqrt(0.5F);
-    static const float fAttenuationMult = 6.0F;
+    static constexpr float fCutoffFrequency = 0.70710678118F; // sqrt(0.5F);
+    static constexpr float fAttenuationMult = -6.0F;
 
     CVector vecDir = soundDir;
     vecDir.Normalise();
 
-    const auto freq = vecDir.x + vecDir.z;
+    //BUG? Seems weird that it uses just single axis, seems like it should be normalized Dot product with for example Camera direction, to work the same way regardless of direction
+    const auto freq = vecDir.y; // (vecDir.x + vecDir.z) * 0.0F + vecDir.y
     if (fCutoffFrequency == -1.0F || freq >= fCutoffFrequency)
         return 0.0F;
 
@@ -101,7 +104,7 @@ void CAEAudioEnvironment::GetPositionRelativeToCamera(CVector* vecOut, CVector* 
     if (!vecPos)
         return;
 
-    auto camMode = TheCamera.GetActiveCamera().m_nMode;
+    const auto camMode = CCamera::GetActiveCamera().m_nMode;
     if (camMode == eCamMode::MODE_SNIPER || camMode == eCamMode::MODE_ROCKETLAUNCHER || camMode == eCamMode::MODE_1STPERSON)
     {
         CMatrix tempMat = TheCamera.m_mCameraMatrix;
@@ -113,6 +116,19 @@ void CAEAudioEnvironment::GetPositionRelativeToCamera(CVector* vecOut, CVector* 
         vecOut->z =  DotProduct(vecOffset, tempMat.GetUp());
         return;
     }
+
+    auto fMult = 0.0F;
+    auto* pPlayer = FindPlayerPed(-1);
+    if (pPlayer)
+        fMult = clamp(DistanceBetweenPoints(pPlayer->GetPosition(), TheCamera.GetPosition()), 0.0F, 0.5F);
+
+    CMatrix tempMat = TheCamera.m_mCameraMatrix;
+    auto& vecCamPos = TheCamera.GetPosition();
+    const auto vecOffset = *vecPos - (vecCamPos + tempMat.GetForward() * fMult);
+
+    vecOut->x = -DotProduct(vecOffset, tempMat.GetRight());
+    vecOut->y =  DotProduct(vecOffset, tempMat.GetForward());
+    vecOut->z =  DotProduct(vecOffset, tempMat.GetUp());
 }
 
 void CAEAudioEnvironment::GetPositionRelativeToCamera(CVector* vecOut, CPlaceable* placeable)
