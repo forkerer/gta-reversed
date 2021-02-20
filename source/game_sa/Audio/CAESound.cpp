@@ -30,6 +30,7 @@ void CAESound::InjectHooks()
     ReversibleHooks::Install("CAESound", "CalculateVolume", 0x4EFA10, &CAESound::CalculateVolume);
     ReversibleHooks::Install("CAESound", "Initialise", 0x4EFE50, &CAESound::Initialise);
     ReversibleHooks::Install("CAESound", "UpdateParameters", 0x4EFF50, &CAESound::UpdateParameters);
+    ReversibleHooks::Install("CAESound", "SoundHasFinished", 0x4EFFD0, &CAESound::SoundHasFinished);
 }
 
 CAESound::CAESound(CAESound& sound)
@@ -345,7 +346,7 @@ void CAESound::Initialise(short bankSlotId, short sfxId, CAEAudioEntity *baseAud
     m_fFrequency = 1.0F;
 }
 
-void CAESound::UpdateParameters(short arg1)
+void CAESound::UpdateParameters(short curPlayPos)
 {
     if (CAESound::GetLifespanTiedToPhysicalEntity())
     {
@@ -357,8 +358,17 @@ void CAESound::UpdateParameters(short arg1)
 
     if (CAESound::GetRequestUpdates() && m_pBaseAudio)
     {
-        m_pBaseAudio->UpdateParameters(this, arg1);
+        m_pBaseAudio->UpdateParameters(this, curPlayPos);
         if (m_fSpeedVariability == 0.0F)
             m_fFrequency = m_fSpeed;
     }
+}
+
+void CAESound::SoundHasFinished()
+{
+    CAESound::UpdateParameters(-1);
+    CAESound::UnregisterWithPhysicalEntity();
+    m_nIsUsed = 0;
+    m_nHasStarted = 0;
+    m_nCurrentPlayPosition = 0;
 }

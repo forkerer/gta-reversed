@@ -19,10 +19,12 @@ void CAEAudioUtility::InjectHooks()
     ReversibleHooks::Install("CAEAudioUtility", "ResolveProbability", 0x4d9c80, &CAEAudioUtility::ResolveProbability);
     ReversibleHooks::Install("CAEAudioUtility", "GetPiecewiseLinear", 0x4d9d90, &CAEAudioUtility::GetPiecewiseLinear);
     ReversibleHooks::Install("CAEAudioUtility", "AudioLog10", 0x4d9e50, &CAEAudioUtility::AudioLog10);
-    ReversibleHooks::Install("CAEAudioUtility", "GetCurrentTimeInMilliseconds", 0x4d9e80, &CAEAudioUtility::GetCurrentTimeInMilliseconds);
     ReversibleHooks::Install("CAEAudioUtility", "ConvertFromBytesToMS", 0x4d9ef0, &CAEAudioUtility::ConvertFromBytesToMS);
     ReversibleHooks::Install("CAEAudioUtility", "ConvertFromMSToBytes", 0x4d9f40, &CAEAudioUtility::ConvertFromMSToBytes);
-    ReversibleHooks::Install("CAEAudioUtility", "StaticInitialise", 0x5b97f0, &CAEAudioUtility::StaticInitialise);
+
+    // Those 2 change logic of the functions, and shouldn't be toggled on/off
+    HookInstall(0x4d9e80, &CAEAudioUtility::GetCurrentTimeInMilliseconds);
+    HookInstall(0x5b97f0, &CAEAudioUtility::StaticInitialise);
 }
 
 // Exactly the same as CGeneral::GetRandomNumberInRange

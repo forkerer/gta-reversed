@@ -31,3 +31,8 @@ void CAudioEngine::ReportObjectDestruction(CEntity* pEntity)
 {
     plugin::CallMethod<0x506ED0, CAudioEngine*, CEntity*>(this, pEntity);
 }
+
+void CAudioEngine::StopRadio(tVehicleAudioSettings* audioSettings, unsigned char bDuringPause)
+{
+    plugin::CallMethod<0x506F70, CAudioEngine*, tVehicleAudioSettings*, unsigned char>(this, audioSettings, bDuringPause);
+}

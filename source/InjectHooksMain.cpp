@@ -212,6 +212,7 @@ void InjectHooksMain(void)
     CGarage::InjectHooks();
     CGarages::InjectHooks();
 
+    CAEVehicleAudioEntity::InjectHooks();
     CAESound::InjectHooks();
     CAEAudioEnvironment::InjectHooks();
     CAEAudioUtility::InjectHooks();

@@ -45,7 +45,7 @@ public:
     short                 m_nSoundIdInSlot;
     CAEAudioEntity       *m_pBaseAudio;
     class CEntity        *m_pPhysicalEntity;
-    unsigned int          m_nEvent;
+    unsigned int          m_nEvent; // see eAudioEvents
     float                 m_fMaxVolume;
     float                 m_fVolume;
     float                 m_fSoundDistance;
@@ -125,7 +125,8 @@ public:
     void Initialise(short bankSlotId, short sfxId, CAEAudioEntity *baseAudio, CVector posn,
         float volume, float maxDistance, float speed, float timeScale, unsigned char arg9,
         unsigned short environmentFlags, float speedVariability, short currPlayPosn);
-    void UpdateParameters(short arg1);
+    void UpdateParameters(short curPlayPos);
+    void SoundHasFinished();
 
 public:
     static constexpr float fSlowMoFrequencyScalingFactor = 0.5F;

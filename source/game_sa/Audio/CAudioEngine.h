@@ -12,6 +12,7 @@ public:
     void ReportWaterSplash(CPhysical* pPhysical, float volume, bool forcePlaySplashSound);
     void ReportDoorMovement(CPhysical* pPhysical);
     void ReportObjectDestruction(CEntity* pEntity);
+    void StopRadio(tVehicleAudioSettings* audioSettings, unsigned char bDuringPause);
     static void DisplayRadioStationName();
 };
 
