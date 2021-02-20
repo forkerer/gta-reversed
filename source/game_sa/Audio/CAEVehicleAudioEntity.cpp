@@ -426,7 +426,7 @@ float CAEVehicleAudioEntity::GetFlyingMetalVolume(CPhysical* physical)
     if (fTurnSpeedSquared >= 0.5625F)
         return CAEAudioUtility::AudioLog10(1.0F) * 10.0F;
 
-    auto fVol = fTurnSpeedSquared / 0.5625F;
+    const auto fVol = fTurnSpeedSquared / 0.5625F;
     if (fVol < 1.0e-10F)
         return -100.0F;
 
