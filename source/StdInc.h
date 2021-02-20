@@ -224,7 +224,7 @@
 #include "game_sa\CQueuedMode.h"
 #include "game_sa\CRadar.h"
 #include "game_sa\CRealTimeShadow.h"
-#include "game_sa\CRealTimeShadowManager.h";
+#include "game_sa\CRealTimeShadowManager.h"
 #include "game_sa\CReference.h"
 #include "game_sa\CReferences.h"
 #include "game_sa\CRegisteredCorona.h"
@@ -297,8 +297,8 @@
 #include "game_sa\CTagManager.h"
 #include "game_sa\CEscalator.h"
 #include "game_sa\CEscalators.h"
-#include "game_sa\BreakObject_c.h";
-#include "game_sa\BreakManager_c.h";
+#include "game_sa\BreakObject_c.h"
+#include "game_sa\BreakManager_c.h"
 #include "game_sa\Animation\AnimAssociationData.h"
 #include "game_sa\Animation\AnimationId.h"
 #include "game_sa\Animation\AnimBlendFrameData.h"
