@@ -296,13 +296,13 @@ public:
 
 public:
     static void StaticInitialise();
-    static void StaticService();
-    static void StaticGetPlayerVehicleAudioSettingsForRadio();
+    static void StaticService() { /* Empty on purpose */ }
+    static tVehicleAudioSettings* StaticGetPlayerVehicleAudioSettingsForRadio();
     static void EnableHelicoptors();
     static void DisableHelicoptors();
-    static void DoesBankSlotContainThisBank(short, short);
-    static short DemandBankSlot(short bankSlot);
-    static short RequestBankSlot(short bankSlot);
+    static bool DoesBankSlotContainThisBank(short bankSlot, short bankId);
+    static short DemandBankSlot(short bankId);
+    static short RequestBankSlot(short bankId);
     static void StoppedUsingBankSlot(short bankSlot);
     static tVehicleAudioSettings GetVehicleAudioSettings(short vehId);
 
@@ -315,7 +315,9 @@ public:
     static bool& s_HelicoptorsDisabled;
     static short& s_NextDummyEngineSlot;
     static tVehicleAudioSettings*& s_pVehicleAudioSettingsForRadio;
-    static tEngineDummySlot(&s_DummyEngineSlots)[10];
+
+    static constexpr int NUM_DUMMY_ENGINE_SLOTS = 10;
+    static tEngineDummySlot(&s_DummyEngineSlots)[NUM_DUMMY_ENGINE_SLOTS];
 };
 VALIDATE_SIZE(CAEVehicleAudioEntity, 0x24C);
 

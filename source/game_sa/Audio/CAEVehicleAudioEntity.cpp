@@ -1,13 +1,16 @@
 #include "StdInc.h"
 
+
+#include "CAEAudioHardware.h"
 #include "CAEAudioUtility.h"
+#include "CAESoundManager.h"
 
 CPed*& CAEVehicleAudioEntity::s_pPlayerAttachedForRadio = *(CPed**)0xB6B98C;
 CPed*& CAEVehicleAudioEntity::s_pPlayerDriver = *(CPed**)0xB6B990;
 bool& CAEVehicleAudioEntity::s_HelicoptorsDisabled = *(bool*)0xB6B994;
 short& CAEVehicleAudioEntity::s_NextDummyEngineSlot = *(short*)0xB6B998;
 tVehicleAudioSettings*& CAEVehicleAudioEntity::s_pVehicleAudioSettingsForRadio = *reinterpret_cast<tVehicleAudioSettings**>(0xB6B99C);
-tEngineDummySlot(&CAEVehicleAudioEntity::s_DummyEngineSlots)[10] = *reinterpret_cast<tEngineDummySlot(*)[10]>(0xB6B9A0);
+tEngineDummySlot(&CAEVehicleAudioEntity::s_DummyEngineSlots)[NUM_DUMMY_ENGINE_SLOTS] = *reinterpret_cast<tEngineDummySlot(*)[NUM_DUMMY_ENGINE_SLOTS]>(0xB6B9A0);
 
 tVehicleAudioSettings const(&gVehicleAudioSettings)[NUM_VEH_AUDIO_SETTINGS] = *reinterpret_cast<tVehicleAudioSettings const(*)[232]>(0x860AF0);
 
@@ -24,6 +27,14 @@ void CAEVehicleAudioEntity::InjectHooks()
 
 // STATIC
     ReversibleHooks::Install("CAEVehicleAudioEntity", "GetVehicleAudioSettings", 0x4F5C10, &CAEVehicleAudioEntity::GetVehicleAudioSettings);
+    ReversibleHooks::Install("CAEVehicleAudioEntity", "RequestBankSlot", 0x4F4D10, &CAEVehicleAudioEntity::RequestBankSlot);
+    ReversibleHooks::Install("CAEVehicleAudioEntity", "DemandBankSlot", 0x4F4E60, &CAEVehicleAudioEntity::DemandBankSlot);
+    ReversibleHooks::Install("CAEVehicleAudioEntity", "DoesBankSlotContainThisBank", 0x4F4E30, &CAEVehicleAudioEntity::DoesBankSlotContainThisBank);
+    ReversibleHooks::Install("CAEVehicleAudioEntity", "StoppedUsingBankSlot", 0x4F4DF0, &CAEVehicleAudioEntity::StoppedUsingBankSlot);
+    ReversibleHooks::Install("CAEVehicleAudioEntity", "EnableHelicoptors", 0x4F4EF0, &CAEVehicleAudioEntity::EnableHelicoptors);
+    ReversibleHooks::Install("CAEVehicleAudioEntity", "DisableHelicoptors", 0x4F4EE0, &CAEVehicleAudioEntity::DisableHelicoptors);
+    ReversibleHooks::Install("CAEVehicleAudioEntity", "StaticGetPlayerVehicleAudioSettingsForRadio", 0x4F4ED0, &CAEVehicleAudioEntity::StaticGetPlayerVehicleAudioSettingsForRadio);
+    ReversibleHooks::Install("CAEVehicleAudioEntity", "StaticInitialise", 0x5B99F0, &CAEVehicleAudioEntity::StaticInitialise);
 }
 
 CAEVehicleAudioEntity::CAEVehicleAudioEntity() : CAEAudioEntity(), m_twinSkidSound()
@@ -43,9 +54,113 @@ void CAEVehicleAudioEntity::UpdateParameters(CAESound* sound, short curPlayPos)
     CAEVehicleAudioEntity::UpdateParameters_Reversed(sound, curPlayPos);
 }
 
-short CAEVehicleAudioEntity::RequestBankSlot(short bankSlot)
+void CAEVehicleAudioEntity::StaticInitialise()
 {
-   return plugin::CallAndReturn<short, 0x4F4D10, short>(bankSlot);
+    for (auto& dummyEng : CAEVehicleAudioEntity::s_DummyEngineSlots)
+    {
+        dummyEng.m_nBankId = -1;
+        dummyEng.m_nUsageCount = 0;
+    }
+
+    AEAudioHardware.LoadSoundBank(138, 19);
+    AEAudioHardware.LoadSoundBank(13, 18);
+    AEAudioHardware.LoadSoundBank(74, 17);
+
+    CAEVehicleAudioEntity::s_pVehicleAudioSettingsForRadio = nullptr;
+    CAEVehicleAudioEntity::s_pPlayerAttachedForRadio = nullptr;
+    CAEVehicleAudioEntity::s_pPlayerDriver = nullptr;;
+    CAEVehicleAudioEntity::s_NextDummyEngineSlot = 0;
+    CAEVehicleAudioEntity::s_HelicoptorsDisabled = false;
+}
+
+tVehicleAudioSettings* CAEVehicleAudioEntity::StaticGetPlayerVehicleAudioSettingsForRadio()
+{
+    return CAEVehicleAudioEntity::s_pVehicleAudioSettingsForRadio;
+}
+
+void CAEVehicleAudioEntity::EnableHelicoptors()
+{
+    CAEVehicleAudioEntity::s_HelicoptorsDisabled = false;
+}
+
+void CAEVehicleAudioEntity::DisableHelicoptors()
+{
+    CAEVehicleAudioEntity::s_HelicoptorsDisabled = true;
+}
+
+bool CAEVehicleAudioEntity::DoesBankSlotContainThisBank(short bankSlot, short bankId)
+{
+    const auto usedSlot = bankSlot - 7;
+    if (usedSlot < 0 || usedSlot > NUM_DUMMY_ENGINE_SLOTS)
+        return false;
+
+    return CAEVehicleAudioEntity::s_DummyEngineSlots[usedSlot].m_nBankId == bankId;
+}
+
+short CAEVehicleAudioEntity::DemandBankSlot(short bankId)
+{
+    const auto requestResult = CAEVehicleAudioEntity::RequestBankSlot(bankId);
+    if (requestResult != -1)
+        return requestResult;
+
+    auto slotToFree = 0;
+    for (auto i = 1; i < NUM_DUMMY_ENGINE_SLOTS; ++i)
+    {
+        if (CAEVehicleAudioEntity::s_DummyEngineSlots[i].m_nUsageCount < CAEVehicleAudioEntity::s_DummyEngineSlots[0].m_nUsageCount)
+        {
+            slotToFree = i;
+            break;
+        }
+    }
+
+    CAEVehicleAudioEntity::s_DummyEngineSlots[slotToFree].m_nUsageCount = 0;
+    return CAEVehicleAudioEntity::RequestBankSlot(bankId);
+}
+
+short CAEVehicleAudioEntity::RequestBankSlot(short bankId)
+{
+    auto freeSlot = -1;
+    for (auto i = 0; i < NUM_DUMMY_ENGINE_SLOTS; ++i)
+    {
+        auto& dummyEng = CAEVehicleAudioEntity::s_DummyEngineSlots[i];
+        if (dummyEng.m_nBankId == bankId)
+            return i + 7;
+
+        if (dummyEng.m_nUsageCount <= 0)
+            freeSlot = i;
+    }
+
+    if (freeSlot == -1)
+        return -1;
+
+    for (auto i = 0; i < NUM_DUMMY_ENGINE_SLOTS; ++i)
+    {
+        const auto iSlot = (CAEVehicleAudioEntity::s_NextDummyEngineSlot + i) % NUM_DUMMY_ENGINE_SLOTS;
+        auto& dummyEng = CAEVehicleAudioEntity::s_DummyEngineSlots[iSlot];
+        if (dummyEng.m_nUsageCount > 0)
+            continue;
+
+        freeSlot = iSlot;
+        ++dummyEng.m_nUsageCount;
+        CAEVehicleAudioEntity::s_NextDummyEngineSlot = (freeSlot + 1) % NUM_DUMMY_ENGINE_SLOTS;
+        break;
+    }
+
+    AESoundManager.CancelSoundsInBankSlot(freeSlot + 7, true);
+    AEAudioHardware.LoadSoundBank(bankId, freeSlot + 7);
+    CAEVehicleAudioEntity::s_DummyEngineSlots[freeSlot].m_nBankId = bankId;
+    CAEVehicleAudioEntity::s_DummyEngineSlots[freeSlot].m_nUsageCount = 1;
+    return freeSlot + 7;
+}
+
+void CAEVehicleAudioEntity::StoppedUsingBankSlot(short bankSlot)
+{
+    const auto usedSlot = bankSlot - 7;
+    if (usedSlot < 0 || usedSlot > NUM_DUMMY_ENGINE_SLOTS)
+        return;
+
+    auto& dummyEng = CAEVehicleAudioEntity::s_DummyEngineSlots[usedSlot];
+    dummyEng.m_nUsageCount = std::max(0, dummyEng.m_nUsageCount - 1);
 }
 
 tVehicleAudioSettings CAEVehicleAudioEntity::GetVehicleAudioSettings(short vehId)
@@ -369,7 +484,7 @@ void CAEVehicleAudioEntity::Terminate()
     {
         const auto usedSlot = m_nEngineBankSlotId - 7;
         auto& dummyEng = CAEVehicleAudioEntity::s_DummyEngineSlots[usedSlot];
-        if (usedSlot >= 0 && usedSlot < 10 && dummyEng.m_nBankId == m_nEngineDecelerateSoundBankId)
+        if (usedSlot >= 0 && usedSlot < NUM_DUMMY_ENGINE_SLOTS && dummyEng.m_nBankId == m_nEngineDecelerateSoundBankId)
             dummyEng.m_nUsageCount = std::max(0, dummyEng.m_nUsageCount - 1);
 
         m_nEngineBankSlotId = -1;

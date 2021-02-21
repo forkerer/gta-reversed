@@ -111,7 +111,7 @@ public:
     void GetNumAvailableChannels();
     void GetChannelPlayTimes(short, short*);
     void SetChannelVolume(short, ushort, float, uchar);
-    void LoadSoundBank(ushort, short);
+    void LoadSoundBank(ushort bankId, short bankSlotId);
     void IsSoundBankLoaded(ushort, short);
     void GetSoundBankLoadingStatus(ushort, short);
     void StopSound(short, ushort);
