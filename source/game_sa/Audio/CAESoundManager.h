@@ -3,6 +3,16 @@
 #include "CAESound.h"
 #include "CPhysical.h"
 
+static constexpr int MAX_NUM_SOUNDS = 300;
+static constexpr int MAX_NUM_AUDIO_CHANNELS = 64;
+
+enum eSoundPlayingStatus : int16_t
+{
+    SOUND_NOT_PLAYING = 0,
+    SOUND_PLAYING = 1,
+    SOUND_HAS_STARTED = 2,
+};
+
 class CAESoundManager
 {
 public:
@@ -10,14 +20,14 @@ public:
     ~CAESoundManager();
 
 public:
-    int16_t  m_nNumAvailableChannels;
+    uint16_t m_nNumAvailableChannels;
     int16_t  m_nChannel;
-    CAESound m_aSounds[300];
+    CAESound m_aSounds[MAX_NUM_SOUNDS];
     int16_t* m_aChannelSoundTable;
     int16_t* m_aChannelSoundPosition;
     int16_t* m_aChannelSoundUncancellable;
-    int16_t  m_nSoundLength[300];
-    int16_t  m_nSoundLoopStartTime[300];
+    int16_t  m_nSoundLength[MAX_NUM_SOUNDS];
+    int16_t  m_nSoundLoopStartTime[MAX_NUM_SOUNDS];
     uint32_t m_nUpdateTime;
     bool     m_bPauseTimeInUse;
     bool     m_bManuallyPaused;
@@ -27,20 +37,21 @@ public:
 public:
     static void InjectHooks();
 
-    void Initialise();
+    bool Initialise();
     void Terminate();
     void Reset();
     void PauseManually(uchar bPause);
     void Service();
-    void RequestNewSound(CAESound*);
-    void AreSoundsPlayingInBankSlot(short bankSlot);
-    void AreSoundsOfThisEventPlayingForThisEntity(short eventId, CAEAudioEntity* audioEntity);
-    void AreSoundsOfThisEventPlayingForThisEntityAndPhysical(short eventId, CAEAudioEntity* audioEntity, CPhysical* physical);
+    CAESound* RequestNewSound(CAESound* pSound);
+    int16_t AreSoundsPlayingInBankSlot(short bankSlot);
+    int16_t AreSoundsOfThisEventPlayingForThisEntity(short eventId, CAEAudioEntity* audioEntity);
+    int16_t AreSoundsOfThisEventPlayingForThisEntityAndPhysical(short eventId, CAEAudioEntity* audioEntity, CPhysical* physical);
     void CancelSoundsOfThisEventPlayingForThisEntity(short eventId, CAEAudioEntity* audioEntity);
     void CancelSoundsOfThisEventPlayingForThisEntityAndPhysical(short eventId, CAEAudioEntity* audioEntity, CPhysical* physical);
     void CancelSoundsInBankSlot(short bankSlot, uchar bFullStop);
     void CancelSoundsOwnedByAudioEntity(CAEAudioEntity* audioEntity, uchar bFullStop);
-    void GetVirtualChannelForPhysicalChannel(short physicalChannel);    
+    int16_t GetVirtualChannelForPhysicalChannel(short physicalChannel);
 };
+VALIDATE_SIZE(CAESoundManager, 0x8CBC);
 
 extern CAESoundManager& AESoundManager;

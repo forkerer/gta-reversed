@@ -1,4 +1,5 @@
 #pragma once
+#include "CAESoundManager.h"
 #include "PluginBase.h"
 #include "CVector.h"
 
@@ -43,61 +44,53 @@ public:
     CAEAudioHardware();
 
 public:
-    uint8_t field_0;
-    bool m_bDisableEffectsLoading;
-    uint8_t field_2;
-    uint8_t field_3;
-    uint8_t field_4;
-    uint8_t m_nReverbEnvironment;
-    uint8_t m_awChannelFlags[1][100];
-    uint8_t gap6A[28];
+    uint8_t  field_0;
+    bool     m_bDisableEffectsLoading;
+    uint8_t  field_2;
+    uint8_t  field_3;
+    uint8_t  field_4;
+    uint8_t  m_nReverbEnvironment;
+    int16_t  m_awChannelFlags[MAX_NUM_AUDIO_CHANNELS];
     uint16_t field_86;
-    int32_t m_nReverbDepth;
-    int16_t m_wNumAvailableChannels;
-    int16_t m_nNumChannels;
-    uint8_t m_anNumSoundsInSlot[100];
-    uint8_t gapF4[28];
-    float m_afChannelVolumes[64];
-    uint8_t field_210[100];
-    uint8_t gap274[156];
-    float m_afChannelsFrqScalingFactor[64];
-    float m_fMusicMasterScalingFactor;
-    float m_fEffectMasterScalingFactor;
-    float m_fMusicFaderScalingFactor;
-    float m_fEffectsFaderScalingFactor;
-    float m_fStreamFaderScalingFactor;
-    float m_fNonStreamFaderScalingFactor;
-    float field_428;
-    float field_42C;
-    uint8_t m_aBankSlotIds[100];
-    uint8_t gap494[500];
-    uint8_t m_aSoundTypes[100];
-    uint8_t gap6EC[500];
-    uint8_t m_anVirtualChannelSoundLoopStartTimes[1][100];
-    uint8_t gap944[500];
-    uint8_t m_anVirtualChannelSoundLengths[100];
-    uint8_t gapB9C[500];
-    uint8_t m_nBassSet;
-    uint8_t __pad1__[3];
-    float m_fBassEqGain;
+    int32_t  m_nReverbDepth;
+    uint16_t m_wNumAvailableChannels;
+    int16_t  m_nNumChannels;
+    int16_t  m_anNumChannelsInSlot[MAX_NUM_AUDIO_CHANNELS];
+    float    m_afChannelVolumes[MAX_NUM_AUDIO_CHANNELS];
+    float    m_afUnkn[MAX_NUM_AUDIO_CHANNELS];
+    float    m_afChannelsFrqScalingFactor[MAX_NUM_AUDIO_CHANNELS];
+    float    m_fMusicMasterScalingFactor;
+    float    m_fEffectMasterScalingFactor;
+    float    m_fMusicFaderScalingFactor;
+    float    m_fEffectsFaderScalingFactor;
+    float    m_fStreamFaderScalingFactor;
+    float    m_fNonStreamFaderScalingFactor;
+    float    field_428;
+    float    field_42C;
+    int16_t  m_aBankSlotIds[MAX_NUM_SOUNDS];
+    int16_t  m_aSoundIdsInSlots[MAX_NUM_SOUNDS];
+    int16_t  m_anVirtualChannelSoundLoopStartTimes[MAX_NUM_SOUNDS];
+    int16_t  m_anVirtualChannelSoundLengths[MAX_NUM_SOUNDS];
+    uint8_t  m_nBassSet;
+    uint8_t  __pad1__[3];
+    float    m_fBassEqGain;
     struct CAEMP3BankLoader* m_pMP3BankLoader;
-    void* m_pMP3TrackLoader;
-    struct IDirectSound8* m_pDirectSound;
-    void* m_dwSpeakerConfig;
-    void* m_n3dEffectsQueryResult;
-    DSCAPS m_dsCaps;
+    void*                    m_pMP3TrackLoader;
+    struct IDirectSound8*    m_pDirectSound;
+    void*                    m_dwSpeakerConfig;
+    void*                    m_n3dEffectsQueryResult;
+    DSCAPS                   m_dsCaps;
     struct IDirectSound3DListener* m_pDirectSound3dListener;
-    void* m_pStreamingChannel;
-    struct CAEStreamThread* m_pStreamThread;
-    uint8_t gapE14[76];
-    void* m_aChannels[64];
-    uint8_t field_F64[100];
-    uint8_t gapFC8[60];
-    int32_t field_1004;
-    int32_t field_1008;
-    int32_t field_100C;
-    uint8_t field_1010;
-    int32_t field_1014;
+    void*                          m_pStreamingChannel;
+    struct CAEStreamThread*        m_pStreamThread;
+    uint8_t  gapE14[76];
+    void*    m_aChannels[MAX_NUM_AUDIO_CHANNELS];
+    uint32_t m_aBeatInfo[40];
+    int32_t  field_1004;
+    int32_t  field_1008;
+    int32_t  field_100C;
+    uint8_t  field_1010;
+    int32_t  field_1014;
 
 public:
     static void InjectHooks();
@@ -108,7 +101,7 @@ public:
     void Initialise();
     void Terminate();
     void PlaySound(short, ushort, ushort, ushort, short, short, float);
-    void GetNumAvailableChannels();
+    uint16_t GetNumAvailableChannels() { return m_wNumAvailableChannels; };
     void GetChannelPlayTimes(short, short*);
     void SetChannelVolume(short, ushort, float, uchar);
     void LoadSoundBank(ushort bankId, short bankSlotId);
@@ -123,7 +116,7 @@ public:
     float GetSoundHeadroom(ushort soundId, short bankSlotId);
     void EnableEffectsLoading();
     void DisableEffectsLoading();
-    void RequestVirtualChannelSoundInfo(ushort, ushort, ushort);
+    void RequestVirtualChannelSoundInfo(ushort soundIndex, ushort soundIdInSlot, ushort bankSlotId);
     void GetVirtualChannelSoundLengths(short*);
     void GetVirtualChannelSoundLoopStartTimes(short*);
     void LoadSound(ushort, ushort, short);
@@ -155,7 +148,7 @@ public:
     void CheckDVD();
     void PauseAllSounds();
     void ResumeAllSounds();
-    void AllocateChannels(ushort);
+    int16_t AllocateChannels(ushort numChannels);
 
 };
 VALIDATE_SIZE(CAEAudioHardware, 0x1018);

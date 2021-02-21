@@ -1,6 +1,7 @@
 #include "StdInc.h"
 
 #include "CAEAudioEnvironment.h"
+#include "CAEAudioHardware.h"
 #include "CAEAudioUtility.h"
 #include "CAEDataStream.h"
 #include "CAEMFDecoder.h"
@@ -216,6 +217,7 @@ void InjectHooksMain(void)
     CAEVehicleAudioEntity::InjectHooks();
     CAESoundManager::InjectHooks();
     CAESound::InjectHooks();
+    CAEAudioHardware::InjectHooks();
     CAEAudioEnvironment::InjectHooks();
     CAEAudioUtility::InjectHooks();
     CAEDataStream::InjectHooks();
