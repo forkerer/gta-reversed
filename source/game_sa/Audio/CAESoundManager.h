@@ -24,10 +24,10 @@ public:
     int16_t  m_nChannel;
     CAESound m_aSounds[MAX_NUM_SOUNDS];
     int16_t* m_aChannelSoundTable;
-    int16_t* m_aChannelSoundPosition;
+    int16_t* m_aChannelSoundPlayTimes;
     int16_t* m_aChannelSoundUncancellable;
-    int16_t  m_nSoundLength[MAX_NUM_SOUNDS];
-    int16_t  m_nSoundLoopStartTime[MAX_NUM_SOUNDS];
+    int16_t  m_aSoundLengths[MAX_NUM_SOUNDS];
+    int16_t  m_aSoundLoopStartTimes[MAX_NUM_SOUNDS];
     uint32_t m_nUpdateTime;
     bool     m_bPauseTimeInUse;
     bool     m_bManuallyPaused;

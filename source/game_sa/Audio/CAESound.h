@@ -111,7 +111,7 @@ public:
     bool GetSmoothDucking() { return m_bSmoothDucking; }
     bool GetForcedFront() { return m_bForcedFront; }
     void SetIndividualEnvironment(unsigned short envFlag, unsigned short bEnabled); // pass eSoundEnvironment as envFlag
-    void UpdatePlayTime(short soundLength, short newPlayPosition, short playProgress);
+    void UpdatePlayTime(short soundLength, short loopStartTime, short playProgress);
     void GetRelativePosition(CVector *outPosn);
     void CalculateFrequency();
     void UpdateFrequency();

@@ -34,7 +34,7 @@ bool CAESoundManager::Initialise()
 
     //BUG? There's some short weird logic in the original code, i simplified it to what's actually used i think
     m_aChannelSoundTable = new int16_t[m_nNumAvailableChannels];
-    m_aChannelSoundPosition = new int16_t[m_nNumAvailableChannels];
+    m_aChannelSoundPlayTimes = new int16_t[m_nNumAvailableChannels];
     m_aChannelSoundUncancellable = new int16_t[m_nNumAvailableChannels];
 
     for (auto& sound : m_aSounds)
@@ -58,11 +58,11 @@ bool CAESoundManager::Initialise()
 void CAESoundManager::Terminate()
 {
     delete[] m_aChannelSoundTable;
-    delete[] m_aChannelSoundPosition;
+    delete[] m_aChannelSoundPlayTimes;
     delete[] m_aChannelSoundUncancellable;
 
     m_aChannelSoundTable = nullptr;
-    m_aChannelSoundPosition = nullptr;
+    m_aChannelSoundPlayTimes = nullptr;
     m_aChannelSoundUncancellable = nullptr;
 }
 
@@ -80,6 +80,179 @@ void CAESoundManager::Reset()
 void CAESoundManager::PauseManually(uchar bPause)
 {
     m_bManuallyPaused = bPause;
+}
+
+void CAESoundManager::Service()
+{
+    for (auto i = 0; i < m_nNumAvailableChannels; ++i)
+        m_aChannelSoundUncancellable[i] = -1;
+
+    int timeSinceLastUpdate;
+    if (CTimer::GetIsPaused() || m_bManuallyPaused)
+    {
+        if (m_bPauseTimeInUse)
+            timeSinceLastUpdate = CTimer::m_snTimeInMillisecondsPauseMode - m_nUpdateTime;
+        else
+        {
+            m_nPauseUpdateTime = m_nUpdateTime;
+            timeSinceLastUpdate = 0;
+        }
+
+        m_nUpdateTime = CTimer::m_snTimeInMillisecondsPauseMode;
+        m_bPauseTimeInUse = true;
+    }
+    else
+    {
+        if (m_bPauseTimeInUse)
+            timeSinceLastUpdate = CTimer::m_snTimeInMilliseconds - m_nPauseUpdateTime;
+        else
+            timeSinceLastUpdate = CTimer::m_snTimeInMilliseconds - m_nUpdateTime;
+
+        m_nUpdateTime = CTimer::m_snTimeInMilliseconds;
+        m_bPauseTimeInUse = false;
+    }
+
+    AEAudioHardware.GetChannelPlayTimes(m_nChannel, m_aChannelSoundPlayTimes);
+    AEAudioHardware.GetVirtualChannelSoundLengths(m_aSoundLengths);
+    AEAudioHardware.GetVirtualChannelSoundLoopStartTimes(m_aSoundLoopStartTimes);
+
+    for (auto i = 0; i < MAX_NUM_SOUNDS; ++i)
+    {
+        auto& sound = m_aSounds[i];
+        if (!sound.m_nIsUsed || !m_aSounds->field_5A || !sound.GetStartPercentage())
+            continue;
+
+        sound.SetIndividualEnvironment(eSoundEnvironment::SOUND_START_PERCENTAGE, false);
+        if (sound.m_nHasStarted)
+            continue;
+
+        sound.m_nCurrentPlayPosition *= m_aSoundLengths[i] / 100.0F;
+    }
+
+    for (auto i = 0; i < m_nNumAvailableChannels; ++i)
+    {
+        const auto channelSound = m_aChannelSoundTable[i];
+        if (channelSound == -1)
+            continue;
+
+        auto& sound = m_aSounds[channelSound];
+        sound.m_nCurrentPlayPosition = m_aChannelSoundPlayTimes[i];
+        if (sound.m_nPlayingState != eSoundState::SOUND_ACTIVE)
+            AEAudioHardware.StopSound(m_nChannel, i);
+    }
+
+    for (auto i = 0; i < MAX_NUM_SOUNDS; ++i)
+    {
+        auto& sound = m_aSounds[i];
+        if (!sound.m_nIsUsed || !sound.field_5A || sound.field_54)
+            continue;
+
+        if ((CTimer::GetIsPaused() || m_bManuallyPaused) && !sound.GetUnpausable())
+            sound.UpdatePlayTime(m_aSoundLengths[i], m_aSoundLoopStartTimes[i], 0);
+        else
+            sound.UpdatePlayTime(m_aSoundLengths[i], m_aSoundLoopStartTimes[i], timeSinceLastUpdate);
+    }
+
+    for (auto i = 0; i < m_nNumAvailableChannels; ++i)
+        if (m_aChannelSoundPlayTimes[i] == -1)
+            m_aChannelSoundTable[i] = -1;
+
+    for (auto& sound : m_aSounds)
+    {
+        if (!sound.m_nIsUsed || sound.field_5A || sound.m_nCurrentPlayPosition != -1)
+            continue;
+
+        // BUG?: Originally this call was inlines, without setting sound.m_nHasStarted to 0, replaced it with function call
+        sound.SoundHasFinished();
+    }
+
+    for (auto& sound : m_aSounds)
+        if (sound.m_nIsUsed)
+            sound.UpdateParameters(sound.m_nCurrentPlayPosition);
+
+    for (auto& sound : m_aSounds)
+        sound.CalculateVolume();
+
+    auto numUncancellableSounds = 0;
+    for (auto i = 0; i < m_nNumAvailableChannels; ++i)
+    {
+        const auto channelSound = m_aChannelSoundTable[i];
+        if (channelSound == -1 || !m_aSounds[channelSound].GetUncancellable())
+            continue;
+
+        m_aChannelSoundUncancellable[numUncancellableSounds] = channelSound;
+        ++numUncancellableSounds;
+    }
+
+    //TODO: Most certainly awfully wrong
+    for (auto i = 0; i < MAX_NUM_SOUNDS; ++i)
+    {
+        auto& sound = m_aSounds[i];
+        if (!sound.m_nIsUsed || (sound.m_nHasStarted && sound.GetUncancellable()) || sound.field_54)
+            continue;
+
+        int iCurUncancell;
+        for (iCurUncancell = m_nNumAvailableChannels - 1; iCurUncancell >= numUncancellableSounds; --iCurUncancell)
+            if (m_aChannelSoundUncancellable[iCurUncancell] != -1)
+                break;
+
+        for (;iCurUncancell >= numUncancellableSounds; --iCurUncancell)
+        {
+            auto& uncancellSound = m_aSounds[m_aChannelSoundUncancellable[iCurUncancell]];
+            if (sound.m_fFinalVolume < uncancellSound.m_fFinalVolume
+                && sound.GetPlayPhysically() <= uncancellSound.GetPlayPhysically())
+            {
+                break;
+            }
+        }
+
+        if (iCurUncancell != m_nNumAvailableChannels - 1)
+        {
+            for (auto ind = m_nNumAvailableChannels - 1; ind > iCurUncancell; --ind)
+                m_aChannelSoundUncancellable[ind] = m_aChannelSoundUncancellable[ind - 1];
+
+            m_aChannelSoundUncancellable[iCurUncancell + 1] = i;
+        }
+    }
+
+    for (auto i = 0; i < m_nNumAvailableChannels; ++i)
+    {
+        const auto channelSound = m_aChannelSoundTable[i];
+        if (channelSound == -1)
+            continue;
+
+        int uncancellIndex;
+        for (uncancellIndex = 0; uncancellIndex < m_nNumAvailableChannels; ++uncancellIndex)
+            if (channelSound == m_aChannelSoundUncancellable[uncancellIndex])
+                break;
+
+        if (uncancellIndex == m_nNumAvailableChannels)
+        {
+            m_aSounds[channelSound].m_nHasStarted = false;
+            m_aChannelSoundTable[channelSound] = -1;
+            AEAudioHardware.StopSound(m_nChannel, i);
+        }
+        else
+            m_aChannelSoundUncancellable[uncancellIndex] = -1;
+    }
+
+    for (auto i = 0; i < m_nNumAvailableChannels; ++i)
+    {
+        const auto uncancell = m_aChannelSoundUncancellable[i];
+        if (uncancell == -1)
+            continue;
+
+        auto sound = 0;
+        for (auto sound = 0; sound < m_nNumAvailableChannels; ++sound)
+            if (m_aChannelSoundTable[sound] == -1)
+                break;
+
+        if (sound >= m_nNumAvailableChannels)
+            continue;
+
+        m_aChannelSoundTable[sound] = uncancell;
+
+    }
 }
 
 CAESound* CAESoundManager::RequestNewSound(CAESound* pSound)

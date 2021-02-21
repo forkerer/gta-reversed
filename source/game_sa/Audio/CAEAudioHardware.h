@@ -107,7 +107,7 @@ public:
     void LoadSoundBank(ushort bankId, short bankSlotId);
     void IsSoundBankLoaded(ushort, short);
     void GetSoundBankLoadingStatus(ushort, short);
-    void StopSound(short, ushort);
+    void StopSound(short channel, ushort channelSlot);
     void SetChannelPosition(short, ushort, CVector*, uchar);
     void SetChannelFrequencyScalingFactor(short, ushort, float);
     void RescaleChannelVolumes();

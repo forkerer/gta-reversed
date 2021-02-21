@@ -172,7 +172,7 @@ void CAESound::SetIndividualEnvironment(unsigned short envFlag, unsigned short b
 
 }
 
-void CAESound::UpdatePlayTime(short soundLength, short newPlayPosition, short playProgress)
+void CAESound::UpdatePlayTime(short soundLength, short loopStartTime, short playProgress)
 {
     //((void(__thiscall *)(CAESound *, short, short, short))0x4EF2E0)(this, soundLength, playPosition, playProgress);
     m_nSoundLength = soundLength;
@@ -189,13 +189,13 @@ void CAESound::UpdatePlayTime(short soundLength, short newPlayPosition, short pl
     if (m_nCurrentPlayPosition < soundLength)
         return;
 
-    if (newPlayPosition == -1)
+    if (loopStartTime == -1)
     {
         m_nCurrentPlayPosition = -1;
         return;
     }
 
-    m_nCurrentPlayPosition = newPlayPosition + (m_nCurrentPlayPosition % soundLength);
+    m_nCurrentPlayPosition = loopStartTime + (m_nCurrentPlayPosition % soundLength);
 }
 
 void CAESound::GetRelativePosition(CVector *outPosn)
