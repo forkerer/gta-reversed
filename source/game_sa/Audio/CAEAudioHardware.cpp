@@ -9,7 +9,7 @@ void CAEAudioHardware::InjectHooks()
 
 void CAEAudioHardware::LoadSoundBank(ushort bankId, short bankSlotId)
 {
-    plugin::CallMethod<0x4D88A0, CAEAudioHardware*>(this);
+    plugin::CallMethod<0x4D88A0, CAEAudioHardware*, ushort, short>(this, bankId, bankSlotId);
 }
 
 float CAEAudioHardware::GetSoundHeadroom(ushort soundId, short bankSlotId)
