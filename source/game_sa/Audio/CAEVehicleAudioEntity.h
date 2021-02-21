@@ -80,23 +80,23 @@ VALIDATE_SIZE(tVehicleSound, 0x8);
 
 struct  tVehicleAudioSettings {
     eVehicleSoundType  m_nVehicleSoundType;
-    char _pad;
-    short m_nEngineOnSoundBankId;
-    short m_nEngineOffSoundBankId;
-    char  m_nBassSetting;   // m_nStereo
-    char _pad1;
-    float m_fBassEq;
-    float field_C;
-    char  m_bHornTon;   // sfx id
-    char _pad2[3];
-    float m_fHornHigh;
-    char  m_nDoorSound;
-    char field_19;
-    eRadioID m_nRadioID;
-    eRadioType m_nRadioType;
-    char vehTypeForAudio;
-    char _pad4[3];
-    float m_fHornVolumeDelta;
+    char              _pad;
+    short              m_nEngineOnSoundBankId;
+    short              m_nEngineOffSoundBankId;
+    char               m_nBassSetting;   // m_nStereo
+    char              _pad1;
+    float              m_fBassEq;
+    float              field_C;
+    char               m_bHornTon;   // sfx id
+    char              _pad2[3];
+    float              m_fHornHigh;
+    char               m_nDoorSound;
+    char               field_19;
+    eRadioID           m_nRadioID;
+    eRadioType         m_nRadioType;
+    char               vehTypeForAudio;
+    char              _pad4[3];
+    float              m_fHornVolumeDelta;
 
 public:
     bool IsHeli() const { return m_nVehicleSoundType == eVehicleSoundType::VEHICLE_SOUND_HELI; }
