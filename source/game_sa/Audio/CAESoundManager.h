@@ -51,6 +51,9 @@ public:
     void CancelSoundsInBankSlot(short bankSlot, uchar bFullStop);
     void CancelSoundsOwnedByAudioEntity(CAEAudioEntity* audioEntity, uchar bFullStop);
     int16_t GetVirtualChannelForPhysicalChannel(short physicalChannel);
+
+public:
+    bool IsPaused() const { return CTimer::GetIsPaused() || m_bManuallyPaused; }
 };
 VALIDATE_SIZE(CAESoundManager, 0x8CBC);
 

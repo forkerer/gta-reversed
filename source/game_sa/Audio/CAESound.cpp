@@ -225,7 +225,7 @@ float CAESound::GetRelativePlaybackFrequencyWithDoppler()
     if (CAESound::GetFrontEnd())
         return m_fFrequency;
 
-    return CAEAudioEnvironment::GetDopplerRelativeFrequency(m_fPrevCamDist, m_fCurrCamDist, m_nPrevTimeUpdate, m_nCurrTimeUpdate, m_fTimeScale) * m_fFrequency;
+    return m_fFrequency * CAEAudioEnvironment::GetDopplerRelativeFrequency(m_fPrevCamDist, m_fCurrCamDist, m_nPrevTimeUpdate, m_nCurrTimeUpdate, m_fTimeScale);
 }
 
 float CAESound::GetSlowMoFrequencyScalingFactor()
