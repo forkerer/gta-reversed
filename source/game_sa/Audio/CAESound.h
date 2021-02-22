@@ -36,7 +36,7 @@ public:
     CAESound() { m_pPhysicalEntity = nullptr; }
     CAESound(CAESound& sound);
     CAESound(short bankSlotId, short sfxId, CAEAudioEntity* baseAudio, CVector posn, float volume,
-        float fDistance, float speed, float timeScale, unsigned char arg9,
+        float fDistance, float speed, float timeScale, unsigned char ignoredServiceCycles,
         unsigned short environmentFlags, float speedVariability);
     ~CAESound();
     CAESound& operator=(CAESound const& sound);
@@ -59,7 +59,7 @@ public:
     float                 m_fCurrCamDist;
     float                 m_fPrevCamDist;
     float                 m_fTimeScale;
-    char field_54;
+    char                  m_nIgnoredServiceCycles; // Seemingly never used, but CAESoundManager::Service still checks for that
     char field_55;
     union {
         unsigned short m_nEnvironmentFlags;
@@ -81,7 +81,7 @@ public:
         };
     };
     unsigned short        m_nIsUsed;
-    short field_5A;
+    short                 m_bWasServiced;
     short                 m_nCurrentPlayPosition;
     short                 m_nHasStarted;
     float                 m_fFinalVolume;
@@ -89,7 +89,7 @@ public:
     short                 m_nPlayingState; // see eSoundState
     char field_6A[2];
     float                 m_fSoundHeadRoom;
-    short m_nSoundLength;
+    short                 m_nSoundLength;
     short field_72;
 
 public:
@@ -97,19 +97,19 @@ public:
     
     void UnregisterWithPhysicalEntity();
     void StopSound();
-    bool GetUncancellable() { return m_bUncancellable; }
-    bool GetFrontEnd() { return m_bFrontEnd; }
-    bool GetRequestUpdates() { return m_bRequestUpdates; }
-    bool GetUnpausable() { return m_bUnpausable; }
-    bool GetPlayPhysically() { return m_bPlayPhysically; };
-    bool GetStartPercentage() { return m_bStartPercentage; }
-    bool GetMusicMastered() { return m_bMusicMastered; }
-    bool GetLifespanTiedToPhysicalEntity() { return m_bLifespanTiedToPhysicalEntity; }
-    bool GetUnduckable() { return m_bUnduckable; }
-    bool GetUncompressable() { return m_bUncompressable; }
-    bool GetRolledOff() { return m_bRolledOff; }
-    bool GetSmoothDucking() { return m_bSmoothDucking; }
-    bool GetForcedFront() { return m_bForcedFront; }
+    bool GetUncancellable() const { return m_bUncancellable; }
+    bool GetFrontEnd() const { return m_bFrontEnd; }
+    bool GetRequestUpdates() const { return m_bRequestUpdates; }
+    bool GetUnpausable() const { return m_bUnpausable; }
+    bool GetPlayPhysically() const { return m_bPlayPhysically; };
+    bool GetStartPercentage() const { return m_bStartPercentage; }
+    bool GetMusicMastered() const { return m_bMusicMastered; }
+    bool GetLifespanTiedToPhysicalEntity() const { return m_bLifespanTiedToPhysicalEntity; }
+    bool GetUnduckable() const { return m_bUnduckable; }
+    bool GetUncompressable() const { return m_bUncompressable; }
+    bool GetRolledOff() const { return m_bRolledOff; }
+    bool GetSmoothDucking() const { return m_bSmoothDucking; }
+    bool GetForcedFront() const { return m_bForcedFront; }
     void SetIndividualEnvironment(unsigned short envFlag, unsigned short bEnabled); // pass eSoundEnvironment as envFlag
     void UpdatePlayTime(short soundLength, short loopStartTime, short playProgress);
     void GetRelativePosition(CVector *outPosn);
@@ -127,6 +127,10 @@ public:
         unsigned short environmentFlags, float speedVariability, short currPlayPosn);
     void UpdateParameters(short curPlayPos);
     void SoundHasFinished();
+
+public:
+    bool IsUsed() const { return m_nIsUsed; }
+    bool WasServiced() const { return m_bWasServiced; }
 
 public:
     static constexpr float fSlowMoFrequencyScalingFactor = 0.5F;

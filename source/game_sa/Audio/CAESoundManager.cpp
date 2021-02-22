@@ -46,8 +46,7 @@ bool CAESoundManager::Initialise()
         sound.m_nHasStarted = 0;
     }
 
-    for (auto i = 0; i < m_nNumAvailableChannels; ++i)
-        m_aChannelSoundTable[i] = -1;
+    std::fill_n(m_aChannelSoundTable, m_nNumAvailableChannels, -1);
 
     m_nUpdateTime = CTimer::m_snTimeInMilliseconds;
     m_bPauseTimeInUse = false;
@@ -73,7 +72,7 @@ void CAESoundManager::Reset()
 {
     for (auto& sound : m_aSounds)
     {
-        if (!sound.m_nIsUsed)
+        if (!sound.IsUsed())
             continue;
 
         sound.StopSound();
@@ -125,7 +124,7 @@ void CAESoundManager::Service()
     for (auto i = 0; i < MAX_NUM_SOUNDS; ++i)
     {
         auto& sound = m_aSounds[i];
-        if (!sound.m_nIsUsed || !m_aSounds->field_5A || !sound.GetStartPercentage())
+        if (!sound.IsUsed() || !sound.WasServiced() || !sound.GetStartPercentage())
             continue;
 
         sound.SetIndividualEnvironment(eSoundEnvironment::SOUND_START_PERCENTAGE, false);
@@ -152,13 +151,11 @@ void CAESoundManager::Service()
     for (auto i = 0; i < MAX_NUM_SOUNDS; ++i)
     {
         auto& sound = m_aSounds[i];
-        if (!sound.m_nIsUsed || !sound.field_5A || sound.field_54)
+        if (!sound.IsUsed() || !sound.WasServiced() || sound.m_nIgnoredServiceCycles)
             continue;
 
-        if (CAESoundManager::IsPaused() && !sound.GetUnpausable())
-            sound.UpdatePlayTime(m_aSoundLengths[i], m_aSoundLoopStartTimes[i], 0);
-        else
-            sound.UpdatePlayTime(m_aSoundLengths[i], m_aSoundLoopStartTimes[i], timeSinceLastUpdate);
+        auto usedProgress = CAESoundManager::IsSoundPaused(sound) ? 0 : timeSinceLastUpdate;
+        sound.UpdatePlayTime(m_aSoundLengths[i], m_aSoundLoopStartTimes[i], usedProgress);
     }
 
     // Remove songs that ended from sounds table
@@ -169,7 +166,7 @@ void CAESoundManager::Service()
     // Mark songs that ended as finished
     for (auto& sound : m_aSounds)
     {
-        if (!sound.m_nIsUsed || !sound.field_5A || sound.m_nCurrentPlayPosition != -1)
+        if (!sound.IsUsed() || !sound.WasServiced() || sound.m_nCurrentPlayPosition != -1)
             continue;
 
         sound.SoundHasFinished();
@@ -177,7 +174,7 @@ void CAESoundManager::Service()
 
     // Update song positions and volumes
     for (auto& sound : m_aSounds)
-        if (sound.m_nIsUsed)
+        if (sound.IsUsed())
         {
             sound.UpdateParameters(sound.m_nCurrentPlayPosition);
             sound.CalculateVolume();            
@@ -199,7 +196,7 @@ void CAESoundManager::Service()
     for (auto i = 0; i < MAX_NUM_SOUNDS; ++i)
     {
         auto& sound = m_aSounds[i];
-        if (!sound.m_nIsUsed || (sound.m_nHasStarted && sound.GetUncancellable()) || sound.field_54)
+        if (!sound.IsUsed() || (sound.m_nHasStarted && sound.GetUncancellable()) || sound.m_nIgnoredServiceCycles)
             continue;
 
         int iCurUncancell;
@@ -248,21 +245,21 @@ void CAESoundManager::Service()
             m_aChannelSoundUncancellable[uncancellIndex] = -1;
     }
 
-    // Play songs that require that
-    auto curSong = 0;
+    // Play sounds that require that
+    auto curSound = 0;
     for (auto i = 0; i < m_nNumAvailableChannels; ++i)
     {
         const auto uncancell = m_aChannelSoundUncancellable[i];
         if (uncancell == -1)
             continue;
 
-        while (m_aChannelSoundTable[curSong] != -1 && curSong < m_nNumAvailableChannels)
-            ++curSong;
+        while (m_aChannelSoundTable[curSound] != -1 && curSound < m_nNumAvailableChannels)
+            ++curSound;
 
-        if (curSong >= m_nNumAvailableChannels)
+        if (curSound >= m_nNumAvailableChannels)
             continue;
 
-        m_aChannelSoundTable[curSong] = uncancell;
+        m_aChannelSoundTable[curSound] = uncancell;
         auto& sound = m_aSounds[uncancell];
         sound.m_nHasStarted = 1;
 
@@ -282,14 +279,14 @@ void CAESoundManager::Service()
         flags.m_bIsForcedFront = sound.GetForcedFront();
         flags.m_bUnpausable = flags.m_bIsFrontend ? sound.GetUnpausable() : false;
 
-        AEAudioHardware.PlaySound(m_nChannel, curSong, sound.m_nSoundIdInSlot, sound.m_nBankSlotId, sound.m_nCurrentPlayPosition, flags.m_nFlags, sound.m_fSpeed);
-        AEAudioHardware.SetChannelVolume(m_nChannel, curSong, sound.m_fFinalVolume, 0);
+        AEAudioHardware.PlaySound(m_nChannel, curSound, sound.m_nSoundIdInSlot, sound.m_nBankSlotId, sound.m_nCurrentPlayPosition, flags.m_nFlags, sound.m_fSpeed);
+        AEAudioHardware.SetChannelVolume(m_nChannel, curSound, sound.m_fFinalVolume, 0);
 
         CVector vecPos;
         sound.GetRelativePosition(&vecPos);
-        AEAudioHardware.SetChannelPosition(m_nChannel, curSong, &vecPos, 0);
-        AEAudioHardware.SetChannelFrequencyScalingFactor(m_nChannel, curSong, freq * slomoFactor);
-        ++curSong;
+        AEAudioHardware.SetChannelPosition(m_nChannel, curSound, &vecPos, 0);
+        AEAudioHardware.SetChannelFrequencyScalingFactor(m_nChannel, curSound, freq * slomoFactor);
+        ++curSound;
     }
 
     for (auto i = 0; i < m_nNumAvailableChannels; ++i)
@@ -299,10 +296,10 @@ void CAESoundManager::Service()
             continue;
 
         auto& sound = m_aSounds[channelSound];
-        if (!sound.m_nIsUsed)
+        if (!sound.IsUsed())
             continue;
 
-        if (!CAESoundManager::IsPaused() || sound.GetUnpausable())
+        if (!CAESoundManager::IsSoundPaused(sound))
         {
             AEAudioHardware.SetChannelVolume(m_nChannel, i, sound.m_fFinalVolume, 0);
             auto freq = sound.GetRelativePlaybackFrequencyWithDoppler();
@@ -323,12 +320,12 @@ void CAESoundManager::Service()
     AEAudioHardware.Service();
     for (auto& sound : m_aSounds)
     {
-        if (!sound.m_nIsUsed)
+        if (!sound.IsUsed())
             continue;
 
-        sound.field_5A = 1;
-        if (sound.field_54 > 0 && !CAESoundManager::IsPaused() || sound.GetUnpausable())
-            --sound.field_54;
+        sound.m_bWasServiced = 1;
+        if (sound.m_nIgnoredServiceCycles > 0 && !CAESoundManager::IsSoundPaused(sound))
+            --sound.m_nIgnoredServiceCycles;
     }
 }
 
@@ -337,7 +334,7 @@ CAESound* CAESoundManager::RequestNewSound(CAESound* pSound)
     int16_t firstFree;
     for (firstFree = 0; firstFree < MAX_NUM_SOUNDS; ++firstFree)
     {
-        if (!m_aSounds[firstFree].m_nIsUsed)
+        if (!m_aSounds[firstFree].IsUsed())
             break;
     }
 
@@ -359,7 +356,7 @@ int16_t CAESoundManager::AreSoundsPlayingInBankSlot(short bankSlot)
     auto nPlaying = eSoundPlayingStatus::SOUND_NOT_PLAYING;
     for (auto& sound : m_aSounds)
     {
-        if (!sound.m_nIsUsed || sound.m_nBankSlotId != bankSlot)
+        if (!sound.IsUsed() || sound.m_nBankSlotId != bankSlot)
             continue;
 
         if (sound.m_nHasStarted)
@@ -376,7 +373,7 @@ int16_t CAESoundManager::AreSoundsOfThisEventPlayingForThisEntity(short eventId,
     auto nPlaying = eSoundPlayingStatus::SOUND_NOT_PLAYING;
     for (auto& sound : m_aSounds)
     {
-        if (!sound.m_nIsUsed || sound.m_nEvent != eventId || sound.m_pBaseAudio != audioEntity)
+        if (!sound.IsUsed() || sound.m_nEvent != eventId || sound.m_pBaseAudio != audioEntity)
             continue;
 
         if (sound.m_nHasStarted)
@@ -395,7 +392,7 @@ int16_t CAESoundManager::AreSoundsOfThisEventPlayingForThisEntityAndPhysical(sho
     bool nPlaying = eSoundPlayingStatus::SOUND_NOT_PLAYING;
     for (auto& sound : m_aSounds)
     {
-        if (!sound.m_nIsUsed || sound.m_nEvent != eventId || sound.m_pBaseAudio != audioEntity || sound.m_pPhysicalEntity != physical)
+        if (!sound.IsUsed() || sound.m_nEvent != eventId || sound.m_pBaseAudio != audioEntity || sound.m_pPhysicalEntity != physical)
             continue;
 
         if (sound.m_nHasStarted)
@@ -411,7 +408,7 @@ void CAESoundManager::CancelSoundsOfThisEventPlayingForThisEntity(short eventId,
 {
     for (auto& sound : m_aSounds)
     {
-        if (!sound.m_nIsUsed || sound.m_nEvent != eventId || sound.m_pBaseAudio != audioEntity)
+        if (!sound.IsUsed() || sound.m_nEvent != eventId || sound.m_pBaseAudio != audioEntity)
             continue;
 
             sound.StopSoundAndForget();
@@ -424,7 +421,7 @@ void CAESoundManager::CancelSoundsOfThisEventPlayingForThisEntityAndPhysical(sho
 {
     for (auto& sound : m_aSounds)
     {
-        if (!sound.m_nIsUsed || sound.m_nEvent != eventId || sound.m_pBaseAudio != audioEntity || sound.m_pPhysicalEntity != physical)
+        if (!sound.IsUsed() || sound.m_nEvent != eventId || sound.m_pBaseAudio != audioEntity || sound.m_pPhysicalEntity != physical)
             continue;
 
         sound.StopSoundAndForget();
@@ -435,7 +432,7 @@ void CAESoundManager::CancelSoundsInBankSlot(short bankSlot, uchar bFullStop)
 {
     for (auto& sound : m_aSounds)
     {
-        if (!sound.m_nIsUsed || sound.m_nBankSlotId != bankSlot)
+        if (!sound.IsUsed() || sound.m_nBankSlotId != bankSlot)
             continue;
 
         if (bFullStop)
@@ -449,7 +446,7 @@ void CAESoundManager::CancelSoundsOwnedByAudioEntity(CAEAudioEntity* audioEntity
 {
     for (auto& sound : m_aSounds)
     {
-        if (!sound.m_nIsUsed || sound.m_pBaseAudio != audioEntity)
+        if (!sound.IsUsed() || sound.m_pBaseAudio != audioEntity)
             continue;
 
         if (bFullStop)

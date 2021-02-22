@@ -52,7 +52,7 @@ CAESound::CAESound(CAESound& sound)
     m_fCurrCamDist = sound.m_fCurrCamDist;
     m_fPrevCamDist = sound.m_fPrevCamDist;
     m_fTimeScale = sound.m_fTimeScale;
-    field_54 = sound.field_54;
+    m_nIgnoredServiceCycles = sound.m_nIgnoredServiceCycles;
     m_nEnvironmentFlags = sound.m_nEnvironmentFlags;
     m_nIsUsed = sound.m_nIsUsed;
     m_nCurrentPlayPosition = sound.m_nCurrentPlayPosition;
@@ -72,7 +72,7 @@ CAESound::CAESound(CAESound& sound)
 }
 
 CAESound::CAESound(short bankSlotId, short sfxId, CAEAudioEntity *baseAudio, CVector posn,
-    float volume, float fDistance, float speed, float timeScale, unsigned char arg9,
+    float volume, float fDistance, float speed, float timeScale, unsigned char ignoredServiceCycles,
     unsigned short environmentFlags, float speedVariability)
 {
     m_nBankSlotId = bankSlotId;
@@ -92,7 +92,7 @@ CAESound::CAESound(short bankSlotId, short sfxId, CAEAudioEntity *baseAudio, CVe
     m_fSoundDistance = fDistance;
     m_fSpeed = speed;
     m_fTimeScale = timeScale;
-    field_54 = arg9;
+    m_nIgnoredServiceCycles = ignoredServiceCycles;
     m_nEnvironmentFlags = environmentFlags;
     m_nHasStarted = 0;
     m_nCurrentPlayPosition = 0;
@@ -132,7 +132,7 @@ CAESound& CAESound::operator=(CAESound const& sound)
     m_fCurrCamDist = sound.m_fCurrCamDist;
     m_fPrevCamDist = sound.m_fPrevCamDist;
     m_fTimeScale = sound.m_fTimeScale;
-    field_54 = sound.field_54;
+    m_nIgnoredServiceCycles = sound.m_nIgnoredServiceCycles;
     m_nEnvironmentFlags = sound.m_nEnvironmentFlags;
     m_nIsUsed = sound.m_nIsUsed;
     m_nCurrentPlayPosition = sound.m_nCurrentPlayPosition;
@@ -244,7 +244,7 @@ void CAESound::NewVPSLentry()
 {
     m_nHasStarted = 0;
     m_nPlayingState = eSoundState::SOUND_ACTIVE;
-    field_5A = 0;
+    m_bWasServiced = 0;
     m_nIsUsed = 1;
     m_fSoundHeadRoom = AEAudioHardware.GetSoundHeadroom(m_nSoundIdInSlot, m_nBankSlotId);
     CAESound::CalculateFrequency();
@@ -338,7 +338,7 @@ void CAESound::Initialise(short bankSlotId, short sfxId, CAEAudioEntity *baseAud
     m_nHasStarted = 0;
     m_nPlayingState = eSoundState::SOUND_ACTIVE;
     m_fSoundHeadRoom = 0.0F;
-    field_54 = arg9;
+    m_nIgnoredServiceCycles = arg9;
     m_nEnvironmentFlags = environmentFlags;
     m_nIsUsed = 1;
     m_nCurrentPlayPosition = currPlayPosn;

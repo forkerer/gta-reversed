@@ -54,6 +54,7 @@ public:
 
 public:
     bool IsPaused() const { return CTimer::GetIsPaused() || m_bManuallyPaused; }
+    bool IsSoundPaused(CAESound const& sound) const { return CAESoundManager::IsPaused() && !sound.GetUnpausable(); }
 };
 VALIDATE_SIZE(CAESoundManager, 0x8CBC);
 
