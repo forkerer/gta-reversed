@@ -7,6 +7,25 @@
 #undef PlaySound
 #endif
 
+union CAEAudioHardwarePlayFlags
+{
+    uint16_t m_nFlags;
+    struct
+    {
+        uint16_t m_bIsFrontend : 1;
+        uint16_t m_bIsUncompressable : 1;
+        uint16_t m_bIsUnduckable : 1;
+        uint16_t m_bIsStartPercentage : 1;
+        uint16_t m_bIsMusicMastered : 1;
+        uint16_t : 1;
+        uint16_t m_bIsRolledOff : 1;
+        uint16_t m_bIsSmoothDucking : 1;
+
+        uint16_t m_bIsForcedFront : 1;
+        uint16_t m_bUnpausable : 1;
+    };
+};
+
 // DirectSound8 structure
 struct DSCAPS
 {
@@ -100,16 +119,16 @@ public:
     void InitOpenALListener();
     void Initialise();
     void Terminate();
-    void PlaySound(short, ushort, ushort, ushort, short, short, float);
+    void PlaySound(short channel, ushort channelSlot, ushort soundIdInSlot, ushort bankSlot, short playPosition, short flags, float speed);
     uint16_t GetNumAvailableChannels() { return m_wNumAvailableChannels; };
-    void GetChannelPlayTimes(short, short*);
-    void SetChannelVolume(short, ushort, float, uchar);
+    void GetChannelPlayTimes(short channel, short* outArr);
+    void SetChannelVolume(short channel, ushort channelSlot, float volume, uchar unused);
     void LoadSoundBank(ushort bankId, short bankSlotId);
     void IsSoundBankLoaded(ushort, short);
     void GetSoundBankLoadingStatus(ushort, short);
     void StopSound(short channel, ushort channelSlot);
-    void SetChannelPosition(short, ushort, CVector*, uchar);
-    void SetChannelFrequencyScalingFactor(short, ushort, float);
+    void SetChannelPosition(short channel, ushort channelSlot, CVector* vecPos, uchar unused);
+    void SetChannelFrequencyScalingFactor(short channel, ushort channelSlot, float freqFactor);
     void RescaleChannelVolumes();
     void Service();
     void UpdateReverbEnvironment();
@@ -117,8 +136,8 @@ public:
     void EnableEffectsLoading();
     void DisableEffectsLoading();
     void RequestVirtualChannelSoundInfo(ushort soundIndex, ushort soundIdInSlot, ushort bankSlotId);
-    void GetVirtualChannelSoundLengths(short*);
-    void GetVirtualChannelSoundLoopStartTimes(short*);
+    void GetVirtualChannelSoundLengths(short* outArr);
+    void GetVirtualChannelSoundLoopStartTimes(short* outArr);
     void LoadSound(ushort, ushort, short);
     void IsSoundLoaded(ushort, ushort, short);
     void GetSoundLoadingStatus(ushort, ushort, short);

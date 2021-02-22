@@ -1,12 +1,15 @@
 #include "StdInc.h"
 #include "CAESoundManager.h"
 
+
+#include "CAEAudioEnvironment.h"
 #include "CAEAudioHardware.h"
 
 CAESoundManager& AESoundManager = *(CAESoundManager*)0xB62CB0;
 
 void CAESoundManager::InjectHooks()
 {
+    ReversibleHooks::Install("CAESoundManager", "Service", 0x4F0000, &CAESoundManager::Service);
     ReversibleHooks::Install("CAESoundManager", "Initialise", 0x5B9690, &CAESoundManager::Initialise);
     ReversibleHooks::Install("CAESoundManager", "Terminate", 0x4EFAA0, &CAESoundManager::Terminate);
     ReversibleHooks::Install("CAESoundManager", "Reset", 0x4EF4D0, &CAESoundManager::Reset);
@@ -126,7 +129,7 @@ void CAESoundManager::Service()
         if (sound.m_nHasStarted)
             continue;
 
-        sound.m_nCurrentPlayPosition *= m_aSoundLengths[i] / 100.0F;
+        sound.m_nCurrentPlayPosition *= static_cast<float>(m_aSoundLengths[i]) / 100.0F;
     }
 
     for (auto i = 0; i < m_nNumAvailableChannels; ++i)
@@ -159,10 +162,9 @@ void CAESoundManager::Service()
 
     for (auto& sound : m_aSounds)
     {
-        if (!sound.m_nIsUsed || sound.field_5A || sound.m_nCurrentPlayPosition != -1)
+        if (!sound.m_nIsUsed || !sound.field_5A || sound.m_nCurrentPlayPosition != -1)
             continue;
 
-        // BUG?: Originally this call was inlines, without setting sound.m_nHasStarted to 0, replaced it with function call
         sound.SoundHasFinished();
     }
 
@@ -171,17 +173,18 @@ void CAESoundManager::Service()
             sound.UpdateParameters(sound.m_nCurrentPlayPosition);
 
     for (auto& sound : m_aSounds)
-        sound.CalculateVolume();
+        if (sound.m_nIsUsed)
+            sound.CalculateVolume();
 
-    auto numUncancellableSounds = 0;
+    auto numUncancellableSoundsThisFrame = 0;
     for (auto i = 0; i < m_nNumAvailableChannels; ++i)
     {
         const auto channelSound = m_aChannelSoundTable[i];
         if (channelSound == -1 || !m_aSounds[channelSound].GetUncancellable())
             continue;
 
-        m_aChannelSoundUncancellable[numUncancellableSounds] = channelSound;
-        ++numUncancellableSounds;
+        m_aChannelSoundUncancellable[numUncancellableSoundsThisFrame] = channelSound;
+        ++numUncancellableSoundsThisFrame;
     }
 
     //TODO: Most certainly awfully wrong
@@ -192,12 +195,11 @@ void CAESoundManager::Service()
             continue;
 
         int iCurUncancell;
-        for (iCurUncancell = m_nNumAvailableChannels - 1; iCurUncancell >= numUncancellableSounds; --iCurUncancell)
-            if (m_aChannelSoundUncancellable[iCurUncancell] != -1)
-                break;
-
-        for (;iCurUncancell >= numUncancellableSounds; --iCurUncancell)
+        for (iCurUncancell = m_nNumAvailableChannels - 1; iCurUncancell >= numUncancellableSoundsThisFrame; --iCurUncancell)
         {
+            if (m_aChannelSoundUncancellable[iCurUncancell] == -1)
+                continue;
+
             auto& uncancellSound = m_aSounds[m_aChannelSoundUncancellable[iCurUncancell]];
             if (sound.m_fFinalVolume < uncancellSound.m_fFinalVolume
                 && sound.GetPlayPhysically() <= uncancellSound.GetPlayPhysically())
@@ -208,7 +210,7 @@ void CAESoundManager::Service()
 
         if (iCurUncancell != m_nNumAvailableChannels - 1)
         {
-            for (auto ind = m_nNumAvailableChannels - 1; ind > iCurUncancell; --ind)
+            for (auto ind = m_nNumAvailableChannels - 1; ind > iCurUncancell + 1; --ind)
                 m_aChannelSoundUncancellable[ind] = m_aChannelSoundUncancellable[ind - 1];
 
             m_aChannelSoundUncancellable[iCurUncancell + 1] = i;
@@ -229,7 +231,7 @@ void CAESoundManager::Service()
         if (uncancellIndex == m_nNumAvailableChannels)
         {
             m_aSounds[channelSound].m_nHasStarted = false;
-            m_aChannelSoundTable[channelSound] = -1;
+            m_aChannelSoundTable[i] = -1;
             AEAudioHardware.StopSound(m_nChannel, i);
         }
         else
@@ -242,16 +244,82 @@ void CAESoundManager::Service()
         if (uncancell == -1)
             continue;
 
-        auto sound = 0;
-        for (auto sound = 0; sound < m_nNumAvailableChannels; ++sound)
-            if (m_aChannelSoundTable[sound] == -1)
+        uint16_t soundInd;
+        for (soundInd = i; soundInd < m_nNumAvailableChannels; ++soundInd)
+            if (m_aChannelSoundTable[soundInd] == -1)
                 break;
 
-        if (sound >= m_nNumAvailableChannels)
+        if (soundInd >= m_nNumAvailableChannels)
             continue;
 
-        m_aChannelSoundTable[sound] = uncancell;
+        m_aChannelSoundTable[soundInd] = uncancell;
+        auto& sound = m_aSounds[uncancell];
 
+        sound.m_nHasStarted = 1;
+
+        auto freq = sound.GetRelativePlaybackFrequencyWithDoppler();
+        auto slomoFactor = sound.GetSlowMoFrequencyScalingFactor();
+
+        CAEAudioHardwarePlayFlags flags;
+        flags.m_nFlags = 0;
+
+        flags.m_bIsFrontend = sound.GetFrontEnd();
+        flags.m_bIsUncompressable = sound.GetUncompressable();
+        flags.m_bIsUnduckable = sound.GetUnduckable();
+        flags.m_bIsStartPercentage = sound.GetStartPercentage();
+        flags.m_bIsMusicMastered = sound.GetMusicMastered();
+        flags.m_bIsRolledOff = sound.GetRolledOff();
+        flags.m_bIsSmoothDucking = sound.GetSmoothDucking();
+        flags.m_bIsForcedFront = sound.GetForcedFront();
+        flags.m_bUnpausable = flags.m_bIsFrontend ? sound.GetUnpausable() : false;
+
+        AEAudioHardware.PlaySound(m_nChannel, i, sound.m_nSoundIdInSlot, sound.m_nBankSlotId, sound.m_nCurrentPlayPosition, flags.m_nFlags, sound.m_fSpeed);
+        AEAudioHardware.SetChannelVolume(m_nChannel, i, sound.m_fFinalVolume, 0);
+
+        CVector vecPos;
+        sound.GetRelativePosition(&vecPos);
+        AEAudioHardware.SetChannelPosition(m_nChannel, i, &vecPos, 0);
+        AEAudioHardware.SetChannelFrequencyScalingFactor(m_nChannel, i, freq * slomoFactor);
+    }
+
+    for (auto i = 0; i < m_nNumAvailableChannels; ++i)
+    {
+        const auto channelSound = m_aChannelSoundTable[i];
+        if (channelSound == -1)
+            continue;
+
+        auto& sound = m_aSounds[channelSound];
+        if (!sound.m_nIsUsed)
+            continue;
+
+        if (!CTimer::GetIsPaused() && !m_bManuallyPaused || sound.GetFrontEnd())
+        {
+            AEAudioHardware.SetChannelVolume(m_nChannel, i, sound.m_fFinalVolume, 0);
+            auto freq = sound.GetRelativePlaybackFrequencyWithDoppler();
+            auto slomoFactor = sound.GetSlowMoFrequencyScalingFactor();
+            AEAudioHardware.SetChannelFrequencyScalingFactor(m_nChannel, i, freq * slomoFactor);
+        }
+        else
+        {
+            AEAudioHardware.SetChannelVolume(m_nChannel, i, -100.0F, 0);
+            AEAudioHardware.SetChannelFrequencyScalingFactor(m_nChannel, i, 0.0F);
+        }
+
+        CVector vecPos;
+        sound.GetRelativePosition(&vecPos);
+        AEAudioHardware.SetChannelPosition(m_nChannel, i, &vecPos, 0);
+    }
+
+    AEAudioHardware.Service();
+    for (auto i = 0; i < MAX_NUM_SOUNDS; ++i)
+    {
+        auto& sound = m_aSounds[i];
+        if (!sound.m_nIsUsed)
+            continue;
+
+        sound.field_5A = 1;
+        if (sound.field_54 > 0 && !CTimer::GetIsPaused() && !m_bManuallyPaused || sound.GetFrontEnd())
+            --sound.field_54;
     }
 }
 
