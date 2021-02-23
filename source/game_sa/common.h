@@ -132,6 +132,12 @@ inline const float invLerp(float fMin, float fMax, float fVal) {
     return (fVal - fMin) / (fMax - fMin);
 }
 
+// 0x4EEA80 - And inlined helluvalot
+inline bool approxEqual(float f1, float f2, float epsilon)
+{
+    return fabs(f1 - f2) < epsilon;
+}
+
 AnimBlendFrameData *RpAnimBlendClumpFindFrame(RpClump *clump, char *name);
 
 char *MakeUpperCase(char *dest, char *src);

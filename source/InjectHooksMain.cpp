@@ -1,10 +1,13 @@
 #include "StdInc.h"
 
+
+#include "CAEAudioChannel.h"
 #include "CAEAudioEnvironment.h"
 #include "CAEAudioHardware.h"
 #include "CAEAudioUtility.h"
 #include "CAEDataStream.h"
 #include "CAEMFDecoder.h"
+#include "CAESmoothFadeThread.h"
 #include "CAESoundManager.h"
 #include "CAEVorbisDecoder.h"
 #include "CAEWaveDecoder.h"
@@ -220,6 +223,8 @@ void InjectHooksMain(void)
     CAEAudioHardware::InjectHooks();
     CAEAudioEnvironment::InjectHooks();
     CAEAudioUtility::InjectHooks();
+    CAEAudioChannel::InjectHooks();
+    CAESmoothFadeThread::InjectHooks();
     CAEDataStream::InjectHooks();
     CAEStreamingDecoder::InjectHooks();
     CAEMFDecoder::InjectHooks();

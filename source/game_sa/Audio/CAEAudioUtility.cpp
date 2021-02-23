@@ -77,15 +77,15 @@ std::int64_t CAEAudioUtility::GetCurrentTimeInMilliseconds()
     return static_cast<std::int64_t> (value.count());
 }
 
-std::uint32_t CAEAudioUtility::ConvertFromBytesToMS(std::uint32_t a, std::uint32_t b, std::uint16_t c)
+std::uint32_t CAEAudioUtility::ConvertFromBytesToMS(std::uint32_t a, std::uint32_t frequency, std::uint16_t frequencyMult)
 {
-    return static_cast<std::uint32_t>(floorf(a / (b * c / 500.0f)));
+    return static_cast<std::uint32_t>(floorf(a / (frequency * frequencyMult / 500.0f)));
 }
 
-std::uint32_t CAEAudioUtility::ConvertFromMSToBytes(std::uint32_t a, std::uint32_t b, std::uint16_t c)
+std::uint32_t CAEAudioUtility::ConvertFromMSToBytes(std::uint32_t a, std::uint32_t frequency, std::uint16_t frequencyMult)
 {
-    const auto value = static_cast<uint32_t>(floorf(a * b * c / 500.0f));
-    return value + value % (2 * c);
+    const auto value = static_cast<uint32_t>(floorf(a * frequency * frequencyMult / 500.0f));
+    return value + value % (2 * frequencyMult);
 }
 
 void CAEAudioUtility::StaticInitialise(void)

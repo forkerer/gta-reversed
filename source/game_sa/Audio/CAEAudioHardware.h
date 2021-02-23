@@ -1,4 +1,6 @@
 #pragma once
+#include "dsound.h"
+
 #include "CAESoundManager.h"
 #include "PluginBase.h"
 #include "CVector.h"
@@ -25,37 +27,6 @@ union CAEAudioHardwarePlayFlags
         uint16_t m_bUnpausable : 1;
     };
 };
-
-// DirectSound8 structure
-struct DSCAPS
-{
-    uint32_t dwSize;
-    uint32_t dwFlags;
-    uint32_t dwMinSecondarySampleRate;
-    uint32_t dwMaxSecondarySampleRate;
-    uint32_t dwPrimaryBuffers;
-    uint32_t dwMaxHwMixingAllBuffers;
-    uint32_t dwMaxHwMixingStaticBuffers;
-    uint32_t dwMaxHwMixingStreamingBuffers;
-    uint32_t dwFreeHwMixingAllBuffers;
-    uint32_t dwFreeHwMixingStaticBuffers;
-    uint32_t dwFreeHwMixingStreamingBuffers;
-    uint32_t dwMaxHw3DAllBuffers;
-    uint32_t dwMaxHw3DStaticBuffers;
-    uint32_t dwMaxHw3DStreamingBuffers;
-    uint32_t dwFreeHw3DAllBuffers;
-    uint32_t dwFreeHw3DStaticBuffers;
-    uint32_t dwFreeHw3DStreamingBuffers;
-    uint32_t dwTotalHwMemBytes;
-    uint32_t dwFreeHwMemBytes;
-    uint32_t dwMaxContigFreeHwMemBytes;
-    uint32_t dwUnlockTransferRateHwBuffers;
-    uint32_t dwPlayCpuOverheadSwBuffers;
-    uint32_t dwReserved1;
-    uint32_t dwReserved2;
-};
-VALIDATE_SIZE(DSCAPS, 0x60);
-
 
 class CAEAudioHardware
 {
@@ -95,11 +66,11 @@ public:
     float    m_fBassEqGain;
     struct CAEMP3BankLoader* m_pMP3BankLoader;
     void*                    m_pMP3TrackLoader;
-    struct IDirectSound8*    m_pDirectSound;
+    IDirectSound8*    m_pDirectSound;
     void*                    m_dwSpeakerConfig;
     void*                    m_n3dEffectsQueryResult;
     DSCAPS                   m_dsCaps;
-    struct IDirectSound3DListener* m_pDirectSound3dListener;
+    IDirectSound3DListener* m_pDirectSound3dListener;
     void*                          m_pStreamingChannel;
     struct CAEStreamThread*        m_pStreamThread;
     uint8_t  gapE14[76];
