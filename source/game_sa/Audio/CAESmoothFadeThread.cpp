@@ -15,11 +15,23 @@ void CAESmoothFadeThread::InjectHooks()
     ReversibleHooks::Install("CAESmoothFadeThread", "SmoothFadeProc", 0x4EEE90, &CAESmoothFadeThread::SmoothFadeProc);
 }
 
+CAESmoothFadeThread::CAESmoothFadeThread()
+{
+    m_threadHandle = (HANDLE)-1;
+    m_dwThreadId = 0;
+    m_bThreadCreated = false;
+    m_bActive = false;
+    m_wUnkn = 0;
+    m_wUnkn2 = 0;
+    m_nLastServiceTime = 0;
+    m_nUnused = 0;
+}
+
 void CAESmoothFadeThread::Initialise()
 {
     CAESmoothFadeThread::InitialiseRequestSlots();
     m_threadHandle = CreateThread(nullptr, 0, &CAESmoothFadeThread::SmoothFadeProc, this, CREATE_SUSPENDED, &m_dwThreadId);
-    if (m_threadHandle == (HANDLE)0xFFFFFFFF)
+    if (m_threadHandle == (HANDLE)-1)
         m_bThreadCreated = false;
     else
     {
