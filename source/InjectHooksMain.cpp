@@ -9,6 +9,7 @@
 #include "CAEMFDecoder.h"
 #include "CAESmoothFadeThread.h"
 #include "CAESoundManager.h"
+#include "CAEStaticChannel.h"
 #include "CAEVorbisDecoder.h"
 #include "CAEWaveDecoder.h"
 #include "CAEWMADecoder.h"
@@ -224,6 +225,7 @@ void InjectHooksMain(void)
     CAEAudioEnvironment::InjectHooks();
     CAEAudioUtility::InjectHooks();
     CAEAudioChannel::InjectHooks();
+    CAEStaticChannel::InjectHooks();
     CAESmoothFadeThread::InjectHooks();
     CAEDataStream::InjectHooks();
     CAEStreamingDecoder::InjectHooks();

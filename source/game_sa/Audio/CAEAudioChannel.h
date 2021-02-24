@@ -7,12 +7,12 @@
 class CAEAudioChannel
 {
 public:
-    CAEAudioChannel(unsigned short, unsigned int, unsigned short);
+    CAEAudioChannel(IDirectSound* pDirectSound, unsigned short channelId, unsigned int samplesPerSec, unsigned short bitsPerSample);
     virtual ~CAEAudioChannel();
 
 public:
     IDirectSound* m_pDirectSound;
-    IDirectSoundBuffer8* m_pDirectSoundBuffer;
+    IDirectSoundBuffer* m_pDirectSoundBuffer;
     IDirectSound3DBuffer* m_pDirectSound3DBuffer;
     uint8_t gap10[24];
     uint32_t m_dwFlags;
@@ -21,7 +21,7 @@ public:
     float m_fVolume;
     bool m_bNoScalingFactor;
     uint8_t field_39;
-    uint16_t field_3A;
+    uint16_t m_nChannelId;
     uint32_t m_dwFrequency;
     uint32_t m_dwOriginalFrequency;
     bool m_bLooped;
@@ -49,6 +49,9 @@ public:
     virtual void Stop() = 0;
     virtual void SetFrequencyScalingFactor(float factor);
 
+private:
+    void SetFrequencyScalingFactor_Reversed(float factor);
+
 public:
     static void InjectHooks();
 
@@ -65,6 +68,8 @@ public:
 
 // Methods not in android IDB
     bool Lost();
+
+// Those 2 require DirectSound EAX 4.0 extensions or some alternative to be available in project
     bool SetReverbAndDepth(uint32_t reverb, uint32_t depth);
     void SetNotInRoom(uint8_t type); // 0 - frontend, 1 - world
 };
