@@ -1,7 +1,8 @@
 #include "StdInc.h"
 #include "CAEAudioChannel.h"
-
 #include "CAEAudioUtility.h"
+
+uint32_t& g_numSoundChannelsUsed = *(uint32_t*)0xB5F898;
 
 void CAEAudioChannel::InjectHooks()
 {

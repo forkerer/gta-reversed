@@ -11,16 +11,16 @@ enum eSmoothFadeEntryStatus : uint32_t
 };
 struct tSmoothFadeEntry
 {
-    IDirectSoundBuffer8* m_pSoundBuffer;
-    float m_fStartVolume;
-    float m_fTargetVolume;
-    float m_fVolumeDiff;
-    float m_fCurVolume;
-    bool m_bUnkn;
-    uint8_t _pad;
-    uint16_t m_wFadeSteps;
+    IDirectSoundBuffer*    m_pSoundBuffer;
+    float                  m_fStartVolume;
+    float                  m_fTargetVolume;
+    float                  m_fVolumeDiff;
+    float                  m_fCurVolume;
+    bool                   m_bStopBufferAfterFade;
+    uint8_t               _pad;
+    uint16_t               m_wFadeTime;
     eSmoothFadeEntryStatus m_nStatus;
-    uint32_t m_nCreationTime;
+    uint32_t               m_nStartTime;
 };
 VALIDATE_SIZE(tSmoothFadeEntry, 0x20);
 
@@ -45,7 +45,7 @@ public:
     uint32_t m_nLastServiceTime;
     bool m_bThreadInvalid;
     uint8_t pad2[3];
-    uint32_t m_nNumBuffers;
+    uint32_t m_nNumAvailableBuffers;
 
 public:
     static void InjectHooks();
@@ -57,7 +57,7 @@ public:
     void WaitForExit();
     void Service();
     void CancelFade(IDirectSoundBuffer* buffer);
-    bool RequestFade(IDirectSoundBuffer* buffer, float fVolume, int arg3, int arg4);
+    bool RequestFade(IDirectSoundBuffer* buffer, float fTargetVolume, short fadeTime, bool bStopBufferAfterFade);
     void SetBufferVolume(IDirectSoundBuffer* buffer, float volume);
 
 public:

@@ -70,3 +70,5 @@ public:
 };
 #pragma pack(pop)
 VALIDATE_SIZE(CAEAudioChannel, 0x60);
+
+extern uint32_t& g_numSoundChannelsUsed;
