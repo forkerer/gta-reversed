@@ -317,7 +317,7 @@ void CAESound::CalculateVolume()
 
 void CAESound::Initialise(short bankSlotId, short sfxId, CAEAudioEntity *baseAudio, CVector posn,
     float volume, float maxDistance, float speed, float timeScale,
-    unsigned char arg9, unsigned short environmentFlags, float speedVariability,
+    unsigned char ignoredServiceCycles, unsigned short environmentFlags, float speedVariability,
     short currPlayPosn)
 {
     CAESound::UnregisterWithPhysicalEntity();
@@ -338,7 +338,7 @@ void CAESound::Initialise(short bankSlotId, short sfxId, CAEAudioEntity *baseAud
     m_nHasStarted = 0;
     m_nPlayingState = eSoundState::SOUND_ACTIVE;
     m_fSoundHeadRoom = 0.0F;
-    m_nIgnoredServiceCycles = arg9;
+    m_nIgnoredServiceCycles = ignoredServiceCycles;
     m_nEnvironmentFlags = environmentFlags;
     m_nIsUsed = 1;
     m_nCurrentPlayPosition = currPlayPosn;
