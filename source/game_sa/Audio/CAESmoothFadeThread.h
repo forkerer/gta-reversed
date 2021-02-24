@@ -45,7 +45,7 @@ public:
     uint32_t m_nLastServiceTime;
     bool m_bThreadInvalid;
     uint8_t pad2[3];
-    uint32_t m_nUnused;
+    uint32_t m_nNumBuffers;
 
 public:
     static void InjectHooks();

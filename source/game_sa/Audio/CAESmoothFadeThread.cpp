@@ -24,7 +24,7 @@ CAESmoothFadeThread::CAESmoothFadeThread()
     m_wUnkn = 0;
     m_wUnkn2 = 0;
     m_nLastServiceTime = 0;
-    m_nUnused = 0;
+    m_nNumBuffers = 0;
 }
 
 void CAESmoothFadeThread::Initialise()
