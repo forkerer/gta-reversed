@@ -123,7 +123,7 @@ public:
     void SetPosition(CVector vecPos);
     void CalculateVolume();
     void Initialise(short bankSlotId, short sfxId, CAEAudioEntity *baseAudio, CVector posn,
-        float volume, float maxDistance, float speed, float timeScale, unsigned char arg9,
+        float volume, float maxDistance, float speed, float timeScale, unsigned char ignoredServiceCycles,
         unsigned short environmentFlags, float speedVariability, short currPlayPosn);
     void UpdateParameters(short curPlayPos);
     void SoundHasFinished();
