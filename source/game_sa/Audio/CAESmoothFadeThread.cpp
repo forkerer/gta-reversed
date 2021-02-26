@@ -164,7 +164,7 @@ bool CAESmoothFadeThread::RequestFade(IDirectSoundBuffer* buffer, float fTargetV
 
     bool bFound = false;
     int iFreeInd = -1;
-    for (auto i = 0; i< m_nNumAvailableBuffers; ++i)
+    for (uint32_t i = 0; i < m_nNumAvailableBuffers; ++i)
     {
         auto& sound = m_aEntries[i];
         if (sound.m_nStatus == eSmoothFadeEntryStatus::STATE_INACTIVE && !bFound)
